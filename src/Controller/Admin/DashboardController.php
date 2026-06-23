@@ -15,16 +15,16 @@ use Symfony\Component\HttpFoundation\Response;
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
 {
+    
     public function __construct(
         private readonly DanseurRepository $danseurRepository,
         private readonly CoursRepository $coursRepository,
         private readonly InscriptionRepository $inscriptionRepository,
-    ) {
-    }
+    ) {}
 
     public function index(): Response
     {
-        // Calcul des statistiques
+        // 1. Récupération des données en Base
         $totalDanseurs = $this->danseurRepository->count([]);
         $totalCours = $this->coursRepository->count([]);
         $totalInscriptions = $this->inscriptionRepository->count([]);
@@ -32,14 +32,14 @@ class DashboardController extends AbstractDashboardController
         $dossiersEnAttente = $this->inscriptionRepository->count([
             'statutDossier' => StatutDossier::EN_ATTENTE
         ]);
-
-        // Récupération des 5 dernières inscriptions (triées par ID décroissant)
+        
         $dernieresInscriptions = $this->inscriptionRepository->findBy(
-            [], 
-            ['id' => 'DESC'], 
+            [],
+            ['id' => 'DESC'],
             5
         );
 
+        // 2. Envoi au template avec les clés EXACTES attendues par le fichier Twig
         return $this->render('admin/dashboard.html.twig', [
             'total_danseurs' => $totalDanseurs,
             'total_cours' => $totalCours,
@@ -52,7 +52,10 @@ class DashboardController extends AbstractDashboardController
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('Studio Danse 430 — Administration');
+            ->setTitle('Studio Danse 430 — Administration')
+            ->setFaviconPath('favicon.ico')
+            // On utilise le domaine de traduction natif d'EasyAdmin pour avoir les boutons de base en français
+            ->setTranslationDomain('EasyAdminBundle');
     }
 
     public function configureMenuItems(): iterable
@@ -67,8 +70,6 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Activités');
         yield MenuItem::linkTo(CoursCrudController::class, 'Cours', 'fa fa-music');
         yield MenuItem::linkTo(InscriptionCrudController::class, 'Inscriptions', 'fa fa-file-signature');
-
-        yield MenuItem::section('Événements');
         yield MenuItem::linkTo(GalaCrudController::class, 'Galas', 'fa fa-star');
         yield MenuItem::linkTo(SalleCrudController::class, 'Salles', 'fa fa-location-dot');
     }

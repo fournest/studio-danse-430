@@ -2,7 +2,8 @@
 
 {% block content_title %}Tableau de bord{% endblock %}
 
-{% block page_content %}
+{% block main %}
+    {# Chargement sécurisé de Tailwind v3 sans écraser le CSS natif d'EasyAdmin #}
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -12,203 +13,125 @@
       }
     </script>
 
-    <div class="bg-black text-white rounded-2xl overflow-hidden shadow-2xl border border-[#FFD700]/30 flex flex-col font-sans min-h-screen">
+    <div class="space-y-8 font-sans text-white p-2">
         
-        {# HEADER #}
-        <header class="bg-black border-b border-[#FFD700]/30 px-4 sm:px-6 py-3">
-            <div class="flex items-center justify-between">
-                <a href="{{ path('app_home') }}" class="flex items-center gap-3">
-                    <img src="{{ asset('images/logo.studio-danse-430.jpg') }}"
-                         alt="Logo Studio Danse 430"
-                         class="h-10 w-auto object-contain rounded shadow-sm">
-                    <span class="hidden sm:inline text-lg sm:text-xl font-extrabold tracking-tight text-[#FFD700]">
-                        Studio Danse 430
-                    </span>
-                </a>
-
-                <nav class="flex items-center gap-1 sm:gap-2">
-                    {% set nav_links = [
-                        { route: 'app_home', label: 'Accueil' },
-                        { route: 'app_cours_index', label: 'Les cours' },
-                        { route: 'app_gala_reservation', label: 'Gala' },
-                        { route: 'app_inscription', label: 'Inscription' }
-                    ] %}
-                    {% for link in nav_links %}
-                        {% set is_active = app.request.attributes.get('_route') starts with (link.route) %}
-                        <a href="{{ path(link.route) }}"
-                           class="px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors duration-200
-                                  {{ is_active ? 'text-[#FFD700]' : 'text-white hover:text-[#FFD700]' }}">
-                            {{ link.label }}
-                        </a>
-                    {% endfor %}
-
-                    {% if is_granted('ROLE_ADMIN') %}
-                        <a href="{{ path('admin') }}"
-                           class="ml-1 sm:ml-2 inline-flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm font-semibold
-                                  bg-[#FFD700] text-black border border-[#FFD700] rounded-full shadow-sm cursor-default">
-                            <i class="fa fa-cogs"></i>
-                            <span class="hidden sm:inline">Administration</span>
-                        </a>
-                    {% endif %}
-
-                    {% if app.user %}
-                        <a href="{{ path('app_logout') }}"
-                           class="ml-1 sm:ml-2 inline-flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm font-semibold
-                                  text-[#FFD700] border border-[#FFD700] rounded-full
-                                  hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
-                            <i class="fa fa-right-from-bracket"></i>
-                            <span class="hidden sm:inline">Déconnexion</span>
-                        </a>
-                    {% endif %}
-                </nav>
-            </div>
-        </header>
-
-        {# CONTENT #}
-        <div class="p-6 sm:p-8 flex-1">
-            {# KPIs #}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                <div class="bg-[#111111] border border-[#FFD700]/30 rounded-xl p-6 shadow-lg flex items-center transition-all duration-200 hover:-translate-y-1 hover:border-[#FFD700]">
-                    <div class="bg-[#FFD700]/10 text-[#FFD700] w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-5 shrink-0">
-                        <i class="fa-solid fa-person-walking"></i>
-                    </div>
-                    <div>
-                        <h3 class="m-0 text-sm uppercase tracking-wider text-white/70 font-semibold">Total Danseurs</h3>
-                        <p class="m-0 mt-1 text-3xl font-extrabold text-[#FFD700] leading-none">{{ total_danseurs }}</p>
-                    </div>
+        {# ========================================== #}
+        {# GRILLE DES CARTES KPI (Statistiques)       #}
+        {# ========================================== #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {# Carte: Danseurs #}
+            <div class="bg-[#111111] border border-[#FFD700]/30 rounded-xl p-6 shadow-lg flex items-center transition-all duration-200 hover:-translate-y-1 hover:border-[#FFD700]">
+                <div class="bg-[#FFD700]/10 text-[#FFD700] w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-5 shrink-0">
+                    <i class="fa-solid fa-person-walking"></i>
                 </div>
-
-                <div class="bg-[#111111] border border-[#FFD700]/30 rounded-xl p-6 shadow-lg flex items-center transition-all duration-200 hover:-translate-y-1 hover:border-[#FFD700]">
-                    <div class="bg-[#FFD700]/10 text-[#FFD700] w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-5 shrink-0">
-                        <i class="fa-solid fa-music"></i>
-                    </div>
-                    <div>
-                        <h3 class="m-0 text-sm uppercase tracking-wider text-white/70 font-semibold">Total Cours</h3>
-                        <p class="m-0 mt-1 text-3xl font-extrabold text-[#FFD700] leading-none">{{ total_cours }}</p>
-                    </div>
-                </div>
-
-                <div class="bg-[#111111] border border-[#FFD700]/30 rounded-xl p-6 shadow-lg flex items-center transition-all duration-200 hover:-translate-y-1 hover:border-[#FFD700]">
-                    <div class="bg-[#FFD700]/10 text-[#FFD700] w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-5 shrink-0">
-                        <i class="fa-solid fa-file-signature"></i>
-                    </div>
-                    <div>
-                        <h3 class="m-0 text-sm uppercase tracking-wider text-white/70 font-semibold">Inscriptions</h3>
-                        <p class="m-0 mt-1 text-3xl font-extrabold text-[#FFD700] leading-none">{{ total_inscriptions }}</p>
-                    </div>
-                </div>
-
-                <div class="bg-[#111111] border rounded-xl p-6 shadow-lg flex items-center transition-all duration-200 hover:-translate-y-1 hover:border-[#FFD700] {% if dossiers_en_attente > 0 %}border-[#FFD700]{% else %}border-[#FFD700]/30{% endif %}">
-                    <div class="bg-[#FFD700]/10 text-[#FFD700] w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-5 shrink-0">
-                        <i class="fa-solid fa-clock-rotate-left"></i>
-                    </div>
-                    <div>
-                        <h3 class="m-0 text-sm uppercase tracking-wider text-white/70 font-semibold">Dossiers en attente</h3>
-                        <p class="m-0 mt-1 text-3xl font-extrabold text-[#FFD700] leading-none">{{ dossiers_en_attente }}</p>
-                    </div>
+                <div>
+                    <h3 class="m-0 text-sm uppercase tracking-wider text-white/70 font-semibold">Total Danseurs</h3>
+                    <p class="m-0 mt-1 text-3xl font-extrabold text-[#FFD700] leading-none">{{ total_danseurs }}</p>
                 </div>
             </div>
 
-            {# RECENT ACTIVITY #}
-            <div class="bg-[#111111] border border-[#FFD700]/30 rounded-xl overflow-hidden shadow-lg">
-                <div class="p-5 border-b border-[#FFD700]/15 flex items-center gap-3">
-                    <i class="fa-solid fa-bolt text-[#FFD700] text-xl"></i>
-                    <h2 class="m-0 text-xl text-[#FFD700] font-bold">Activité récente : Dernières inscriptions</h2>
+            {# Carte: Cours #}
+            <div class="bg-[#111111] border border-[#FFD700]/30 rounded-xl p-6 shadow-lg flex items-center transition-all duration-200 hover:-translate-y-1 hover:border-[#FFD700]">
+                <div class="bg-[#FFD700]/10 text-[#FFD700] w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-5 shrink-0">
+                    <i class="fa-solid fa-music"></i>
                 </div>
-                
-                {% if dernieres_inscriptions is empty %}
-                    <div class="p-12 text-center text-white/50">
-                        <i class="fa-solid fa-inbox fa-3x mb-4 text-[#FFD700]/40"></i>
-                        <p class="text-lg">Aucune inscription enregistrée pour le moment.</p>
-                    </div>
-                {% else %}
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-white border-collapse">
-                            <thead class="bg-black/60 text-white/60 uppercase text-xs tracking-wide">
-                                <tr>
-                                    <th class="p-4 font-semibold border-b border-[#FFD700]/15">Danseur</th>
-                                    <th class="p-4 font-semibold border-b border-[#FFD700]/15">Cours</th>
-                                    <th class="p-4 font-semibold border-b border-[#FFD700]/15">Saison</th>
-                                    <th class="p-4 font-semibold border-b border-[#FFD700]/15">Statut Dossier</th>
-                                    <th class="p-4 font-semibold border-b border-[#FFD700]/15 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for inscription in dernieres_inscriptions %}
-                                    <tr class="hover:bg-[#FFD700]/5 transition-colors group">
-                                        <td class="p-4 border-b border-white/5 align-middle font-semibold group-last:border-0">
-                                            {{ inscription.danseur.prenom }} {{ inscription.danseur.nom }}
-                                        </td>
-                                        <td class="p-4 border-b border-white/5 align-middle group-last:border-0">
-                                            {{ inscription.cours.nom }}
-                                        </td>
-                                        <td class="p-4 border-b border-white/5 align-middle text-white/60 group-last:border-0">
-                                            {{ inscription.saison }}
-                                        </td>
-                                        <td class="p-4 border-b border-white/5 align-middle group-last:border-0">
-                                            {{ inscription.statutDossier.value }}
-                                        </td>
-                                        <td class="p-4 border-b border-white/5 align-middle text-right group-last:border-0">
-                                            {% set edit_url = ea_url()
-                                                .setController('App\\Controller\\Admin\\InscriptionCrudController')
-                                                .setAction('edit')
-                                                .setEntityId(inscription.id)
-                                            %}
-                                            <a href="{{ edit_url }}" class="inline-flex items-center gap-2 bg-transparent text-[#FFD700] border border-[#FFD700] px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide hover:bg-[#FFD700] hover:text-black transition-colors">
-                                                <i class="fa-solid fa-pen-to-square"></i> Consulter
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% endif %}
+                <div>
+                    <h3 class="m-0 text-sm uppercase tracking-wider text-white/70 font-semibold">Total Cours</h3>
+                    <p class="m-0 mt-1 text-3xl font-extrabold text-[#FFD700] leading-none">{{ total_cours }}</p>
+                </div>
+            </div>
+
+            {# Carte: Inscriptions #}
+            <div class="bg-[#111111] border border-[#FFD700]/30 rounded-xl p-6 shadow-lg flex items-center transition-all duration-200 hover:-translate-y-1 hover:border-[#FFD700]">
+                <div class="bg-[#FFD700]/10 text-[#FFD700] w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-5 shrink-0">
+                    <i class="fa-solid fa-file-signature"></i>
+                </div>
+                <div>
+                    <h3 class="m-0 text-sm uppercase tracking-wider text-white/70 font-semibold">Inscriptions</h3>
+                    <p class="m-0 mt-1 text-3xl font-extrabold text-[#FFD700] leading-none">{{ total_inscriptions }}</p>
+                </div>
+            </div>
+
+            {# Carte: Dossiers en attente #}
+            <div class="bg-[#111111] border rounded-xl p-6 shadow-lg flex items-center transition-all duration-200 hover:-translate-y-1 {% if dossiers_en_attente > 0 %}border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]{% else %}border-[#FFD700]/30 hover:border-[#FFD700]{% endif %}">
+                <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-5 shrink-0 {% if dossiers_en_attente > 0 %}bg-amber-500/10 text-amber-500{% else %}bg-[#FFD700]/10 text-[#FFD700]{% endif %}">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                    <h3 class="m-0 text-sm uppercase tracking-wider text-white/70 font-semibold">Dossiers en attente</h3>
+                    <p class="m-0 mt-1 text-3xl font-extrabold leading-none {% if dossiers_en_attente > 0 %}text-amber-500{% else %}text-[#FFD700]{% endif %}">{{ dossiers_en_attente }}</p>
+                </div>
             </div>
         </div>
 
-        {# FOOTER #}
-        <footer class="bg-[#FFD700] text-black mt-auto">
-            <div class="px-6 py-10">
-                <div class="grid gap-10 md:grid-cols-3">
-                    <div>
-                        <h3 class="text-xl font-extrabold mb-3">Studio Danse 430</h3>
-                        <p class="text-sm text-black/80 leading-relaxed pr-4">
-                            École de danse depuis 1976. Passion, exigence et convivialité
-                            au service de tous les danseurs, débutants comme confirmés.
-                        </p>
-                    </div>
-
-                    <div>
-                        <h4 class="text-lg font-bold mb-3">Navigation</h4>
-                        <ul class="space-y-2 text-sm font-semibold">
-                            <li><a href="{{ path('app_home') }}" class="hover:underline">Accueil</a></li>
-                            <li><a href="{{ path('app_cours_index') }}" class="hover:underline">Les cours</a></li>
-                            <li><a href="{{ path('app_gala_reservation') }}" class="hover:underline">Réserver le Gala</a></li>
-                            <li><a href="{{ path('app_inscription') }}" class="hover:underline">Inscription</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 class="text-lg font-bold mb-3">Suivez-nous</h4>
-                        <div class="bg-black/5 rounded-lg p-2 inline-block shadow-sm">
-                            <iframe
-                                title="Page Facebook Studio Danse 430"
-                                src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fstudiodanse430&tabs=timeline&width=280&height=130&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false"
-                                width="280" height="130"
-                                style="border:none;overflow:hidden; border-radius: 4px;"
-                                scrolling="no" frameborder="0" allowfullscreen="true"
-                                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
-                            </iframe>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-8 pt-5 border-t border-black/20 text-center text-xs font-semibold">
-                    &copy; {{ "now"|date("Y") }} Studio Danse 430 &mdash; Tableau de bord d'administration.
-                </div>
+        {# ========================================== #}
+        {# TABLEAU DE L'ACTIVITÉ RÉCENTE             #}
+        {# ========================================== #}
+        <div class="bg-[#111111] border border-[#FFD700]/30 rounded-xl overflow-hidden shadow-lg">
+            <div class="p-5 border-b border-[#FFD700]/15 flex items-center gap-3">
+                <i class="fa-solid fa-bolt text-[#FFD700] text-xl"></i>
+                <h2 class="m-0 text-xl text-[#FFD700] font-bold">Activité récente : Dernières inscriptions</h2>
             </div>
-        </footer>
-
+            
+            {% if dernieres_inscriptions is empty %}
+                <div class="p-12 text-center text-white/50">
+                    <i class="fa-solid fa-inbox fa-3x mb-4 text-[#FFD700]/40"></i>
+                    <p class="text-lg">Aucune inscription enregistrée pour le moment.</p>
+                </div>
+            {% else %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-white border-collapse">
+                        <thead class="bg-black/60 text-white/60 uppercase text-xs tracking-wide">
+                            <tr>
+                                <th class="p-4 font-semibold border-b border-[#FFD700]/15">Danseur</th>
+                                <th class="p-4 font-semibold border-b border-[#FFD700]/15">Cours</th>
+                                <th class="p-4 font-semibold border-b border-[#FFD700]/15">Saison</th>
+                                <th class="p-4 font-semibold border-b border-[#FFD700]/15">Statut Dossier</th>
+                                <th class="p-4 font-semibold border-b border-[#FFD700]/15 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inscription in dernieres_inscriptions %}
+                                <tr class="hover:bg-[#FFD700]/5 transition-colors group">
+                                    <td class="p-4 border-b border-white/5 align-middle font-semibold group-last:border-0">
+                                        {{ inscription.danseur.prenom }} {{ inscription.danseur.nom }}
+                                    </td>
+                                    <td class="p-4 border-b border-white/5 align-middle group-last:border-0">
+                                        {{ inscription.cours.nom }}
+                                    </td>
+                                    <td class="p-4 border-b border-white/5 align-middle text-white/60 group-last:border-0">
+                                        {{ inscription.saison }}
+                                    </td>
+                                    <td class="p-4 border-b border-white/5 align-middle group-last:border-0">
+                                        {% set s = inscription.statutDossier.value %}
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase 
+                                            {% if s == 'En attente' %}
+                                                bg-amber-500/15 text-amber-300 border border-amber-500/30
+                                            {% elseif s == 'Incomplet' %}
+                                                bg-rose-500/15 text-rose-300 border border-rose-500/30
+                                            {% else %}
+                                                bg-emerald-500/15 text-emerald-300 border border-emerald-500/30
+                                            {% endif %}">
+                                            {{ s }}
+                                        </span>
+                                    </td>
+                                    <td class="p-4 border-b border-white/5 align-middle text-right group-last:border-0">
+                                        {% set edit_url = ea_url()
+                                            .setController('App\\Controller\\Admin\\InscriptionCrudController')
+                                            .setAction('edit')
+                                            .setEntityId(inscription.id)
+                                        %}
+                                        <a href="{{ edit_url }}" class="inline-flex items-center gap-2 bg-transparent text-[#FFD700] border border-[#FFD700] px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide hover:bg-[#FFD700] hover:text-black transition-colors">
+                                            <i class="fa-solid fa-pen-to-square"></i> Consulter
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
     </div>
 {% endblock %}

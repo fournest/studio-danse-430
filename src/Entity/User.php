@@ -65,4 +65,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
         return $this;
     }
+    /**
+     * @return string
+     */
+    public function __toString(): string
+    {
+        // On retourne l'email qui est une chaîne de caractères unique
+        return $this->email ?? 'Utilisateur sans email';
+    }
 }
