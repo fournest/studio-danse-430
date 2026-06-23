@@ -1,0 +1,58 @@
+<?php
+namespace App\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity]
+class Inscription
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\ManyToOne(targetEntity: Danseur::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private Danseur $danseur;
+
+    #[ORM\ManyToOne(targetEntity: Cours::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private Cours $cours;
+
+    #[ORM\Column(length: 20)]
+    private string $saison;
+
+    #[ORM\Column(enumType: StatutDossier::class)]
+    private StatutDossier $statutDossier;
+
+    #[ORM\Column(nullable: true)]
+    private ?string $certificatMedical = null;
+
+    #[ORM\Column(enumType: StatutPaiement::class)]
+    private StatutPaiement $statutPaiement;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $modePaiement = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $helloAssoPaymentId = null;
+
+    // Getters/Setters
+    public function getId(): ?int { return $this->id; }
+    public function getDanseur(): Danseur { return $this->danseur; }
+    public function setDanseur(Danseur $danseur): self { $this->danseur = $danseur; return $this; }
+    public function getCours(): Cours { return $this->cours; }
+    public function setCours(Cours $cours): self { $this->cours = $cours; return $this; }
+    public function getSaison(): string { return $this->saison; }
+    public function setSaison(string $saison): self { $this->saison = $saison; return $this; }
+    public function getStatutDossier(): StatutDossier { return $this->statutDossier; }
+    public function setStatutDossier(StatutDossier $statutDossier): self { $this->statutDossier = $statutDossier; return $this; }
+    public function getCertificatMedical(): ?string { return $this->certificatMedical; }
+    public function setCertificatMedical(?string $certificatMedical): self { $this->certificatMedical = $certificatMedical; return $this; }
+    public function getStatutPaiement(): StatutPaiement { return $this->statutPaiement; }
+    public function setStatutPaiement(StatutPaiement $statutPaiement): self { $this->statutPaiement = $statutPaiement; return $this; }
+    public function getModePaiement(): ?string { return $this->modePaiement; }
+    public function setModePaiement(?string $modePaiement): self { $this->modePaiement = $modePaiement; return $this; }
+    public function getHelloAssoPaymentId(): ?string { return $this->helloAssoPaymentId; }
+    public function setHelloAssoPaymentId(?string $helloAssoPaymentId): self { $this->helloAssoPaymentId = $helloAssoPaymentId; return $this; }
+}

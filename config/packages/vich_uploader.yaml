@@ -1,0 +1,11 @@
+vich_uploader:
+    db_driver: orm
+    metadata:
+        type: attribute
+
+    # Définis tes mappings d'upload ici. Exemple :
+    # mappings:
+    #     produits:
+    #         uri_prefix: /uploads/produits
+    #         upload_destination: '%kernel.project_dir%/public/uploads/produits'
+    #         namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
