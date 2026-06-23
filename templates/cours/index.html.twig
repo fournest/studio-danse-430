@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nos cours - Studio Danse 430{% endblock %}
+
+{% block body %}
+    <section class="bg-black py-16 border-b border-[#FFD700]/20">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-[#FFD700] mb-4">Tous nos cours</h1>
+            <p class="text-lg text-white/80 max-w-2xl mx-auto">
+                Découvrez l'ensemble de notre planning hebdomadaire et trouvez le cours qui vous correspond.
+            </p>
+        </div>
+    </section>
+
+    <section class="bg-black py-16">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            {% if cours is empty %}
+                <div class="text-center py-20 border border-[#FFD700]/30 rounded-2xl">
+                    <p class="text-xl text-white/70">Aucun cours n'est disponible pour le moment.</p>
+                    <p class="text-white/50 mt-2">Revenez bientôt, le planning sera mis à jour.</p>
+                </div>
+            {% else %}
+                <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                    {% for c in cours %}
+                        <article class="flex flex-col bg-black border border-[#FFD700] rounded-2xl p-6 hover:shadow-[0_0_25px_rgba(255,215,0,0.25)] hover:-translate-y-1 transition duration-200">
+                            <div class="flex items-start justify-between gap-3 mb-4">
+                                <h2 class="text-xl font-bold text-white">{{ c.nom }}</h2>
+                                <span class="shrink-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#FFD700] text-black">
+                                    {{ c.jour }}
+                                </span>
+                            </div>
+
+                            <ul class="space-y-2 text-sm text-white/80 flex-1">
+                                <li class="flex items-center gap-2">
+                                    <span class="text-[#FFD700]">&#9733;</span> Horaire : {{ c.heure|date('H\\hi') }}
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <span class="text-[#FFD700]">&#9733;</span> Professeur : {{ c.professeur }}
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <span class="text-[#FFD700]">&#9733;</span> Capacité : {{ c.capaciteMax }} danseurs
+                                </li>
+                            </ul>
+
+                            <div class="mt-6 flex items-center gap-3">
+                                <a href="{{ path('app_cours_show', { id: c.id }) }}"
+                                   class="flex-1 text-center px-4 py-2 bg-[#FFD700] text-black font-semibold rounded-full hover:bg-yellow-400 transition-colors duration-200">
+                                    En savoir plus
+                                </a>
+                                {% if c.whatsAppGroupLink %}
+                                    <a href="{{ c.whatsAppGroupLink }}" target="_blank" rel="noopener"
+                                       class="px-4 py-2 border border-[#FFD700] text-[#FFD700] font-semibold rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
+                                        WhatsApp
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

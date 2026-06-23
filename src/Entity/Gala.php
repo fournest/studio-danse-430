@@ -1,9 +1,10 @@
 <?php
 namespace App\Entity;
 
+use App\Repository\GalaRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: GalaRepository::class)]
 class Gala
 {
     #[ORM\Id]
@@ -39,4 +40,9 @@ class Gala
     public function setBilletwebEventId(?string $billetwebEventId): self { $this->billetwebEventId = $billetwebEventId; return $this; }
     public function getPlacesDisponibles(): int { return $this->placesDisponibles; }
     public function setPlacesDisponibles(int $placesDisponibles): self { $this->placesDisponibles = $placesDisponibles; return $this; }
+
+    public function __toString(): string
+    {
+        return $this->nom ?? 'Gala';
+    }
 }

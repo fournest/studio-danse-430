@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ cours.nom }} - Studio Danse 430{% endblock %}
+
+{% block body %}
+    <section class="bg-black py-16">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6">
+            <a href="{{ path('app_cours_index') }}"
+               class="inline-flex items-center gap-2 text-sm font-semibold text-[#FFD700] hover:underline mb-6">
+                &larr; Retour aux cours
+            </a>
+
+            <article class="bg-black border border-[#FFD700] rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.15)]">
+                <div class="p-8 border-b border-[#FFD700]/20">
+                    <h1 class="text-3xl font-extrabold text-[#FFD700]">{{ cours.nom }}</h1>
+                    <p class="mt-2 text-white/80">Animé par {{ cours.professeur }}</p>
+                </div>
+
+                <div class="p-8 grid gap-6 sm:grid-cols-2">
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Jour</p>
+                        <p class="text-lg text-white mt-1">{{ cours.jour }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Horaire</p>
+                        <p class="text-lg text-white mt-1">{{ cours.heure|date('H\\hi') }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Professeur</p>
+                        <p class="text-lg text-white mt-1">{{ cours.professeur }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Capacité</p>
+                        <p class="text-lg text-white mt-1">{{ cours.capaciteMax }} danseurs</p>
+                    </div>
+                </div>
+
+                <div class="px-8 pb-8 flex flex-wrap items-center gap-3">
+                    <a href="{{ path('app_inscription') }}"
+                       class="px-6 py-3 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200">
+                        S'inscrire à ce cours
+                    </a>
+                    {% if cours.whatsAppGroupLink %}
+                        <a href="{{ cours.whatsAppGroupLink }}" target="_blank" rel="noopener"
+                           class="px-6 py-3 border border-[#FFD700] text-[#FFD700] font-semibold rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
+                            Rejoindre le groupe WhatsApp
+                        </a>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+    </section>
+{% endblock %}

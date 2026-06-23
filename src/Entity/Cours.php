@@ -1,12 +1,12 @@
 <?php
 namespace App\Entity;
 
+use App\Repository\CoursRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: CoursRepository::class)]
 class Cours
 {
     #[ORM\Id]
@@ -32,6 +32,9 @@ class Cours
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $whatsappGroupLink = null;
 
+    /**
+     * @var Collection<int, Danseur>
+     */
     #[ORM\ManyToMany(targetEntity: Danseur::class, mappedBy: 'cours')]
     private Collection $danseurs;
 
@@ -54,13 +57,16 @@ class Cours
     public function setCapaciteMax(int $capaciteMax): self { $this->capaciteMax = $capaciteMax; return $this; }
     public function getWhatsAppGroupLink(): ?string { return $this->whatsappGroupLink; }
     public function setWhatsAppGroupLink(?string $whatsappGroupLink): self { $this->whatsappGroupLink = $whatsappGroupLink; return $this; }
+    /**
+     * @return Collection<int, Danseur>
+     */
     public function getDanseurs(): Collection { return $this->danseurs; }
 
     public function addDanseur(Danseur $danseur): static
     {
         if (!$this->danseurs->contains($danseur)) {
             $this->danseurs->add($danseur);
-            $danseur->addCour($this);
+            $danseur->addCours($this);
         }
 
         return $this;
@@ -69,9 +75,14 @@ class Cours
     public function removeDanseur(Danseur $danseur): static
     {
         if ($this->danseurs->removeElement($danseur)) {
-            $danseur->removeCour($this);
+            $danseur->removeCours($this);
         }
 
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->nom ?? 'Cours';
     }
 }

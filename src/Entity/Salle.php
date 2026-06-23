@@ -1,11 +1,12 @@
 <?php
 namespace App\Entity;
 
+use App\Repository\SalleRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: SalleRepository::class)]
 class Salle
 {
     #[ORM\Id]
@@ -22,6 +23,9 @@ class Salle
     #[ORM\Column]
     private int $capacite;
 
+    /**
+     * @var Collection<int, Gala>
+     */
     #[ORM\OneToMany(mappedBy: 'salle', targetEntity: Gala::class)]
     private Collection $galas;
 
@@ -38,6 +42,10 @@ class Salle
     public function setAdresse(string $adresse): self { $this->adresse = $adresse; return $this; }
     public function getCapacite(): int { return $this->capacite; }
     public function setCapacite(int $capacite): self { $this->capacite = $capacite; return $this; }
+
+    /**
+     * @return Collection<int, Gala>
+     */
     public function getGalas(): Collection { return $this->galas; }
 
     public function addGala(Gala $gala): self
@@ -55,5 +63,10 @@ class Salle
             // Ne rien faire, car la relation est non-nullable
         }
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->nom ?? 'Salle';
     }
 }

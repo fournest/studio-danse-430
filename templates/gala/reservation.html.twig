@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Réserver le Gala 2026 - Studio Danse 430{% endblock %}
+
+{% block body %}
+    <section class="relative overflow-hidden">
+        <div class="absolute inset-0 bg-black"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-black via-black/90 to-black"></div>
+
+        <div class="relative max-w-4xl mx-auto px-4 sm:px-6 py-24 text-center">
+            <span class="inline-block px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-[#FFD700] text-black mb-6">
+                Événement 2026
+            </span>
+            <h1 class="text-4xl sm:text-6xl font-extrabold text-[#FFD700] mb-6">
+                {{ gala ? gala.nom : 'Gala Annuel 2026' }}
+            </h1>
+            <p class="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
+                Le Studio Danse 430 a le plaisir de vous convier à son grand gala annuel,
+                un spectacle d'exception où nos danseurs vous offriront le meilleur de leur art.
+            </p>
+        </div>
+    </section>
+
+    <section class="bg-black pb-24">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6">
+            <div class="bg-black border border-[#FFD700] rounded-3xl p-8 sm:p-12 shadow-[0_0_40px_rgba(255,215,0,0.15)]">
+                <div class="grid gap-8 sm:grid-cols-2 mb-10">
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-[#FFD700] mb-3">Le lieu</h2>
+                        <p class="text-white/85 leading-relaxed">
+                            Rendez-vous à la <span class="text-[#FFD700] font-semibold">salle de la Boissière des Landes</span>,
+                            un écrin idéal pour accueillir ce moment unique, avec une scène à la hauteur
+                            de l'événement et un confort optimal pour tous les spectateurs.
+                        </p>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-[#FFD700] mb-3">Informations</h2>
+                        <ul class="space-y-2 text-white/85">
+                            {% if gala %}
+                                <li class="flex items-center gap-2">
+                                    <span class="text-[#FFD700]">&#9733;</span>
+                                    {{ gala.dateHeure|date('d/m/Y') }} à {{ gala.dateHeure|date('H\\hi') }}
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <span class="text-[#FFD700]">&#9733;</span>
+                                    {{ gala.salle.nom }} — {{ gala.salle.adresse }}
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <span class="text-[#FFD700]">&#9733;</span>
+                                    {% if gala.placesDisponibles > 0 %}
+                                        {{ gala.placesDisponibles }} place(s) encore disponible(s)
+                                    {% else %}
+                                        <span class="font-semibold text-[#FFD700]">Complet</span>
+                                    {% endif %}
+                                </li>
+                            {% else %}
+                                <li class="flex items-center gap-2">
+                                    <span class="text-[#FFD700]">&#9733;</span> Date communiquée prochainement
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <span class="text-[#FFD700]">&#9733;</span> Salle de la Boissière des Landes
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="text-center pt-6 border-t border-[#FFD700]/20">
+                    {% if gala and gala.billetwebEventId %}
+                        <a href="https://www.billetweb.fr/{{ gala.billetwebEventId }}" target="_blank" rel="noopener"
+                           class="inline-block px-10 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200 shadow-lg">
+                            Réserver sur BilletWeb
+                        </a>
+                    {% else %}
+                        <a href="https://www.billetweb.fr/" target="_blank" rel="noopener"
+                           class="inline-block px-10 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200 shadow-lg">
+                            Réserver sur BilletWeb
+                        </a>
+                        <p class="mt-4 text-sm text-white/50">La billetterie en ligne ouvrira prochainement.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

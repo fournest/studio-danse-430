@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ gala.nom }} - Studio Danse 430{% endblock %}
+
+{% block body %}
+    <section class="bg-black py-16">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6">
+            <a href="{{ path('app_gala_index') }}"
+               class="inline-flex items-center gap-2 text-sm font-semibold text-[#FFD700] hover:underline mb-6">
+                &larr; Retour aux galas
+            </a>
+
+            <article class="bg-black border border-[#FFD700] rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.15)]">
+                <div class="p-8 border-b border-[#FFD700]/20">
+                    <h1 class="text-3xl font-extrabold text-[#FFD700]">{{ gala.nom }}</h1>
+                    <p class="mt-2 text-white/80">
+                        {{ gala.dateHeure|date('d/m/Y') }} &agrave; {{ gala.dateHeure|date('H\\hi') }}
+                    </p>
+                </div>
+
+                <div class="p-8 grid gap-6 sm:grid-cols-2">
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Lieu</p>
+                        <p class="text-lg text-white mt-1">{{ gala.salle.nom }}</p>
+                        <p class="text-sm text-white/60">{{ gala.salle.adresse }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Places disponibles</p>
+                        {% if gala.placesDisponibles > 0 %}
+                            <p class="text-lg text-white mt-1">{{ gala.placesDisponibles }}</p>
+                        {% else %}
+                            <p class="text-lg font-semibold text-[#FFD700] mt-1">Complet</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="px-8 pb-8">
+                    {% if gala.billetwebEventId %}
+                        <a href="https://www.billetweb.fr/{{ gala.billetwebEventId }}" target="_blank" rel="noopener"
+                           class="inline-block px-6 py-3 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200">
+                            Réserver sur BilletWeb
+                        </a>
+                    {% else %}
+                        <a href="{{ path('app_gala_reservation') }}"
+                           class="inline-block px-6 py-3 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200">
+                            Infos réservation
+                        </a>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+    </section>
+{% endblock %}

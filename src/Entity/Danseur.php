@@ -1,12 +1,12 @@
 <?php
 namespace App\Entity;
 
+use App\Repository\DanseurRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: DanseurRepository::class)]
 class Danseur
 {
     #[ORM\Id]
@@ -27,6 +27,9 @@ class Danseur
     #[ORM\JoinColumn(nullable: false)]
     private User $parent;
 
+    /**
+     * @var Collection<int, Cours>
+     */
     #[ORM\ManyToMany(targetEntity: Cours::class, inversedBy: 'danseurs')]
     private Collection $cours;
 
@@ -45,7 +48,11 @@ class Danseur
     public function setDateNaissance(\DateTimeInterface $dateNaissance): self { $this->dateNaissance = $dateNaissance; return $this; }
     public function getParent(): User { return $this->parent; }
     public function setParent(User $parent): self { $this->parent = $parent; return $this; }
+    /**
+     * @return Collection<int, Cours>
+     */
     public function getCours(): Collection { return $this->cours; }
+
     public function addCours(Cours $cours): self
     {
         if (!$this->cours->contains($cours)) {
@@ -53,25 +60,15 @@ class Danseur
         }
         return $this;
     }
+
     public function removeCours(Cours $cours): self
     {
         $this->cours->removeElement($cours);
         return $this;
     }
 
-    public function addCour(Cours $cour): static
+    public function __toString(): string
     {
-        if (!$this->cours->contains($cour)) {
-            $this->cours->add($cour);
-        }
-
-        return $this;
-    }
-
-    public function removeCour(Cours $cour): static
-    {
-        $this->cours->removeElement($cour);
-
-        return $this;
+        return trim(($this->prenom ?? '') . ' ' . ($this->nom ?? '')) ?: 'Danseur';
     }
 }
