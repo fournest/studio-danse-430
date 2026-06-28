@@ -38,10 +38,13 @@ class Cours
     #[ORM\ManyToMany(targetEntity: Danseur::class, mappedBy: 'cours')]
     private Collection $danseurs;
 
+   
+
     public function __construct()
     {
         $this->danseurs = new ArrayCollection();
     }
+
 
     // Getters/Setters
     public function getId(): ?int { return $this->id; }
@@ -85,4 +88,5 @@ class Cours
     {
         return $this->nom ?? 'Cours';
     }
+  
 }

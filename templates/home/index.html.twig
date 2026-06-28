@@ -1,109 +1,158 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Studio Danse 430 - École de danse depuis 1976{% endblock %}
+{% block title %}Studio Danse 430 - École de danse depuis 1976
+{% endblock %}
 
 {% block body %}
-    {# ===== Section Hero ===== #}
-    <section class="relative overflow-hidden">
-        {# Image de fond noir & blanc du studio #}
-        <div class="absolute inset-0 bg-black bg-cover bg-center bg-no-repeat"
-             style="background-image: url('{{ asset('images/fond-ecran-studio-danse-430.jpg') }}');"></div>
-        {# Overlay d'assombrissement : doux mais suffisant pour faire ressortir le titre Or et les boutons #}
-        <div class="absolute inset-0 bg-black/60"></div>
-        <div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black"></div>
+	{# ===== Section Hero ===== #}
+	<section
+		class="relative overflow-hidden">
+		{# Image de fond noir & blanc du studio #}
+		<div class="absolute inset-0 bg-black bg-cover bg-center bg-no-repeat" style="background-image: url('{{ asset('images/fond-ecran-studio-danse-430.jpg') }}');"></div>
+		{# Overlay d'assombrissement #}
+		<div class="absolute inset-0 bg-black/60"></div>
+		<div class="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black"></div>
 
-        <div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-28 sm:py-36 text-center">
-            <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight text-[#FFD700] drop-shadow-lg">
-                Studio Danse 430
-            </h1>
-            <p class="mt-6 text-lg sm:text-2xl text-white/90 max-w-2xl mx-auto">
-                L'excellence de la danse depuis 1976. Vivez la passion sur scène et en cours.
-            </p>
+		<div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-28 sm:py-36 text-center">
+			<h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight text-[#FFD700] drop-shadow-lg">
+				Studio Danse 430
+			</h1>
+			<p class="mt-6 text-lg sm:text-2xl text-white/90 max-w-2xl mx-auto">
+				L'excellence de la danse depuis 1976. Vivez la passion sur scène et en cours.
+			</p>
 
-            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="{{ path('app_gala_reservation') }}"
-                   class="w-full sm:w-auto px-8 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200 shadow-lg">
-                    Réserver Places Gala
-                </a>
-                <a href="{{ path('app_inscription') }}"
-                   class="w-full sm:w-auto px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors duration-200 shadow-lg">
-                    S'inscrire
-                </a>
-            </div>
-        </div>
-    </section>
+			<div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+				<a href="{{ path('app_gala_reservation') }}" class="w-full sm:w-auto px-8 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200 shadow-lg">
+					Réserver Places Gala
+				</a>
+				<a href="{{ path('app_inscription') }}" class="w-full sm:w-auto px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors duration-200 shadow-lg">
+					S'inscrire
+				</a>
+			</div>
+		</div>
+	</section>
 
-    {# ===== Section Nos Cours ===== #}
-    <section class="bg-black py-20">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            <div class="text-center mb-12">
-                <h2 class="text-4xl font-extrabold text-[#FFD700]">Nos Cours</h2>
-                <p class="mt-4 text-white/70 max-w-2xl mx-auto">
-                    Une discipline pour chaque danseur, du débutant au confirmé.
-                </p>
-            </div>
+	{# ===== Section Nos Cours ===== #}
+	<section class="bg-black py-20">
+		<div class="max-w-6xl mx-auto px-4 sm:px-6">
+			<div class="text-center mb-12">
+				<h2 class="text-4xl font-extrabold text-[#FFD700]">Nos Cours</h2>
+				<p class="mt-4 text-white/70 max-w-2xl mx-auto">
+					Une discipline pour chaque danseur, du débutant au confirmé.
+				</p>
+			</div>
 
-            {% if cours is empty %}
-                <div class="text-center py-16 border border-[#FFD700]/30 rounded-2xl">
-                    <p class="text-white/60 text-lg">Le planning des cours sera bientôt disponible.</p>
-                </div>
-            {% else %}
-                <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                    {% for c in cours %}
-                        <article class="flex flex-col bg-black border border-[#FFD700] rounded-2xl p-6 hover:shadow-[0_0_25px_rgba(255,215,0,0.25)] hover:-translate-y-1 transition duration-200">
-                            <div class="flex items-start justify-between gap-3 mb-4">
-                                <h3 class="text-xl font-bold text-white">{{ c.nom }}</h3>
-                                <span class="shrink-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#FFD700] text-black">
-                                    {{ c.jour }}
-                                </span>
-                            </div>
-                            <ul class="space-y-2 text-sm text-white/80 flex-1">
-                                <li class="flex items-center gap-2">
-                                    <span class="text-[#FFD700]">&#9733;</span> {{ c.heure|date('H\\hi') }}
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span class="text-[#FFD700]">&#9733;</span> {{ c.professeur }}
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span class="text-[#FFD700]">&#9733;</span> {{ c.capaciteMax }} places max
-                                </li>
-                            </ul>
-                            <a href="{{ path('app_cours_show', { id: c.id }) }}"
-                               class="mt-6 text-center px-4 py-2 border border-[#FFD700] text-[#FFD700] font-semibold rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
-                                En savoir plus
-                            </a>
-                        </article>
-                    {% endfor %}
-                </div>
+			{% if cours is empty %}
+				<div class="text-center py-16 border border-[#FFD700]/30 rounded-2xl">
+					<p class="text-white/60 text-lg">Le planning des cours sera bientôt disponible.</p>
+				</div>
+			{% else %}
+				<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+					{% for c in cours %}
+						<article class="flex flex-col bg-black border border-[#FFD700] rounded-2xl p-6 hover:shadow-[0_0_25px_rgba(255,215,0,0.25)] hover:-translate-y-1 transition duration-200">
+							<div class="flex items-start justify-between gap-3 mb-4">
+								<h3 class="text-xl font-bold text-white">{{ c.nom }}</h3>
+								<span class="shrink-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#FFD700] text-black">
+									{{ c.jour }}
+								</span>
+							</div>
+							<ul class="space-y-2 text-sm text-white/80 flex-1">
+								<li class="flex items-center gap-2">
+									<span class="text-[#FFD700]">&#9733;</span>
+									{{ c.heure|date('H\\hi') }}
+								</li>
+								<li class="flex items-center gap-2">
+									<span class="text-[#FFD700]">&#9733;</span>
+									{{ c.professeur }}
+								</li>
+								<li class="flex items-center gap-2">
+									<span class="text-[#FFD700]">&#9733;</span>
+									{{ c.capaciteMax }}
+									places max
+								</li>
+							</ul>
+							<a href="{{ path('app_cours_show', { id: c.id }) }}" class="mt-6 text-center px-4 py-2 border border-[#FFD700] text-[#FFD700] font-semibold rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
+								En savoir plus
+							</a>
+						</article>
+					{% endfor %}
+				</div>
 
-                <div class="text-center mt-12">
-                    <a href="{{ path('app_cours_index') }}"
-                       class="inline-block px-8 py-3 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200">
-                        Voir tous les cours
-                    </a>
-                </div>
-            {% endif %}
-        </div>
-    </section>
+				<div class="text-center mt-12">
+					<a href="{{ path('app_cours_index') }}" class="inline-block px-8 py-3 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200">
+						Voir tous les cours
+					</a>
+				</div>
+			{% endif %}
+		</div>
+	</section>
 
-    {# ===== Section À propos ===== #}
-    <section class="bg-black py-20 border-t border-[#FFD700]/20">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-            <h2 class="text-4xl font-extrabold text-[#FFD700] mb-8">À propos</h2>
-            <div class="space-y-6 text-lg text-white/85 leading-relaxed">
-                <p>
-                    Fondé en <span class="text-[#FFD700] font-semibold">1976</span>, le Studio Danse 430
-                    transmet depuis près de cinquante ans l'amour de la danse à des générations de passionnés.
-                </p>
-                <p>
-                    De la première barre aux grandes scènes de gala, notre école a grandi sans jamais
-                    renier ses valeurs : l'exigence du geste, le respect de chacun et la joie de danser ensemble.
-                </p>
-                <p>
-                    Aujourd'hui encore, nos professeurs accompagnent chaque danseur, enfant ou adulte,
-                    débutant ou confirmé, dans un cadre chaleureux et premium.
-                </p>
-            </div>
-        </div>
-    </section>
+	{# ===== Section À propos ===== #}
+	<section class="bg-black py-20 border-t border-[#FFD700]/20">
+		<div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+			<h2 class="text-4xl font-extrabold text-[#FFD700] mb-8">À propos</h2>
+			<div class="space-y-6 text-lg text-white/85 leading-relaxed">
+				<p>
+					Fondé en
+					<span class="text-[#FFD700] font-semibold">1976</span>, le Studio Danse 430
+						                    transmet depuis près de cinquante ans l'amour de la danse à des générations de passionnés.
+				</p>
+				<p>
+					De la première barre aux grandes scènes de gala, notre école a grandi sans jamais
+					                    renier ses valeurs : l'exigence du geste, le respect de chacun et la joie de danser ensemble.
+				</p>
+				<p>
+					Aujourd'hui encore, nos professeurs accompagnent chaque danseur, enfant ou adulte,
+					                    débutant ou confirmé, dans un cadre chaleureux et premium.
+				</p>
+			</div>
+		</div>
+	</section>
+
+	{# ===== Bandeau des Sponsors (Version Corrigée & Agrandie) ===== #}
+	<div class="w-full bg-neutral-950 border-t border-neutral-900 py-8 overflow-hidden select-none" style="background-color: #0a0a0a !important;">
+		<div class="text-center mb-6">
+			<span class="text-xs font-semibold tracking-widest text-amber-500 uppercase">Ils soutiennent le club</span>
+		</div>
+
+		<div class="flex animate-marquee whitespace-nowrap items-center hover:[animation-play-state:paused]" style="width: max-content !important; gap: 4rem !important;">
+
+			<div class="flex justify-around items-center min-w-full" style="gap: 4rem !important; display: flex !important;">
+				{% for sponsor in sponsors %}
+					<a href="{{ sponsor.lien }}" target="_blank" rel="noopener noreferrer" class="shrink-0 display-block">
+						<img src="{{ sponsor.logo }}" alt="{{ sponsor.nom }}" class="h-20 w-auto object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" style="height: 5rem !important; width: auto !important; max-width: none !important;">
+					</a>
+				{% endfor %}
+			</div>
+
+			<div class="flex justify-around items-center min-w-full" aria-hidden="true" style="gap: 4rem !important; display: flex !important;">
+				{% for sponsor in sponsors %}
+					<a href="{{ sponsor.lien }}" target="_blank" rel="noopener noreferrer" class="shrink-0 display-block">
+						<img src="{{ sponsor.logo }}" alt="{{ sponsor.nom }}" class="h-20 w-auto object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" style="height: 5rem !important; width: auto !important; max-width: none !important;">
+					</a>
+				{% endfor %}
+			</div>
+
+		</div>
+	</div>
+
+	{# CSS pour l'animation du bandeau (intégré directement) #}
+	<style>
+		@keyframes marquee {
+			from {
+				transform: translateX(0%);
+			}
+			to {
+				transform: translateX(-50%);
+			}
+		}
+		.animate-marquee {
+			animation: marquee 25s linear infinite;
+			display: flex;
+			width: max-content;
+		}
+		.animate-marquee:hover {
+			animation-play-state: paused;
+		}
+	</style>
 {% endblock %}

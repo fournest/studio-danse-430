@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Entity;
 
 use App\Repository\DanseurRepository;
@@ -15,17 +16,18 @@ class Danseur
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
-    private string $nom;
+    private ?string $nom = null;
 
     #[ORM\Column(length: 50)]
-    private string $prenom;
+    private ?string $prenom = null;
 
     #[ORM\Column(type: 'date')]
-    private \DateTimeInterface $dateNaissance;
+    private ?\DateTimeInterface $dateNaissance = null;
 
+    // Le "?" autorise temporairement le null en PHP pour le removeDanseur
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'danseurs')]
     #[ORM\JoinColumn(nullable: false)]
-    private User $parent;
+    private ?User $parent = null;
 
     /**
      * @var Collection<int, Cours>
@@ -38,16 +40,21 @@ class Danseur
         $this->cours = new ArrayCollection();
     }
 
-    // Getters/Setters
+    // Getters/Setters adaptés avec la nullabilité PHP
     public function getId(): ?int { return $this->id; }
-    public function getNom(): string { return $this->nom; }
-    public function setNom(string $nom): self { $this->nom = $nom; return $this; }
-    public function getPrenom(): string { return $this->prenom; }
-    public function setPrenom(string $prenom): self { $this->prenom = $prenom; return $this; }
-    public function getDateNaissance(): \DateTimeInterface { return $this->dateNaissance; }
-    public function setDateNaissance(\DateTimeInterface $dateNaissance): self { $this->dateNaissance = $dateNaissance; return $this; }
-    public function getParent(): User { return $this->parent; }
-    public function setParent(User $parent): self { $this->parent = $parent; return $this; }
+    
+    public function getNom(): ?string { return $this->nom; }
+    public function setNom(?string $nom): self { $this->nom = $nom; return $this; }
+    
+    public function getPrenom(): ?string { return $this->prenom; }
+    public function setPrenom(?string $prenom): self { $this->prenom = $prenom; return $this; }
+    
+    public function getDateNaissance(): ?\DateTimeInterface { return $this->dateNaissance; }
+    public function setDateNaissance(?\DateTimeInterface $dateNaissance): self { $this->dateNaissance = $dateNaissance; return $this; }
+    
+    public function getParent(): ?User { return $this->parent; }
+    public function setParent(?User $parent): self { $this->parent = $parent; return $this; }
+    
     /**
      * @return Collection<int, Cours>
      */

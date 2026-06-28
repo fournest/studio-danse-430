@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Entity\User;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ArrayField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField; // <-- Ne pas oublier cet import !
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
@@ -22,5 +23,12 @@ class UserCrudController extends AbstractCrudController
         yield EmailField::new('email');
         yield TextField::new('telephone')->setLabel('Téléphone');
         yield ArrayField::new('roles')->hideOnIndex();
+        
+        // 🔒 Les commutateurs pour le contrôle des accès (UserChecker)
+        yield BooleanField::new('isVerified', 'E-mail Vérifié')
+            ->setHelp("Coché si l'adhérent a validé son adresse e-mail.");
+            
+        yield BooleanField::new('isActif', 'Compte Actif')
+            ->setHelp("Décochez ce champ pour suspendre immédiatement l'accès de ce parent.");
     }
 }

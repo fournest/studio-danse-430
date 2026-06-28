@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* On enregistre notre animation personnalisée pour le bandeau */
+@keyframes marquee {
+    from { transform: translateX(0%); }
+    to { transform: translateX(-50%); }
+}
+
 body {
     background-color: skyblue;
 }

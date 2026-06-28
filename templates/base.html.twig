@@ -1,129 +1,136 @@
 <!DOCTYPE html>
 <html lang="fr">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{% block title %}Studio Danse 430{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>&#9899;</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23FFD700%22>sf</text></svg>">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>
+			{% block title %}Studio Danse 430
+			{% endblock %}
+		</title>
+		<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>&#9899;</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23FFD700%22>sf</text></svg>">
 
-        {% block stylesheets %}
-            {{ encore_entry_link_tags('app') is defined ? encore_entry_link_tags('app') : '' }}
-            <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
-        {% endblock %}
+		{% block stylesheets %}
+			{{ encore_entry_link_tags('app') is defined ? encore_entry_link_tags('app') : '' }}
+			<link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+		{% endblock %}
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
+		{% block javascripts %}
+			{% block importmap %}
+				{{ importmap('app') }}
+			{% endblock %}
+		{% endblock %}
 
-        {% set frankenphpHotReload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphpHotReload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphpHotReload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-        {% endif %}
-    </head>
-    <body class="bg-black text-white min-h-screen flex flex-col antialiased">
-        <header class="bg-black border-b border-[#FFD700]/30 sticky top-0 z-40">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6">
-                <div class="flex items-center justify-between h-16">
-                    <a href="{{ path('app_home') }}" class="flex items-center gap-3">
-                        <img src="{{ asset('images/logo.studio-danse-430.jpg') }}"
-                             alt="Logo Studio Danse 430"
-                             class="h-12 w-auto object-contain rounded shadow-sm">
-                        <span class="hidden sm:inline text-xl sm:text-2xl font-extrabold tracking-tight text-[#FFD700]">
-                            Studio Danse 430
-                        </span>
-                    </a>
+		{% set frankenphpHotReload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
+		{% if frankenphpHotReload %}
+			<meta name="frankenphp-hot-reload:url" content="{{ frankenphpHotReload }}">
+			<script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
+			<script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
+		{% endif %}
+	</head>
+	<body class="bg-black text-white min-h-screen flex flex-col antialiased">
+		<header class="bg-black border-b border-[#FFD700]/30 sticky top-0 z-40">
+			<div class="max-w-6xl mx-auto px-4 sm:px-6">
+				<div class="flex items-center justify-between h-16">
+					<a href="{{ path('app_home') }}" class="flex items-center gap-3">
+						<img src="{{ asset('images/logo.studio-danse-430.jpg') }}" alt="Logo Studio Danse 430" class="h-12 w-auto object-contain rounded shadow-sm">
+						<span class="hidden sm:inline text-xl sm:text-2xl font-extrabold tracking-tight text-[#FFD700]">
+							Studio Danse 430
+						</span>
+					</a>
 
-                    <nav class="flex items-center gap-1 sm:gap-2">
-                        {% set nav_links = [
+					<nav class="flex items-center gap-1 sm:gap-2">
+						{% set nav_links = [
                             { route: 'app_home', label: 'Accueil' },
                             { route: 'app_cours_index', label: 'Les cours' },
                             { route: 'app_gala_reservation', label: 'Gala' },
+							{ route: 'app_costume_index', label: 'Costumes' },
                             { route: 'app_inscription', label: 'Inscription' }
                         ] %}
-                        {% for link in nav_links %}
-                            {% set is_active = app.request.attributes.get('_route') starts with (link.route) %}
-                            <a href="{{ path(link.route) }}"
-                               class="px-2 sm:px-4 py-2 text-sm font-semibold transition-colors duration-200
-                                      {{ is_active ? 'text-[#FFD700]' : 'text-white hover:text-[#FFD700]' }}">
-                                {{ link.label }}
-                            </a>
-                        {% endfor %}
+						{% for link in nav_links %}
+							{% set is_active = app.request.attributes.get('_route') starts with (link.route) %}
+							<a href="{{ path(link.route) }}" class="px-2 sm:px-4 py-2 text-sm font-semibold transition-colors duration-200
+																		                                      {{ is_active ? 'text-[#FFD700]' : 'text-white hover:text-[#FFD700]' }}">
+								{{ link.label }}
+							</a>
+						{% endfor %}
 
-                        {% if is_granted('ROLE_ADMIN') %}
-                            <a href="{{ path('admin') }}"
-                               class="ml-1 sm:ml-2 inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold
-                                      bg-black text-white border border-[#FFD700] rounded-full
-                                      hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
-                                <i class="fa fa-cogs"></i>
-                                <span class="hidden sm:inline">Administration</span>
-                            </a>
-                        {% endif %}
+						{% if is_granted('ROLE_ADMIN') %}
+							<a href="{{ path('admin') }}" class="ml-1 sm:ml-2 inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold
+																		                                      bg-black text-white border border-[#FFD700] rounded-full
+																		                                      hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
+								<i class="fa fa-cogs"></i>
+								<span class="hidden sm:inline">Administration</span>
+							</a>
+						{% endif %}
 
-                        {% if app.user %}
-                            <a href="{{ path('app_logout') }}"
-                               class="ml-1 sm:ml-2 inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold
-                                      text-[#FFD700] border border-[#FFD700] rounded-full
-                                      hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
-                                <i class="fa fa-right-from-bracket"></i>
-                                <span class="hidden sm:inline">Déconnexion</span>
-                            </a>
-                        {% else %}
-                            <a href="{{ path('app_login') }}"
-                               class="px-2 sm:px-4 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">
-                                Connexion
-                            </a>
-                        {% endif %}
-                    </nav>
-                </div>
-            </div>
-        </header>
+						{% if app.user %}
+							<a href="{{ path('app_logout') }}" class="ml-1 sm:ml-2 inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold
+																		                                      text-[#FFD700] border border-[#FFD700] rounded-full
+																		                                      hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
+								<i class="fa fa-right-from-bracket"></i>
+								<span class="hidden sm:inline">Déconnexion</span>
+							</a>
+						{% else %}
+							<a href="{{ path('app_login') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">
+								Connexion
+							</a>
+						{% endif %}
+					</nav>
+				</div>
+			</div>
+		</header>
 
-        <main class="flex-1">
-            {% block body %}{% endblock %}
-        </main>
+		<main class="flex-1"> {% block body %}{% endblock %}
+			</main>
 
-        <footer class="bg-[#FFD700] text-black">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12">
-                <div class="grid gap-10 md:grid-cols-3">
-                    <div>
-                        <h3 class="text-xl font-extrabold mb-3">Studio Danse 430</h3>
-                        <p class="text-sm text-black/80 leading-relaxed">
-                            École de danse depuis 1976. Passion, exigence et convivialité
-                            au service de tous les danseurs, débutants comme confirmés.
-                        </p>
-                    </div>
 
-                    <div>
-                        <h4 class="text-lg font-bold mb-3">Navigation</h4>
-                        <ul class="space-y-2 text-sm font-semibold">
-                            <li><a href="{{ path('app_home') }}" class="hover:underline">Accueil</a></li>
-                            <li><a href="{{ path('app_cours_index') }}" class="hover:underline">Les cours</a></li>
-                            <li><a href="{{ path('app_gala_reservation') }}" class="hover:underline">Réserver le Gala</a></li>
-                            <li><a href="{{ path('app_inscription') }}" class="hover:underline">Inscription</a></li>
-                        </ul>
-                    </div>
+			<footer class="bg-[#FFD700] text-black">
+				<div class="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+					<div class="grid gap-10 md:grid-cols-3">
+						<div>
+							<h3 class="text-xl font-extrabold mb-3">Studio Danse 430</h3>
+							<p class="text-sm text-black/80 leading-relaxed">
+								École de danse depuis 1976. Passion, exigence et convivialité
+																                            au service de tous les danseurs, débutants comme confirmés.
+							</p>
+						</div>
 
-                    <div>
-                        <h4 class="text-lg font-bold mb-3">Suivez-nous</h4>
-                        <div class="bg-black/5 rounded-lg p-2 inline-block">
-                            <iframe
-                                title="Page Facebook Studio Danse 430"
-                                src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fstudiodanse430&tabs=timeline&width=320&height=200&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true"
-                                width="320" height="200"
-                                style="border:none;overflow:hidden"
-                                scrolling="no" frameborder="0" allowfullscreen="true"
-                                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
-                            </iframe>
-                        </div>
-                    </div>
-                </div>
+						<div>
+							<h4 class="text-lg font-bold mb-3">Navigation</h4>
+							<ul class="space-y-2 text-sm font-semibold">
+								<li>
+									<a href="{{ path('app_home') }}" class="hover:underline">Accueil</a>
+								</li>
+								<li>
+									<a href="{{ path('app_cours_index') }}" class="hover:underline">Les cours</a>
+								</li>
+								<li>
+									<a href="{{ path('app_costume_index') }}" class="hover:underline">Costumes</a>
+									{# 👈 Ajoute cette ligne #}
+								</li>
+								<li>
+									<a href="{{ path('app_gala_reservation') }}" class="hover:underline">Réserver le Gala</a>
+								</li>
+								<li>
+									<a href="{{ path('app_inscription') }}" class="hover:underline">Inscription</a>
+								</li>
+							</ul>
+						</div>
 
-                <div class="mt-10 pt-6 border-t border-black/20 text-center text-sm font-semibold">
-                    &copy; {{ "now"|date("Y") }} Studio Danse 430 &mdash; Tous droits réservés.
-                </div>
-            </div>
-        </footer>
-    </body>
-</html>
+						<div>
+							<h4 class="text-lg font-bold mb-3">Suivez-nous</h4>
+							<div class="bg-black/5 rounded-lg p-2 inline-block">
+								<iframe title="Page Facebook Studio Danse 430" src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fstudiodanse430&tabs=timeline&width=320&height=200&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true" width="320" height="200" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+							</div>
+						</div>
+					</div>
+
+					<div class="mt-10 pt-6 border-t border-black/20 text-center text-sm font-semibold">
+						&copy;
+						{{ "now"|date("Y") }}
+						Studio Danse 430 &mdash; Tous droits réservés.
+					</div>
+				</div>
+			</footer>
+		</body>
+	</html>
