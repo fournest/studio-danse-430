@@ -95,40 +95,44 @@
 				<p>
 					Fondé en
 					<span class="text-[#FFD700] font-semibold">1976</span>, le Studio Danse 430
-						                    transmet depuis près de cinquante ans l'amour de la danse à des générations de passionnés.
+																		                    transmet depuis près de cinquante ans l'amour de la danse à des générations de passionnés.
 				</p>
 				<p>
 					De la première barre aux grandes scènes de gala, notre école a grandi sans jamais
-					                    renier ses valeurs : l'exigence du geste, le respect de chacun et la joie de danser ensemble.
+															                    renier ses valeurs : l'exigence du geste, le respect de chacun et la joie de danser ensemble.
 				</p>
 				<p>
 					Aujourd'hui encore, nos professeurs accompagnent chaque danseur, enfant ou adulte,
-					                    débutant ou confirmé, dans un cadre chaleureux et premium.
+															                    débutant ou confirmé, dans un cadre chaleureux et premium.
 				</p>
 			</div>
 		</div>
 	</section>
 
-	{# ===== Bandeau des Sponsors (Version Corrigée & Agrandie) ===== #}
+	{# ===== Bandeau des Sponsors (Version Resserrée & Validée) ===== #}
 	<div class="w-full bg-neutral-950 border-t border-neutral-900 py-8 overflow-hidden select-none" style="background-color: #0a0a0a !important;">
 		<div class="text-center mb-6">
 			<span class="text-xs font-semibold tracking-widest text-amber-500 uppercase">Ils soutiennent le club</span>
 		</div>
 
-		<div class="flex animate-marquee whitespace-nowrap items-center hover:[animation-play-state:paused]" style="width: max-content !important; gap: 4rem !important;">
+		<!-- Le conteneur de l'animation avec un gap de 2rem entre les deux blocs -->
+		<div
+			class="flex animate-marquee whitespace-nowrap items-center hover:[animation-play-state:paused]" style="width: max-content !important; gap: 2rem !important;">
 
-			<div class="flex justify-around items-center min-w-full" style="gap: 4rem !important; display: flex !important;">
+			<!-- Premier bloc de logos (shrink-0 pour éviter les déformations) -->
+			<div class="flex items-center shrink-0" style="gap: 2rem !important; display: flex !important;">
 				{% for sponsor in sponsors %}
-					<a href="{{ sponsor.lien }}" target="_blank" rel="noopener noreferrer" class="shrink-0 display-block">
-						<img src="{{ sponsor.logo }}" alt="{{ sponsor.nom }}" class="h-20 w-auto object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" style="height: 5rem !important; width: auto !important; max-width: none !important;">
+					<a href="{{ sponsor.lien ?? '#' }}" target="_blank" rel="noopener noreferrer" class="shrink-0 block">
+						<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}" alt="{{ sponsor.nom }}" class="h-20 w-auto object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" style="height: 5rem !important; width: auto !important; max-width: none !important;" onerror="this.style.display='none'">
 					</a>
 				{% endfor %}
 			</div>
 
-			<div class="flex justify-around items-center min-w-full" aria-hidden="true" style="gap: 4rem !important; display: flex !important;">
+			<!-- Deuxième bloc identique pour l'effet infini -->
+			<div class="flex items-center shrink-0" aria-hidden="true" style="gap: 2rem !important; display: flex !important;">
 				{% for sponsor in sponsors %}
-					<a href="{{ sponsor.lien }}" target="_blank" rel="noopener noreferrer" class="shrink-0 display-block">
-						<img src="{{ sponsor.logo }}" alt="{{ sponsor.nom }}" class="h-20 w-auto object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" style="height: 5rem !important; width: auto !important; max-width: none !important;">
+					<a href="{{ sponsor.lien ?? '#' }}" target="_blank" rel="noopener noreferrer" class="shrink-0 block">
+						<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}" alt="{{ sponsor.nom }}" class="h-20 w-auto object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" style="height: 5rem !important; width: auto !important; max-width: none !important;" onerror="this.style.display='none'">
 					</a>
 				{% endfor %}
 			</div>
@@ -136,7 +140,7 @@
 		</div>
 	</div>
 
-	{# CSS pour l'animation du bandeau (intégré directement) #}
+	{# CSS pour l'animation du bandeau #}
 	<style>
 		@keyframes marquee {
 			from {

@@ -6,7 +6,7 @@ use App\Entity\Cours;
 use App\Entity\Danseur;
 use App\Entity\Inscription;
 use App\Entity\User;
-use App\Repository\DanseurRepository; // Import requis pour le QueryBuilder
+use App\Repository\DanseurRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -18,8 +18,11 @@ class InscriptionType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        // 🔒 On extrait l'utilisateur injecté depuis le contrôleur
+        // 🔒 On extrait l'utilisateur connecté
         $user = $options['user'];
+        
+        // 🏡 On récupère le Foyer lié à cet utilisateur
+        $foyer = $user ? $user->getFoyer() : null;
 
         $inputClass = 'mt-1 block w-full rounded-md bg-neutral-900 border border-neutral-800 text-white focus:border-amber-500 focus:ring-amber-500 sm:text-sm px-4 py-2.5 transition-colors duration-200';
         $labelClass = 'block text-sm font-medium text-neutral-300';
@@ -32,11 +35,11 @@ class InscriptionType extends AbstractType
                 'label' => 'Danseur à inscrire',
                 'label_attr' => ['class' => $labelClass],
                 'attr' => ['class' => $inputClass],
-                // 🔒 CLÉ DE SÉCURITÉ : Restreint le choix aux seuls danseurs ayant pour parent l'utilisateur connecté
-                'query_builder' => function (DanseurRepository $dr) use ($user) {
+                // 🔒 CLÉ DE SÉCURITÉ MISE À JOUR : On filtre les danseurs qui appartiennent au FOYER de l'utilisateur
+                'query_builder' => function (DanseurRepository $dr) use ($foyer) {
                     return $dr->createQueryBuilder('d')
-                        ->where('d.parent = :user')
-                        ->setParameter('user', $user);
+                        ->where('d.foyer = :foyer')
+                        ->setParameter('foyer', $foyer);
                 },
                 'constraints' => [
                     new NotBlank(['message' => 'Veuillez sélectionner un élève.']),
@@ -84,10 +87,9 @@ class InscriptionType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Inscription::class,
-            'user' => null, // 🔒 On définit l'option par défaut ici
+            'user' => null,
         ]);
 
-        // Optionnel : On s'assure que l'option passée est soit nulle, soit une entité User
         $resolver->setAllowedTypes('user', [User::class, 'null']);
     }
 }

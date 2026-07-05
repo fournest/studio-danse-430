@@ -73,5 +73,8 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(GalaCrudController::class, 'Galas', 'fa fa-star');
         yield MenuItem::linkTo(SalleCrudController::class, 'Salles', 'fa fa-location-dot');
         yield MenuItem::linkTo(CostumeCrudController::class, 'Costumes', 'fa fa-shirt');
+
+        yield MenuItem::section('Sponsors');
+        yield MenuItem::linkTo(SponsorCrudController::class, 'Sponsors', 'fa fa-handshake');
     }
 }

@@ -35,6 +35,10 @@ class Danseur
     #[ORM\ManyToMany(targetEntity: Cours::class, inversedBy: 'danseurs')]
     private Collection $cours;
 
+    #[ORM\ManyToOne(inversedBy: 'danseurs')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Foyer $foyer = null;
+
     public function __construct()
     {
         $this->cours = new ArrayCollection();
@@ -77,5 +81,17 @@ class Danseur
     public function __toString(): string
     {
         return trim(($this->prenom ?? '') . ' ' . ($this->nom ?? '')) ?: 'Danseur';
+    }
+
+    public function getFoyer(): ?Foyer
+    {
+        return $this->foyer;
+    }
+
+    public function setFoyer(?Foyer $foyer): static
+    {
+        $this->foyer = $foyer;
+
+        return $this;
     }
 }
