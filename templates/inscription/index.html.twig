@@ -1,107 +1,110 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Inscription - Studio Danse 430{% endblock %}
+{% block title %}Inscription aux cours - Studio Danse 430{% endblock %}
 
 {% block body %}
-    <section class="bg-black py-16 border-b border-[#FFD700]/20">
+    {# Header de la page #}
+    <section class="bg-black py-12 border-b border-[#FFD700]/10">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-            <h1 class="text-4xl sm:text-5xl font-extrabold text-[#FFD700] mb-4">Inscription saison 2026 / 2027</h1>
-            <p class="text-lg text-white/80 max-w-2xl mx-auto">
-                Rejoignez le Studio Danse 430 en quelques étapes. Choisissez votre cours et constituez votre dossier.
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-[#FFD700] mb-3">Inscription Saison {{ "now"|date("Y") }} / {{ ("now"|date("Y") + 1) }}</h1>
+            <p class="text-base text-neutral-400 max-w-2xl mx-auto">
+                Dernière étape ! Associez un membre de votre foyer aux créneaux de danse de votre choix.
             </p>
         </div>
     </section>
 
-    <section class="bg-black py-16">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 space-y-16">
+    <section class="bg-black py-12">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 space-y-12">
 
-            {# ===== Étapes ===== #}
-            <div>
-                <h2 class="text-3xl font-extrabold text-[#FFD700] mb-8 text-center">Comment s'inscrire ?</h2>
-                <div class="grid gap-6 sm:grid-cols-3">
-                    {% set steps = [
-                        { num: '1', title: 'Choisissez un cours', text: 'Sélectionnez un ou plusieurs cours dans le formulaire ci-dessous.' },
-                        { num: '2', title: 'Constituez le dossier', text: 'Fiche d\'inscription et certificat médical à fournir.' },
-                        { num: '3', title: 'Réglez la cotisation', text: 'Paiement en ligne ou sur place pour valider l\'inscription.' }
-                    ] %}
-                    {% for step in steps %}
-                        <div class="bg-black border border-[#FFD700] rounded-2xl p-6 text-center">
-                            <div class="mx-auto w-12 h-12 flex items-center justify-center rounded-full bg-[#FFD700] text-black text-xl font-bold mb-4">
-                                {{ step.num }}
-                            </div>
-                            <h3 class="font-semibold text-white mb-2">{{ step.title }}</h3>
-                            <p class="text-sm text-white/70">{{ step.text }}</p>
-                        </div>
-                    {% endfor %}
+            {# ===== 🗺️ Indicateur de Progression Réelle (UX Boost) ===== #}
+            <div class="max-w-3xl mx-auto bg-neutral-900/40 border border-neutral-800/60 rounded-2xl p-4 backdrop-blur-sm">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center text-xs font-bold uppercase tracking-wider">
+                    <div class="text-emerald-500 flex items-center justify-center gap-1.5 py-2">
+                        <span>✅</span> 1. Compte
+                    </div>
+                    <div class="text-emerald-500 flex items-center justify-center gap-1.5 py-2">
+                        <span>✅</span> 2. Foyer
+                    </div>
+                    <div class="text-emerald-500 flex items-center justify-center gap-1.5 py-2">
+                        <span>✅</span> 3. Danseurs
+                    </div>
+                    <div class="text-[#FFD700] bg-[#FFD700]/10 border border-[#FFD700]/30 rounded-xl flex items-center justify-center gap-1.5 py-2 shadow-sm">
+                        <span>💃</span> 4. Cours
+                    </div>
                 </div>
             </div>
 
             {# ===== Formulaire d'inscription ===== #}
             <div class="max-w-2xl mx-auto w-full">
-                <h2 class="text-3xl font-extrabold text-[#FFD700] mb-8 text-center">Formulaire d'inscription</h2>
-
+                
                 {# Messages flash #}
-                {% for message in app.flashes('success') %}
-                    <div class="mb-6 rounded-lg border border-[#FFD700] bg-[#FFD700]/10 px-4 py-3 text-[#FFD700] font-semibold">
-                        {{ message }}
-                    </div>
+                {% for label, messages in app.flashes %}
+                    {% for message in messages %}
+                        <div class="mb-6 rounded-lg border {{ label == 'success' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-red-500 bg-red-500/10 text-red-400' }} px-4 py-3 font-semibold text-sm">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
                 {% endfor %}
 
                 {% if cours is empty %}
-                    <div class="text-center py-16 border border-[#FFD700]/30 rounded-2xl">
-                        <p class="text-xl text-white/70">Aucun cours n'est ouvert aux inscriptions pour le moment.</p>
+                    <div class="text-center py-16 border border-[#FFD700]/20 rounded-2xl bg-neutral-900/20">
+                        <p class="text-lg text-neutral-400">Aucun cours n'est ouvert aux inscriptions pour le moment.</p>
                     </div>
                 {% else %}
-                    {% set input_class = 'w-full bg-black border border-[#FFD700] rounded-lg px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-[#FFD700] transition' %}
+                    {% set input_class = 'w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:border-[#FFD700] transition duration-200' %}
 
-                    <div class="bg-black border border-[#FFD700]/40 rounded-3xl p-6 sm:p-10 shadow-[0_0_30px_rgba(255,215,0,0.12)]">
-                        {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'class': 'space-y-8'}}) }}
+                    <div class="bg-neutral-900/50 border border-neutral-800 rounded-3xl p-6 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-sm">
+                        {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'class': 'space-y-6'}}) }}
 
-                            {{ form_errors(form) }}
+                            {% if form_errors(form) %}
+                                <div class="p-4 rounded-md bg-red-950/50 border border-red-800 text-red-400 text-sm">
+                                    {{ form_errors(form) }}
+                                </div>
+                            {% endif %}
 
-                            {# Danseur #}
+                            {# Liste déroulante sécurisée des Danseurs de la famille #}
                             <div>
-                                {{ form_label(form.danseur, null, {'label_attr': {'class': 'block text-sm font-semibold text-[#FFD700] mb-2'}}) }}
+                                {{ form_label(form.danseur, null, {'label_attr': {'class': 'block text-sm font-semibold text-neutral-300 mb-2'}}) }}
                                 {{ form_widget(form.danseur, {'attr': {'class': input_class}}) }}
-                                <div class="text-rose-400 text-sm mt-1">{{ form_errors(form.danseur) }}</div>
+                                <div class="text-red-400 text-xs mt-1">{{ form_errors(form.danseur) }}</div>
                             </div>
 
-                            {# Cours (cases à cocher) #}
+                            {# Liste des cours avec tes supers styles de cases à cocher #}
                             <div>
-                                {{ form_label(form.cours, null, {'label_attr': {'class': 'block text-sm font-semibold text-[#FFD700] mb-3'}}) }}
-                                <div class="grid sm:grid-cols-2 gap-3 [&_input]:accent-[#FFD700] [&_input]:w-4 [&_input]:h-4 [&_label]:ml-2 [&_label]:text-white/90 [&_label]:text-sm">
+                                {{ form_label(form.cours, null, {'label_attr': {'class': 'block text-sm font-bold text-[#FFD700] mb-3 uppercase tracking-wider'}}) }}
+                                <div class="grid sm:grid-cols-2 gap-3 [&_input]:accent-[#FFD700] [&_input]:w-4 [&_input]:h-4 [&_label]:ml-2 [&_label]:text-neutral-300 [&_label]:text-sm">
                                     {% for choice in form.cours %}
-                                        <div class="flex items-center bg-black border border-[#FFD700]/40 rounded-lg px-3 py-3 hover:border-[#FFD700] transition">
+                                        <div class="flex items-center bg-black/40 border border-neutral-800 rounded-lg px-3 py-3 hover:border-[#FFD700]/50 hover:bg-neutral-950 transition duration-150 cursor-pointer">
                                             {{ form_widget(choice) }}
                                             {{ form_label(choice) }}
                                         </div>
                                     {% endfor %}
                                 </div>
-                                <div class="text-rose-400 text-sm mt-1">{{ form_errors(form.cours) }}</div>
+                                <div class="text-red-400 text-xs mt-1">{{ form_errors(form.cours) }}</div>
                             </div>
 
-                            {# Saison #}
-                            <div>
-                                {{ form_label(form.saison, null, {'label_attr': {'class': 'block text-sm font-semibold text-[#FFD700] mb-2'}}) }}
-                                {{ form_widget(form.saison, {'attr': {'class': input_class}}) }}
-                                <div class="text-rose-400 text-sm mt-1">{{ form_errors(form.saison) }}</div>
+                            {# Saison (Peut être masquée en CSS ou passée en hidden si tu ne veux pas que le parent y touche) #}
+                            <div class="opacity-60">
+                                {{ form_label(form.saison, null, {'label_attr': {'class': 'block text-sm font-semibold text-neutral-400 mb-2'}}) }}
+                                {{ form_widget(form.saison, {'attr': {'class': input_class, 'readonly': 'readonly'}}) }}
+                                <div class="text-red-400 text-xs mt-1">{{ form_errors(form.saison) }}</div>
                             </div>
 
                             {# Certificat médical #}
                             <div>
-                                {{ form_label(form.certificatMedical, null, {'label_attr': {'class': 'block text-sm font-semibold text-[#FFD700] mb-2'}}) }}
+                                {{ form_label(form.certificatMedical, null, {'label_attr': {'class': 'block text-sm font-semibold text-neutral-300 mb-2'}}) }}
                                 {{ form_widget(form.certificatMedical, {'attr': {'class': input_class}}) }}
                                 {% if form.certificatMedical.vars.help is defined and form.certificatMedical.vars.help %}
-                                    <p class="text-xs text-white/50 mt-1">{{ form.certificatMedical.vars.help }}</p>
+                                    <p class="text-xs text-neutral-500 mt-1.5">{{ form.certificatMedical.vars.help }}</p>
                                 {% endif %}
-                                <div class="text-rose-400 text-sm mt-1">{{ form_errors(form.certificatMedical) }}</div>
+                                <div class="text-red-400 text-xs mt-1">{{ form_errors(form.certificatMedical) }}</div>
                             </div>
 
-                            {# Bouton de validation #}
-                            <div class="pt-2">
+                            {# Bouton de validation final #}
+                            <div class="pt-4">
                                 <button type="submit"
-                                        class="w-full px-8 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200 shadow-lg">
-                                    Valider mon inscription
+                                        class="w-full px-8 py-3.5 bg-[#FFD700] text-black font-extrabold rounded-md hover:bg-amber-400 transition-colors duration-200 shadow-lg uppercase tracking-wider text-sm">
+                                    Confirmer l'inscription aux cours
                                 </button>
                             </div>
 
@@ -110,12 +113,12 @@
                 {% endif %}
             </div>
 
-            {# ===== Contact ===== #}
-            <div class="bg-[#FFD700] rounded-2xl px-8 py-10 text-center text-black max-w-5xl mx-auto">
-                <h2 class="text-2xl font-extrabold mb-3">Une question avant de vous inscrire ?</h2>
-                <p class="text-black/80 mb-6">Notre équipe est disponible pour vous accompagner dans votre inscription.</p>
+            {# ===== Section Contact d'aide ===== #}
+            <div class="bg-neutral-900 border border-neutral-800 rounded-2xl px-8 py-8 text-center text-white max-w-4xl mx-auto shadow-inner">
+                <h2 class="text-xl font-bold mb-2">Besoin d'aide pour finaliser le dossier ?</h2>
+                <p class="text-neutral-400 text-sm mb-4">Notre secrétariat reste à votre disposition pour toute question sur les créneaux ou les tarifs.</p>
                 <a href="{{ path('app_home') }}"
-                   class="inline-block px-6 py-3 bg-black text-[#FFD700] font-bold rounded-full hover:bg-gray-900 transition-colors duration-200">
+                   class="inline-block px-5 py-2.5 bg-neutral-800 text-neutral-200 text-sm font-bold rounded-md hover:bg-neutral-700 transition-colors duration-200">
                     Nous contacter
                 </a>
             </div>

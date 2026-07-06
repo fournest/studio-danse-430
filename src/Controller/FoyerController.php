@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\Foyer;
 use App\Entity\Danseur;
+use App\Form\FoyerType;
 use App\Form\DanseurType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,24 +22,70 @@ class FoyerController extends AbstractController
     {
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
-        
+        $foyer = $user->getFoyer();
+
+        // Si l'utilisateur n'a pas encore de foyer, on le redirige d'office vers la configuration
+        if (!$foyer) {
+            return $this->redirectToRoute('app_foyer_new');
+        }
+
         return $this->render('foyer/index.html.twig', [
-            'danseurs' => $user->getDanseurs(), // ✨ Plus de rouge ici
+            'foyer' => $foyer,
+            'danseurs' => $foyer->getDanseurs(), // Les danseurs appartiennent désormais au Foyer
+        ]);
+    }
+
+    #[Route('/configuration', name: 'app_foyer_new', methods: ['GET', 'POST'])]
+    public function new(Request $request, EntityManagerInterface $em): Response
+    {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+
+        // Sécurité : Si l'utilisateur a déjà un foyer, on ne le laisse pas en créer un deuxième
+        if ($user->getFoyer()) {
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        $foyer = new Foyer();
+        $form = $this->createForm(FoyerType::class, $foyer);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // En fonction de comment est définie ta relation (Bi-directionnelle) :
+            $foyer->setUser($user); // On lie le foyer à l'utilisateur connecté
+            
+            $em->persist($foyer);
+            $em->flush();
+
+            $this->addFlash('success', 'Votre dossier familial a bien été configuré ! Vous pouvez maintenant ajouter vos danseurs.');
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        return $this->render('foyer/form.html.twig', [
+            'form' => $form->createView(),
+            'title' => 'Configuration du dossier familial (Foyer)'
         ]);
     }
 
     #[Route('/ajouter-un-danseur', name: 'app_foyer_add', methods: ['GET', 'POST'])]
     public function add(Request $request, EntityManagerInterface $em): Response
     {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $foyer = $user->getFoyer();
+
+        if (!$foyer) {
+            $this->addFlash('error', 'Vous devez d’abord configurer votre foyer.');
+            return $this->redirectToRoute('app_foyer_new');
+        }
+
         $danseur = new Danseur();
         $form = $this->createForm(DanseurType::class, $danseur);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            /** @var \App\Entity\User $user */
-            $user = $this->getUser();
-
-            // Sécurité : On force le parent à être l'utilisateur actuellement connecté
+            // SÉCURITÉ : Le danseur est directement rattaché au FOYER de l'utilisateur, pas au User technique
+            $danseur->setFoyer($foyer); 
             $danseur->setParent($user);
 
             $em->persist($danseur);
@@ -58,9 +106,10 @@ class FoyerController extends AbstractController
     {
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
+        $foyer = $user->getFoyer();
 
-        // 🔒 SÉCURITÉ CRITIQUE : On vérifie que le danseur appartient bien à l'utilisateur connecté
-        if ($danseur->getParent() !== $user) {
+        // 🔒 SÉCURITÉ CRITIQUE : On vérifie que le danseur appartient bien au foyer de l'utilisateur connecté
+        if ($danseur->getFoyer() !== $foyer) {
             throw $this->createAccessDeniedException("Vous n'avez pas l'autorisation de modifier ce profil.");
         }
 

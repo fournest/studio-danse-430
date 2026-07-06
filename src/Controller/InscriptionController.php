@@ -15,9 +15,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use App\Entity\User; // 🔌 Import requis pour le Webhook
 
-#[IsGranted('ROLE_USER')] // 🔒 Personne ne peut accéder au tunnel d'inscription s'il n'est pas connecté
+#[IsGranted('ROLE_USER')]
 final class InscriptionController extends AbstractController
 {
     #[Route('/inscription', name: 'app_inscription', methods: ['GET', 'POST'])]
@@ -25,17 +24,28 @@ final class InscriptionController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         CoursRepository $coursRepository,
-        HttpClientInterface $httpClient, // 🟢 On s'arrête ici pour les arguments !
+        HttpClientInterface $httpClient,
         LoggerInterface $logger,
     ): Response {
-        
-        // 🟢 ÉTAPE 1 : On récupère proprement l'utilisateur connecté à l'intérieur de la méthode
+
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
+        $foyer = $user->getFoyer();
+
+        // 🛡️ SÉCURITÉ CRITIQUE : Interdiction d'accéder aux inscriptions sans dossier familial configuré
+        if (!$foyer) {
+            $this->addFlash('error', 'Vous devez d’abord configurer votre dossier familial (Foyer) avant d’inscrire un danseur.');
+            return $this->redirectToRoute('app_foyer_new');
+        }
+
+        // 🛡️ SÉCURITÉ UX : Si le foyer existe mais qu'il n'y a aucun danseur dedans
+        if ($foyer->getDanseurs()->isEmpty()) {
+            $this->addFlash('error', 'Votre foyer ne contient aucun danseur. Veuillez ajouter un élève avant de l’inscrire aux cours.');
+            return $this->redirectToRoute('app_foyer_add');
+        }
 
         $inscription = new Inscription();
 
-        // 🔒 Sécurité : On passe l'utilisateur actuel au formulaire
         $form = $this->createForm(InscriptionType::class, $inscription, [
             'user' => $user,
         ]);
@@ -54,14 +64,12 @@ final class InscriptionController extends AbstractController
                 $ligne->setSaison($inscription->getSaison());
                 $ligne->setCertificatMedical($inscription->getCertificatMedical());
 
-                // On initialise proprement les Enums par défaut
                 $ligne->setStatutDossier(StatutDossier::EN_ATTENTE);
                 $ligne->setStatutPaiement(StatutPaiement::NON_PAYE);
 
                 $entityManager->persist($ligne);
                 $inscriptionsCreees[] = $ligne;
 
-                // Remplissage des détails pour n8n
                 $detailsCoursPayload[] = [
                     'id' => $cours->getId(),
                     'nom' => $cours->getNom(),
@@ -74,13 +82,12 @@ final class InscriptionController extends AbstractController
             $entityManager->flush();
 
             // =====================================================================
-            // 🚀 ENVOI DU WEBHOOK AUTOMATION (n8n)
+            // 🚀 ENVOI DU WEBHOOK AUTOMATION (n8n) ENRICHI
             // =====================================================================
             $n8nWebhookUrl = $_ENV['N8N_WEBHOOK_URL'] ?? $_SERVER['N8N_WEBHOOK_URL'] ?? getenv('N8N_WEBHOOK_URL') ?? null;
 
             if ($n8nWebhookUrl) {
                 try {
-                    // Payload complet structuré pour tes noeuds n8n
                     $response = $httpClient->request('POST', $n8nWebhookUrl, [
                         'json' => [
                             'evenement' => 'nouvelle_inscription',
@@ -88,6 +95,9 @@ final class InscriptionController extends AbstractController
                             'foyer' => [
                                 'parent_id' => $user->getId(),
                                 'parent_email' => $user->getUserIdentifier(),
+                                'parent_telephone' => $user->getTelephone(),
+                                'nom_foyer' => $foyer->getNom(), // ✨ On pioche directement le nom propre du Foyer
+                                'adresse' => sprintf('%s, %s %s', $foyer->getAdresse(), $foyer->getCodePostal(), $foyer->getVille()),
                             ],
                             'danseur' => [
                                 'id' => $inscription->getDanseur()->getId(),
@@ -101,34 +111,31 @@ final class InscriptionController extends AbstractController
                         ],
                     ]);
 
-                    // 🔥 LE FIX : On force l'exécution immédiate en lisant le statut de la réponse
-                    // Symfony va bloquer le script un millième de seconde, juste le temps que n8n reçoive le JSON
                     $statusCode = $response->getStatusCode();
 
                     if ($statusCode !== 200) {
                         $logger->error('n8n a répondu avec un code d\'erreur : ' . $statusCode);
-                        $this->addFlash('error', 'Le serveur de notification a retourné une erreur.');
                     }
-
                 } catch (\Exception $e) {
                     $logger->error('Echec envoi Webhook n8n : ' . $e->getMessage());
-                    $this->addFlash('error', 'Impossible de joindre n8n : ' . $e->getMessage());
                 }
             }
 
             // =====================================================================
-            //   PROCHAINE ÉTAPE : Appel API HelloAsso (Checkout génération)
+            // PROCHAINE ÉTAPE : Appel API HelloAsso (Checkout génération)
             // =====================================================================
 
             $this->addFlash(
                 'success',
                 sprintf(
-                    '%d inscription(s) enregistrée(s) avec succès. Notre équipe vous recontactera prochainement.',
-                    count($inscriptionsCreees)
+                    'Félicitations, les %d inscription(s) de %s ont bien été enregistrées !',
+                    count($inscriptionsCreees),
+                    $inscription->getDanseur()->getPrenom()
                 )
             );
 
-            return $this->redirectToRoute('app_inscription');
+            // 🔄 Redirection propre vers le tableau de bord familial
+            return $this->redirectToRoute('app_foyer_index');
         }
 
         return $this->render('inscription/index.html.twig', [
