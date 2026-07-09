@@ -51,7 +51,6 @@ class FoyerController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // En fonction de comment est définie ta relation (Bi-directionnelle) :
             $foyer->setUser($user); // On lie le foyer à l'utilisateur connecté
             
             $em->persist($foyer);
@@ -84,9 +83,8 @@ class FoyerController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // SÉCURITÉ : Le danseur est directement rattaché au FOYER de l'utilisateur, pas au User technique
+            // SÉCURITÉ : Le danseur est directement et uniquement rattaché au FOYER
             $danseur->setFoyer($foyer); 
-            $danseur->setParent($user);
 
             $em->persist($danseur);
             $em->flush();

@@ -19,12 +19,15 @@ class DanseurCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->hideOnForm();
-        yield TextField::new('prenom');
-        yield TextField::new('nom');
+        yield TextField::new('prenom', 'Prénom');
+        yield TextField::new('nom', 'Nom');
         yield DateField::new('dateNaissance')->setLabel('Date de naissance');
-        yield AssociationField::new('parent')->setLabel('Parent / Responsable');
-        yield AssociationField::new('cours')
-            ->setLabel('Cours suivis')
+        
+        // 🏠 On remplace l'ancienne association 'parent' par le 'foyer' pivot
+        yield AssociationField::new('foyer', 'Foyer / Famille')
+            ->setHelp("Le foyer familial auquel ce danseur est rattaché.");
+
+        yield AssociationField::new('cours', 'Cours suivis')
             ->hideOnIndex();
     }
 }

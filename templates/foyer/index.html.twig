@@ -85,8 +85,8 @@
 									<div>
 										<h3 class="font-bold text-lg text-[#FFD700]">{{ danseur.prenom }}
 											{{ danseur.nom }}</h3>
-										{# Si tu as un champ dateNaissance, décommente la ligne du dessous #}
-										{# <p class="text-xs text-neutral-400">Né(e) le {{ danseur.dateNaissance|date('d/m/Y') }}</p> #}
+										<p class="text-xs text-neutral-400">Né(e) le {{ danseur.dateNaissance ? danseur.dateNaissance|date('d/m/Y') : 'Date de naissance non renseignée' }}
+											{{ danseur.dateNaissance|date('d/m/Y') }}</p>
 									</div>
 									<div class="flex gap-2">
 										<a href="{{ path('app_foyer_edit', {'id': danseur.id}) }}" class="px-3 py-1.5 border border-neutral-800 hover:border-neutral-500 rounded text-xs font-semibold text-neutral-400 hover:text-white transition-colors">

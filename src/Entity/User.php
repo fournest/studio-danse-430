@@ -3,8 +3,6 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -32,10 +30,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 20)]
     private ?string $telephone = null;
 
-    // Ajout de orphanRemoval pour nettoyer la BDD si on supprime un danseur du foyer
-    #[ORM\OneToMany(mappedBy: 'parent', targetEntity: Danseur::class, orphanRemoval: true)]
-    private Collection $danseurs;
-
     // Champs de sécurité requis pour notre futur UserChecker
     #[ORM\Column]
     private bool $isVerified = false;
@@ -45,11 +39,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?Foyer $foyer = null;
-
-    public function __construct()
-    {
-        $this->danseurs = new ArrayCollection();
-    }
 
     public function getId(): ?int { return $this->id; }
     
@@ -73,31 +62,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     
     public function getTelephone(): ?string { return $this->telephone; }
     public function setTelephone(string $telephone): self { $this->telephone = $telephone; return $this; }
-    
-    /**
-     * @return Collection<int, Danseur>
-     */
-    public function getDanseurs(): Collection { return $this->danseurs; }
-    
-    public function addDanseur(Danseur $danseur): self
-    {
-        if (!$this->danseurs->contains($danseur)) {
-            $this->danseurs->add($danseur);
-            $danseur->setParent($this);
-        }
-        return $this;
-    }
-
-    public function removeDanseur(Danseur $danseur): self
-    {
-        if ($this->danseurs->removeElement($danseur)) {
-            // Grâce à orphanRemoval: true, Doctrine supprimera le Danseur de la BDD
-            if ($danseur->getParent() === $this) {
-                $danseur->setParent(null);
-            }
-        }
-        return $this;
-    }
 
     // Getters et Setters pour la sécurité
     public function isVerified(): bool { return $this->isVerified; }
@@ -118,7 +82,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setFoyer(Foyer $foyer): static
     {
-        // set the owning side of the relation if necessary
         if ($foyer->getUser() !== $this) {
             $foyer->setUser($this);
         }

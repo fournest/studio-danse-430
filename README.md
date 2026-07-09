@@ -41,7 +41,7 @@ L'interface arbore une identité visuelle forte et cohérente : fond **noir prof
 | 🖋️ **Templating** | Twig `3` | Templates du site vitrine et du back-office |
 | 🗄️ **ORM** | Doctrine ORM `3` + Migrations | Entités, relations, migrations versionnées |
 | 🔐 **Back-office** | EasyAdmin `5` | CRUD, tableau de bord, menu personnalisé en français |
-| 🛡️ **Sécurité** | Symfony Security | `UserChecker` (compte actif + email vérifié), `login_throttling` (anti brute-force), hiérarchie des rôles |
+| 🛡️ **Sécurité** | Symfony Security | `UserChecker` (compte actif + email vérifié), `login_throttling` (anti brute-force), hiérarchie `ROLE_PROF` / `ROLE_TRESORIER` / `ROLE_BUREAU` |
 | 🎨 **CSS (site public)** | Tailwind CSS `v4` | Via `symfonycasts/tailwind-bundle` (compilation locale) |
 | 🎨 **CSS (admin)** | Tailwind CSS `v3` | Chargé via **CDN autonome** sans écraser le CSS natif d'EasyAdmin (`preflight: false`) |
 | 📤 **Uploads** | VichUploaderBundle | Gestion des fichiers (certificats médicaux, etc.) |
@@ -59,25 +59,29 @@ L'interface arbore une identité visuelle forte et cohérente : fond **noir prof
 
 ### 🌐 Côté public (site vitrine)
 
-- 🏠 **Page d'accueil** immersive avec hero, présentation de l'école et aperçu des cours.
+- 🏠 **Page d'accueil** immersive avec hero, présentation de l'école, aperçu des cours et **fil d'actualités** (publications Facebook / Instagram synchronisées).
 - 🤝 **Bandeau de sponsors** — Carrousel défilant (effet *marquee* avec pause au survol) mettant en avant les partenaires de l'association.
 - 📅 **Catalogue des cours** — Liste détaillée (jour, horaire, professeur, capacité) et fiche par cours.
 - 📝 **Inscription des danseurs** — Formulaire permettant à un parent d'inscrire un ou plusieurs danseurs à plusieurs cours en une seule fois (statut dossier/paiement initialisés automatiquement).
-- 👨‍👩‍👧 **Espace « Mon Foyer »** *(réservé aux membres connectés)* — Tableau de bord personnel (`/mon-foyer`) où chaque parent peut **consulter, ajouter et modifier ses danseurs**, avec validation des champs et contrôle d'accès strict (un parent ne peut éditer que ses propres danseurs).
+- 👨‍👩‍👧 **Espace « Mon Foyer »** *(réservé aux membres connectés)* — Configuration du foyer familial (adresse, contact d'urgence), puis tableau de bord (`/mon-foyer`) pour **consulter, ajouter et modifier les danseurs du foyer**, avec validation des champs et contrôle d'accès strict (un parent ne peut éditer que les danseurs de son propre foyer).
 - 👗 **Location de costumes** — Catalogue public (`/location-costumes`) présentant les costumes disponibles à la location (nom, taille, prix au week-end, exemplaires, photo et consignes).
 - 🎟️ **Billetterie Gala intégrée** — Page de réservation du **Gala annuel à la salle de la Boissière-des-Landes**, avec redirection vers **Billetweb** (via l'identifiant d'événement `billetwebEventId`) et affichage des places disponibles.
 - 🔐 **Authentification sécurisée** — Connexion / déconnexion, avec **vérification de l'email**, **suspension de compte** et **limitation des tentatives** (anti brute-force).
 
 ### 🛠️ Côté administration (EasyAdmin — thème Noir/Or)
 
+> Accès réservé aux comptes **`ROLE_TRESORIER`** ou supérieurs (`ROLE_BUREAU` hérite de ce rôle).
+
 - 📊 **Tableau de bord** avec indicateurs clés (KPI) : total danseurs, cours, inscriptions, dossiers en attente + tableau des dernières inscriptions.
-- 👥 **Gestion des utilisateurs** (parents / administrateurs).
-- 🕺 **Gestion des danseurs** rattachés à leur parent.
+- 👥 **Gestion des utilisateurs** (parents et membres de l'équipe : bureau, trésorier, prof).
+- 🏠 **Gestion des foyers / familles** (coordonnées, rattachement au compte parent).
+- 🕺 **Gestion des danseurs** rattachés à leur foyer.
 - 🎵 **Gestion des cours** (professeur, jour, horaire, capacité, lien de groupe WhatsApp).
 - 🗂️ **Gestion des inscriptions** avec suivi du **statut du dossier** (En attente / Incomplet / Validé) et du **statut de paiement**.
 - ⭐ **Gestion des galas** (date, salle, places, identifiant Billetweb).
 - 📍 **Gestion des salles**.
 - 👗 **Gestion des costumes** (nom, taille, prix, stock, description et **upload de la photo** du costume).
+- 🤝 **Gestion des sponsors** (nom, logo).
 
 ---
 
@@ -147,23 +151,37 @@ php bin/console doctrine:database:create
 php bin/console doctrine:migrations:migrate
 ```
 
-### 👤 6. Créer un compte administrateur
+### 👤 6. Créer un compte membre de l'équipe
+
+Les comptes d'équipe se créent via la commande `app:create-staff` avec l'un des types : `bureau`, `tresorier` ou `prof`. Seuls **`tresorier`** et **`bureau`** peuvent accéder au back-office (`/admin`).
 
 ```bash
-php bin/console app:create-admin admin@studio430.fr "MotDePasseSolide!" 0612345678
+# Trésorier (accès admin)
+php bin/console app:create-staff tresorier@studio430.fr "MotDePasseSolide!" tresorier 0612345678
+
+# Bureau (accès admin + hérite des droits trésorier et prof)
+php bin/console app:create-staff bureau@studio430.fr "MotDePasseSolide!" bureau 0612345678
 ```
 
 ### 🌱 7. (Optionnel) Charger un jeu de données de test
 
-Crée 1 parent, 2 danseurs, 2 cours et 2 inscriptions :
+Crée 2 familles (dont une membre du bureau), 3 danseurs, 2 cours et 3 inscriptions :
 
 ```bash
 php bin/console app:seed-test-family
 ```
 
-> Identifiants du parent de test : `parent.test@studio430.fr` / `Password123!`
+> Identifiants de test (mot de passe commun : `Password123!`) :
+> - Parent standard : `parent.test@studio430.fr`
+> - Parent bureau (accès admin) : `bureau.parent@studio430.fr`
 
-### 🎨 8. Compiler le CSS Tailwind du site public
+### 🤝 8. (Optionnel) Charger les sponsors depuis les logos
+
+```bash
+php bin/console app:seed-sponsors
+```
+
+### 🎨 9. Compiler le CSS Tailwind du site public
 
 ```bash
 php bin/console tailwind:build
@@ -171,7 +189,7 @@ php bin/console tailwind:build
 php bin/console tailwind:build --watch
 ```
 
-### ▶️ 9. Lancer le serveur local
+### ▶️ 10. Lancer le serveur local
 
 ```bash
 # Avec la Symfony CLI (recommandé)
@@ -229,8 +247,9 @@ php bin/console asset-map:compile         # Compiler les assets pour la prod
 ### 🧑‍💼 Commandes métier (spécifiques au projet)
 
 ```bash
-php bin/console app:create-admin <email> <password> [telephone]   # Créer un administrateur
-php bin/console app:seed-test-family                              # Charger des données de test
+php bin/console app:create-staff <email> <password> <type> [telephone]  # Créer un membre d'équipe (bureau|tresorier|prof)
+php bin/console app:seed-test-family                                    # Charger des données de test
+php bin/console app:seed-sponsors                                       # Importer les sponsors depuis les logos
 ```
 
 ---
@@ -245,10 +264,10 @@ studio-danse-430/
 │   ├── images/             # Logo, visuels du studio & logos sponsors
 │   └── uploads/costumes/   # Photos des costumes uploadées via l'admin
 ├── src/
-│   ├── Command/            # Commandes CLI (create-admin, seed-test-family)
+│   ├── Command/            # Commandes CLI (create-staff, seed-test-family, seed-sponsors)
 │   ├── Controller/         # Contrôleurs publics (Home, Inscription, Foyer, Costume…)
 │   │   └── Admin/          # Contrôleurs EasyAdmin (Dashboard + CRUD, dont Costume)
-│   ├── Entity/             # Entités Doctrine (User, Danseur, Cours, Inscription, Gala, Salle, Costume)
+│   ├── Entity/             # Entités Doctrine (User, Foyer, Danseur, Cours, Inscription, Gala, Salle, Costume, Sponsor, Actualite)
 │   ├── Form/               # Types de formulaires (InscriptionType, DanseurType)
 │   ├── Repository/         # Repositories Doctrine
 │   └── Security/           # Authentification (LoginFormAuthenticator) & contrôle d'accès (UserChecker)
@@ -268,19 +287,23 @@ studio-danse-430/
 ## 🗃️ Modèle de données (aperçu)
 
 ```text
-User (parent / admin) ── email + telephone + isVerified + isActif + roles
- └── 1,N ── Danseur (prenom, nom, dateNaissance)
-              └── N,N ── Cours
+User (parent / équipe) ── email + telephone + isVerified + isActif + roles
+ └── 1,1 ── Foyer (nom, adresse, codePostal, ville, contactUrgence)
+              └── 1,N ── Danseur (prenom, nom, dateNaissance)
+                           └── N,N ── Cours
 Inscription ── Danseur + Cours + Saison + StatutDossier + StatutPaiement
 Gala ── Salle + dateHeure + placesDisponibles + billetwebEventId
 Salle ── 1,N ── Gala
 Costume ── nom + taille + prix + quantite + photo + description
+Sponsor ── nom + logo
+Actualite ── contenu + urlMedia + urlOrigine + plateforme + datePublication
 ```
 
 - **`StatutDossier`** : `En attente` · `Incomplet` · `Validé`
 - **`StatutPaiement`** : suivi du règlement des cotisations
 - **`User.isVerified`** : l'email doit être validé pour se connecter
 - **`User.isActif`** : un compte suspendu par l'association ne peut plus se connecter
+- **Rôles d'équipe** : `ROLE_PROF` (professeur) · `ROLE_TRESORIER` (accès admin) · `ROLE_BUREAU` (hérite trésorier + prof)
 
 ---
 

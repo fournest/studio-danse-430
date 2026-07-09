@@ -24,11 +24,6 @@ class Danseur
     #[ORM\Column(type: 'date')]
     private ?\DateTimeInterface $dateNaissance = null;
 
-    // Le "?" autorise temporairement le null en PHP pour le removeDanseur
-    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'danseurs')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?User $parent = null;
-
     /**
      * @var Collection<int, Cours>
      */
@@ -45,24 +40,49 @@ class Danseur
     }
 
     // Getters/Setters adaptés avec la nullabilité PHP
-    public function getId(): ?int { return $this->id; }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+    public function setNom(?string $nom): self
+    {
+        $this->nom = $nom;
+        return $this;
+    }
+
+    public function getPrenom(): ?string
+    {
+        return $this->prenom;
+    }
+    public function setPrenom(?string $prenom): self
+    {
+        $this->prenom = $prenom;
+        return $this;
+    }
+
+    public function getDateNaissance(): ?\DateTimeInterface
+    {
+        return $this->dateNaissance;
+    }
+    public function setDateNaissance(?\DateTimeInterface $dateNaissance): self
+    {
+        $this->dateNaissance = $dateNaissance;
+        return $this;
+    }
     
-    public function getNom(): ?string { return $this->nom; }
-    public function setNom(?string $nom): self { $this->nom = $nom; return $this; }
-    
-    public function getPrenom(): ?string { return $this->prenom; }
-    public function setPrenom(?string $prenom): self { $this->prenom = $prenom; return $this; }
-    
-    public function getDateNaissance(): ?\DateTimeInterface { return $this->dateNaissance; }
-    public function setDateNaissance(?\DateTimeInterface $dateNaissance): self { $this->dateNaissance = $dateNaissance; return $this; }
-    
-    public function getParent(): ?User { return $this->parent; }
-    public function setParent(?User $parent): self { $this->parent = $parent; return $this; }
-    
+    // Getters/Setters pour les cours
     /**
      * @return Collection<int, Cours>
      */
-    public function getCours(): Collection { return $this->cours; }
+    public function getCours(): Collection
+    {
+        return $this->cours;
+    }
 
     public function addCours(Cours $cours): self
     {

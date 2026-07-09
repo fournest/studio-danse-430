@@ -11,6 +11,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
+use App\Controller\Admin\FoyerCrudController;
 
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
@@ -65,6 +66,7 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::section('Adhérents');
         yield MenuItem::linkTo(UserCrudController::class, 'Utilisateurs', 'fa fa-users');
+        yield MenuItem::linkTo(FoyerCrudController::class, 'Foyers / Familles', 'fa fa-house-user'); // 👈 À AJOUTER
         yield MenuItem::linkTo(DanseurCrudController::class, 'Danseurs', 'fa fa-person-walking');
 
         yield MenuItem::section('Activités');
