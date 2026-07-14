@@ -37,38 +37,83 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private bool $isActif = true;
 
-    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?Foyer $foyer = null;
 
-    public function getId(): ?int { return $this->id; }
-    
-    public function getEmail(): ?string { return $this->email; }
-    public function setEmail(string $email): self { $this->email = $email; return $this; }
-    
-    public function getUserIdentifier(): string { return (string) $this->email; }
-    
-    public function getRoles(): array 
-    { 
-        $roles = $this->roles; 
-        $roles[] = 'ROLE_USER'; 
-        return array_unique($roles); 
+    public function getId(): ?int
+    {
+        return $this->id;
     }
-    public function setRoles(array $roles): self { $this->roles = $roles; return $this; }
-    
-    public function getPassword(): ?string { return $this->password; }
-    public function setPassword(string $password): self { $this->password = $password; return $this; }
-    
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+    public function setEmail(string $email): self
+    {
+        $this->email = $email;
+        return $this;
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return (string) $this->email;
+    }
+
+    public function getRoles(): array
+    {
+        $roles = $this->roles;
+        $roles[] = 'ROLE_USER';
+        return array_unique($roles);
+    }
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles;
+        return $this;
+    }
+
+    public function getPassword(): ?string
+    {
+        return $this->password;
+    }
+    public function setPassword(string $password): self
+    {
+        $this->password = $password;
+        return $this;
+    }
+
     public function eraseCredentials(): void {}
-    
-    public function getTelephone(): ?string { return $this->telephone; }
-    public function setTelephone(string $telephone): self { $this->telephone = $telephone; return $this; }
+
+    public function getTelephone(): ?string
+    {
+        return $this->telephone;
+    }
+    public function setTelephone(string $telephone): self
+    {
+        $this->telephone = $telephone;
+        return $this;
+    }
 
     // Getters et Setters pour la sécurité
-    public function isVerified(): bool { return $this->isVerified; }
-    public function setIsVerified(bool $isVerified): self { $this->isVerified = $isVerified; return $this; }
+    public function isVerified(): bool
+    {
+        return $this->isVerified;
+    }
+    public function setIsVerified(bool $isVerified): self
+    {
+        $this->isVerified = $isVerified;
+        return $this;
+    }
 
-    public function isActif(): bool { return $this->isActif; }
-    public function setIsActif(bool $isActif): self { $this->isActif = $isActif; return $this; }
+    public function isActif(): bool
+    {
+        return $this->isActif;
+    }
+    public function setIsActif(bool $isActif): self
+    {
+        $this->isActif = $isActif;
+        return $this;
+    }
 
     public function __toString(): string
     {
@@ -80,9 +125,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->foyer;
     }
 
-    public function setFoyer(Foyer $foyer): static
+    public function setFoyer(?Foyer $foyer): static
     {
-        if ($foyer->getUser() !== $this) {
+        if ($foyer !== null && $foyer->getUser() !== $this) {
             $foyer->setUser($this);
         }
 

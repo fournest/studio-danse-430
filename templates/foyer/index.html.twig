@@ -61,6 +61,19 @@
 								<span class="text-neutral-200 block mt-0.5 font-medium">{{ foyer.contactUrgence }}</span>
 							</div>
 						{% endif %}
+						<div class="mt-12 p-6 border border-red-900/50 rounded-xl bg-red-950/10">
+							<h3 class="text-red-500 font-bold mb-4">Zone de danger</h3>
+
+							<form action="{{ path('app_foyer_desactiver') }}" method="POST" class="inline-block mr-4">
+								<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ app.user.id) }}">
+								<button type="submit" class="text-sm text-neutral-400 hover:text-white">Désactiver mon compte</button>
+							</form>
+
+							<form action="{{ path('app_foyer_supprimer') }}" method="POST" class="inline-block" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer définitivement votre compte ?');">
+								<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ app.user.id) }}">
+								<button type="submit" class="text-sm text-red-500 hover:text-red-400 font-bold">Supprimer mon compte</button>
+							</form>
+						</div>
 					</div>
 				</div>
 
@@ -85,14 +98,21 @@
 									<div>
 										<h3 class="font-bold text-lg text-[#FFD700]">{{ danseur.prenom }}
 											{{ danseur.nom }}</h3>
-										<p class="text-xs text-neutral-400">Né(e) le {{ danseur.dateNaissance ? danseur.dateNaissance|date('d/m/Y') : 'Date de naissance non renseignée' }}
-											{{ danseur.dateNaissance|date('d/m/Y') }}</p>
+										<p class="text-xs text-neutral-400">
+											Né(e) le :
+											{% if danseur.dateNaissance %}
+												{{ danseur.dateNaissance|date('d/m/Y') }}{% else %}Non renseignée
+											{% endif %}
+										</p>
 									</div>
-									<div class="flex gap-2">
+									<div
+										class="flex gap-2">
+										{# Appel exact de la route configurée dans FoyerController #}
 										<a href="{{ path('app_foyer_edit', {'id': danseur.id}) }}" class="px-3 py-1.5 border border-neutral-800 hover:border-neutral-500 rounded text-xs font-semibold text-neutral-400 hover:text-white transition-colors">
 											Modifier
 										</a>
 									</div>
+
 								</div>
 							{% endfor %}
 						</div>

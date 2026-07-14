@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use App\Entity\Foyer;
 use App\Entity\Danseur;
 use App\Form\FoyerType;
@@ -20,7 +21,7 @@ class FoyerController extends AbstractController
     #[Route('', name: 'app_foyer_index', methods: ['GET'])]
     public function index(): Response
     {
-        /** @var \App\Entity\User $user */
+        /** @var User $user */
         $user = $this->getUser();
         $foyer = $user->getFoyer();
 
@@ -38,7 +39,7 @@ class FoyerController extends AbstractController
     #[Route('/configuration', name: 'app_foyer_new', methods: ['GET', 'POST'])]
     public function new(Request $request, EntityManagerInterface $em): Response
     {
-        /** @var \App\Entity\User $user */
+        /** @var User $user */
         $user = $this->getUser();
 
         // Sécurité : Si l'utilisateur a déjà un foyer, on ne le laisse pas en créer un deuxième
@@ -52,7 +53,7 @@ class FoyerController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $foyer->setUser($user); // On lie le foyer à l'utilisateur connecté
-            
+
             $em->persist($foyer);
             $em->flush();
 
@@ -69,7 +70,7 @@ class FoyerController extends AbstractController
     #[Route('/ajouter-un-danseur', name: 'app_foyer_add', methods: ['GET', 'POST'])]
     public function add(Request $request, EntityManagerInterface $em): Response
     {
-        /** @var \App\Entity\User $user */
+        /** @var User $user */
         $user = $this->getUser();
         $foyer = $user->getFoyer();
 
@@ -84,7 +85,7 @@ class FoyerController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             // SÉCURITÉ : Le danseur est directement et uniquement rattaché au FOYER
-            $danseur->setFoyer($foyer); 
+            $danseur->setFoyer($foyer);
 
             $em->persist($danseur);
             $em->flush();
@@ -102,7 +103,7 @@ class FoyerController extends AbstractController
     #[Route('/modifier-un-danseur/{id}', name: 'app_foyer_edit', methods: ['GET', 'POST'])]
     public function edit(Danseur $danseur, Request $request, EntityManagerInterface $em): Response
     {
-        /** @var \App\Entity\User $user */
+        /** @var User $user */
         $user = $this->getUser();
         $foyer = $user->getFoyer();
 
@@ -125,5 +126,32 @@ class FoyerController extends AbstractController
             'form' => $form->createView(),
             'title' => 'Modifier le profil de ' . $danseur->getPrenom()
         ]);
+    }
+
+    #[Route('/mon-foyer/desactiver', name: 'app_foyer_desactiver', methods: ['POST'])]
+    public function desactiver(Request $request, EntityManagerInterface $em): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->get('_token'))) {
+            $user->setIsActif(false);
+            $em->flush();
+            // Déconnexion forcée
+            return $this->redirectToRoute('app_logout');
+        }
+        return $this->redirectToRoute('app_foyer_index');
+    }
+
+    #[Route('/mon-foyer/supprimer', name: 'app_foyer_supprimer', methods: ['POST'])]
+    public function supprimer(Request $request, EntityManagerInterface $em): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->get('_token'))) {
+            $em->remove($user); // Cascade delete supprimera le Foyer automatiquement
+            $em->flush();
+            return $this->redirectToRoute('app_home');
+        }
+        return $this->redirectToRoute('app_foyer_index');
     }
 }

@@ -63,7 +63,8 @@ L'interface arbore une identité visuelle forte et cohérente : fond **noir prof
 - 🤝 **Bandeau de sponsors** — Carrousel défilant (effet *marquee* avec pause au survol) mettant en avant les partenaires de l'association.
 - 📅 **Catalogue des cours** — Liste détaillée (jour, horaire, professeur, capacité) et fiche par cours.
 - 📝 **Inscription des danseurs** — Formulaire permettant à un parent d'inscrire un ou plusieurs danseurs à plusieurs cours en une seule fois (statut dossier/paiement initialisés automatiquement).
-- 👨‍👩‍👧 **Espace « Mon Foyer »** *(réservé aux membres connectés)* — Configuration du foyer familial (adresse, contact d'urgence), puis tableau de bord (`/mon-foyer`) pour **consulter, ajouter et modifier les danseurs du foyer**, avec validation des champs et contrôle d'accès strict (un parent ne peut éditer que les danseurs de son propre foyer).
+- 👨‍👩‍👧 **Espace « Mon Foyer »** *(réservé aux membres connectés)* — Configuration du foyer familial (adresse, contact d'urgence), puis tableau de bord (`/mon-foyer`) pour **consulter, ajouter et modifier les danseurs du foyer**, avec validation des champs et contrôle d'accès strict (un parent ne peut éditer que les danseurs de son propre foyer). **Gestion du compte** : zone de danger permettant de **désactiver** son compte (déconnexion immédiate) ou de le **supprimer définitivement** (suppression en cascade du foyer et des danseurs associés).
+- 📱 **Navigation responsive** — En-tête et pied de page adaptés au mobile (libellés compacts, grille footer en 4 colonnes sur grand écran, widget Facebook redimensionné).
 - 👗 **Location de costumes** — Catalogue public (`/location-costumes`) présentant les costumes disponibles à la location (nom, taille, prix au week-end, exemplaires, photo et consignes).
 - 🎟️ **Billetterie Gala intégrée** — Page de réservation du **Gala annuel à la salle de la Boissière-des-Landes**, avec redirection vers **Billetweb** (via l'identifiant d'événement `billetwebEventId`) et affichage des places disponibles.
 - 🔐 **Authentification sécurisée** — Connexion / déconnexion, avec **vérification de l'email**, **suspension de compte** et **limitation des tentatives** (anti brute-force).
@@ -73,7 +74,7 @@ L'interface arbore une identité visuelle forte et cohérente : fond **noir prof
 > Accès réservé aux comptes **`ROLE_TRESORIER`** ou supérieurs (`ROLE_BUREAU` hérite de ce rôle).
 
 - 📊 **Tableau de bord** avec indicateurs clés (KPI) : total danseurs, cours, inscriptions, dossiers en attente + tableau des dernières inscriptions.
-- 👥 **Gestion des utilisateurs** (parents et membres de l'équipe : bureau, trésorier, prof).
+- 👥 **Gestion des utilisateurs** (parents et membres de l'équipe : bureau, trésorier, prof) — Consultation du foyer rattaché, bascule **E-mail vérifié** / **Compte actif**, action rapide **Bannir / Débannir** depuis la liste, suppression avec message de confirmation.
 - 🏠 **Gestion des foyers / familles** (coordonnées, rattachement au compte parent).
 - 🕺 **Gestion des danseurs** rattachés à leur foyer.
 - 🎵 **Gestion des cours** (professeur, jour, horaire, capacité, lien de groupe WhatsApp).
@@ -288,7 +289,7 @@ studio-danse-430/
 
 ```text
 User (parent / équipe) ── email + telephone + isVerified + isActif + roles
- └── 1,1 ── Foyer (nom, adresse, codePostal, ville, contactUrgence)
+ └── 1,1 ── Foyer (nom, adresse, codePostal, ville, contactUrgence)  [orphanRemoval : suppression en cascade si le User est supprimé]
               └── 1,N ── Danseur (prenom, nom, dateNaissance)
                            └── N,N ── Cours
 Inscription ── Danseur + Cours + Saison + StatutDossier + StatutPaiement
@@ -302,7 +303,7 @@ Actualite ── contenu + urlMedia + urlOrigine + plateforme + datePublication
 - **`StatutDossier`** : `En attente` · `Incomplet` · `Validé`
 - **`StatutPaiement`** : suivi du règlement des cotisations
 - **`User.isVerified`** : l'email doit être validé pour se connecter
-- **`User.isActif`** : un compte suspendu par l'association ne peut plus se connecter
+- **`User.isActif`** : un compte suspendu (par l'association ou par l'utilisateur lui-même via « Désactiver mon compte ») ne peut plus se connecter
 - **Rôles d'équipe** : `ROLE_PROF` (professeur) · `ROLE_TRESORIER` (accès admin) · `ROLE_BUREAU` (hérite trésorier + prof)
 
 ---
