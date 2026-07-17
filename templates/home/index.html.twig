@@ -152,19 +152,20 @@
 			<span class="text-xs font-semibold tracking-widest text-amber-500 uppercase">Ils soutiennent le club</span>
 		</div>
 
-		<div class="flex animate-marquee whitespace-nowrap items-center hover:[animation-play-state:paused]" style="width: max-content !important; gap: 2rem !important;">
-			<div class="flex items-center shrink-0" style="gap: 2rem !important; display: flex !important;">
+		<div class="flex animate-marquee whitespace-nowrap items-center hover:[animation-play-state:paused] w-max gap-8">
+			<div class="flex items-center shrink-0 gap-8">
 				{% for sponsor in sponsors %}
 					<a href="{{ sponsor.lien ?? '#' }}" target="_blank" rel="noopener noreferrer" class="shrink-0 block">
-						<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}" alt="{{ sponsor.nom }}" class="h-20 w-auto object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" style="height: 5rem !important; width: auto !important; max-width: none !important;" onerror="this.style.display='none'">
+						<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}" alt="{{ sponsor.nom }}" class="h-20 w-auto max-w-none object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" onerror="this.style.display='none'">
 					</a>
 				{% endfor %}
 			</div>
 
-			<div class="flex items-center shrink-0" aria-hidden="true" style="gap: 2rem !important; display: flex !important;">
+			<!-- Le clone pour l'effet de boucle infinie -->
+			<div class="flex items-center shrink-0 gap-8" aria-hidden="true">
 				{% for sponsor in sponsors %}
 					<a href="{{ sponsor.lien ?? '#' }}" target="_blank" rel="noopener noreferrer" class="shrink-0 block">
-						<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}" alt="{{ sponsor.nom }}" class="h-20 w-auto object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" style="height: 5rem !important; width: auto !important; max-width: none !important;" onerror="this.style.display='none'">
+						<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}" alt="{{ sponsor.nom }}" class="h-20 w-auto max-w-none object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" onerror="this.style.display='none'">
 					</a>
 				{% endfor %}
 			</div>
@@ -185,6 +186,17 @@
 			animation: marquee 25s linear infinite;
 			display: flex;
 			width: max-content;
+		}
+
+		.animate-marquee:hover {
+			animation-play-state: paused;
+		}
+		input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 1000px #000 inset !important;
+        -webkit-text-fill-color: #fff !important;
+        transition: background-color 5000s ease-in-out 0s;
 		}
 	</style>
 {% endblock %}

@@ -41,7 +41,7 @@ L'interface arbore une identité visuelle forte et cohérente : fond **noir prof
 | 🖋️ **Templating** | Twig `3` | Templates du site vitrine et du back-office |
 | 🗄️ **ORM** | Doctrine ORM `3` + Migrations | Entités, relations, migrations versionnées |
 | 🔐 **Back-office** | EasyAdmin `5` | CRUD, tableau de bord, menu personnalisé en français |
-| 🛡️ **Sécurité** | Symfony Security | `UserChecker` (compte actif + email vérifié), `login_throttling` (anti brute-force), hiérarchie `ROLE_PROF` / `ROLE_TRESORIER` / `ROLE_BUREAU` |
+| 🛡️ **Sécurité** | Symfony Security + Reset Password | `UserChecker` (compte actif + email vérifié), `login_throttling` (anti brute-force), **mot de passe oublié** (`symfonycasts/reset-password-bundle`), hiérarchie `ROLE_PROF` / `ROLE_TRESORIER` / `ROLE_BUREAU` |
 | 🎨 **CSS (site public)** | Tailwind CSS `v4` | Via `symfonycasts/tailwind-bundle` (compilation locale) |
 | 🎨 **CSS (admin)** | Tailwind CSS `v3` | Chargé via **CDN autonome** sans écraser le CSS natif d'EasyAdmin (`preflight: false`) |
 | 📤 **Uploads** | VichUploaderBundle | Gestion des fichiers (certificats médicaux, etc.) |
@@ -68,6 +68,7 @@ L'interface arbore une identité visuelle forte et cohérente : fond **noir prof
 - 👗 **Location de costumes** — Catalogue public (`/location-costumes`) présentant les costumes disponibles à la location (nom, taille, prix au week-end, exemplaires, photo et consignes).
 - 🎟️ **Billetterie Gala intégrée** — Page de réservation du **Gala annuel à la salle de la Boissière-des-Landes**, avec redirection vers **Billetweb** (via l'identifiant d'événement `billetwebEventId`) et affichage des places disponibles.
 - 🔐 **Authentification sécurisée** — Connexion / déconnexion, avec **vérification de l'email**, **suspension de compte** et **limitation des tentatives** (anti brute-force).
+- 🔑 **Mot de passe oublié** — Depuis la page de connexion (`/login`), demande de réinitialisation par e-mail (`/reset-password`) via un lien sécurisé à usage unique (token stocké en base, expiration automatique).
 
 ### 🛠️ Côté administration (EasyAdmin — thème Noir/Or)
 
@@ -127,6 +128,12 @@ DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:5432/studio_danse_430?server
 # MySQL / MariaDB (ex. environnement WAMP)
 # DATABASE_URL="mysql://root:@127.0.0.1:3306/studio_danse_430?serverVersion=8.0.32&charset=utf8mb4"
 
+# --- Mailer (vérification d'e-mail & mot de passe oublié) ---
+# En local, le transport "null" suffit pour ne pas envoyer de vrais e-mails :
+MAILER_DSN=null://null
+# Exemple SMTP (Mailtrap, etc.) :
+# MAILER_DSN=smtp://user:pass@smtp.exemple.com:587
+
 # --- Billetterie Billetweb ---
 BILLETWEB_API_KEY=ta_cle_api_ici
 BILLETWEB_API_URL=https://api.billetweb.fr/v1
@@ -139,6 +146,8 @@ N8N_WEBHOOK_TOKEN=ton_token_secret_ici
 ```
 
 > ⚠️ Ne mettez **jamais** de secrets de production dans le fichier `.env` versionné. Utilisez toujours `.env.local`.
+>
+> 💡 Les flux **vérification d'e-mail** et **mot de passe oublié** nécessitent un `MAILER_DSN` fonctionnel pour recevoir les liens. En `dev`, consultez aussi le profiler Symfony (`/_profiler`) pour intercepter les e-mails si le transport est configuré en conséquence.
 
 ### 🗃️ 4. Créer la base de données
 
@@ -266,10 +275,10 @@ studio-danse-430/
 │   └── uploads/costumes/   # Photos des costumes uploadées via l'admin
 ├── src/
 │   ├── Command/            # Commandes CLI (create-staff, seed-test-family, seed-sponsors)
-│   ├── Controller/         # Contrôleurs publics (Home, Inscription, Foyer, Costume…)
+│   ├── Controller/         # Contrôleurs publics (Home, Inscription, Foyer, Costume, ResetPassword…)
 │   │   └── Admin/          # Contrôleurs EasyAdmin (Dashboard + CRUD, dont Costume)
-│   ├── Entity/             # Entités Doctrine (User, Foyer, Danseur, Cours, Inscription, Gala, Salle, Costume, Sponsor, Actualite)
-│   ├── Form/               # Types de formulaires (InscriptionType, DanseurType)
+│   ├── Entity/             # Entités Doctrine (User, Foyer, Danseur, Cours, Inscription, Gala, Salle, Costume, Sponsor, Actualite, ResetPasswordRequest)
+│   ├── Form/               # Types de formulaires (InscriptionType, DanseurType, ChangePasswordFormType, ResetPasswordRequestFormType…)
 │   ├── Repository/         # Repositories Doctrine
 │   └── Security/           # Authentification (LoginFormAuthenticator) & contrôle d'accès (UserChecker)
 ├── templates/
@@ -277,6 +286,8 @@ studio-danse-430/
 │   ├── home/               # Page d'accueil
 │   ├── foyer/              # Espace « Mon Foyer » (liste + formulaire danseur)
 │   ├── costume/            # Catalogue de location de costumes
+│   ├── reset_password/     # Demande / e-mail / confirmation / nouveau mot de passe
+│   ├── security/           # Connexion (lien « Mot de passe oublié »)
 │   ├── sponsor/            # Bandeau défilant des partenaires
 │   ├── cours/ gala/ ...    # Pages publiques
 │   └── base.html.twig      # Layout principal
@@ -293,6 +304,7 @@ User (parent / équipe) ── email + telephone + isVerified + isActif + roles
               └── 1,N ── Danseur (prenom, nom, dateNaissance)
                            └── N,N ── Cours
 Inscription ── Danseur + Cours + Saison + StatutDossier + StatutPaiement
+ResetPasswordRequest ── User + expiresAt + selector + hashedToken
 Gala ── Salle + dateHeure + placesDisponibles + billetwebEventId
 Salle ── 1,N ── Gala
 Costume ── nom + taille + prix + quantite + photo + description
@@ -304,6 +316,7 @@ Actualite ── contenu + urlMedia + urlOrigine + plateforme + datePublication
 - **`StatutPaiement`** : suivi du règlement des cotisations
 - **`User.isVerified`** : l'email doit être validé pour se connecter
 - **`User.isActif`** : un compte suspendu (par l'association ou par l'utilisateur lui-même via « Désactiver mon compte ») ne peut plus se connecter
+- **`ResetPasswordRequest`** : demande de réinitialisation de mot de passe (token hashé, expiration, lié à un `User`)
 - **Rôles d'équipe** : `ROLE_PROF` (professeur) · `ROLE_TRESORIER` (accès admin) · `ROLE_BUREAU` (hérite trésorier + prof)
 
 ---

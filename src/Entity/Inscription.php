@@ -12,14 +12,14 @@ class Inscription
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Danseur::class)]
+    #[ORM\ManyToOne(targetEntity: Danseur::class, inversedBy: 'inscriptions')]
     #[ORM\JoinColumn(nullable: false)]
-    private Danseur $danseur;
+    private ?Danseur $danseur = null;
 
     #[ORM\ManyToOne(targetEntity: Cours::class)]
     #[ORM\JoinColumn(nullable: false)]
-    private Cours $cours;
-
+    private ?Cours $cours = null;
+    
     #[ORM\Column(length: 20)]
     private string $saison;
 
@@ -40,10 +40,10 @@ class Inscription
 
     // Getters/Setters
     public function getId(): ?int { return $this->id; }
-    public function getDanseur(): Danseur { return $this->danseur; }
-    public function setDanseur(Danseur $danseur): self { $this->danseur = $danseur; return $this; }
-    public function getCours(): Cours { return $this->cours; }
-    public function setCours(Cours $cours): self { $this->cours = $cours; return $this; }
+    public function getDanseur(): ?Danseur { return $this->danseur; }
+    public function setDanseur(?Danseur $danseur): self { $this->danseur = $danseur; return $this; }
+    public function getCours(): ?Cours { return $this->cours; }
+    public function setCours(?Cours $cours): self { $this->cours = $cours; return $this; }
     public function getSaison(): string { return $this->saison; }
     public function setSaison(string $saison): self { $this->saison = $saison; return $this; }
     public function getStatutDossier(): StatutDossier { return $this->statutDossier; }
