@@ -1,9 +1,31 @@
-<h1>Hi!</h1>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+    </head>
+    <body style="font-family: Arial, sans-serif; background-color: #000000; color: #ffffff; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #FFD700; border-radius: 20px; padding: 30px; background-color: #000000;">
+            
+            <h1 style="color: #FFD700; text-align: center;">Réinitialisation de mot de passe</h1>
+            
+            <p style="font-size: 16px; line-height: 1.5;">Bonjour,</p>
+            
+            <p style="font-size: 16px; line-height: 1.5;">Pour réinitialiser votre mot de passe sur <strong>Studio Danse 430</strong>, veuillez cliquer sur le lien ci-dessous :</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ url('app_reset_password', {token: resetToken.token}) }}" 
+                   style="background-color: #FFD700; color: #000000; padding: 15px 25px; text-decoration: none; border-radius: 50px; font-weight: bold;">
+                   Réinitialiser mon mot de passe
+                </a>
+            </div>
 
-<p>To reset your password, please visit the following link</p>
+            <p style="font-size: 14px; color: #cccccc;">
+                Ce lien expirera dans {{ resetToken.expirationMessageKey|trans(resetToken.expirationMessageData, 'ResetPasswordBundle') }}.
+            </p>
 
-<a href="{{ url('app_reset_password', {token: resetToken.token}) }}">{{ url('app_reset_password', {token: resetToken.token}) }}</a>
-
-<p>This link will expire in {{ resetToken.expirationMessageKey|trans(resetToken.expirationMessageData, 'ResetPasswordBundle') }}.</p>
-
-<p>Cheers!</p>
+            <p style="font-size: 14px; color: #cccccc; margin-top: 30px;">
+                À bientôt au Studio Danse 430 !
+            </p>
+        </div>
+    </body>
+</html>

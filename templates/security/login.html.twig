@@ -12,11 +12,6 @@
 			</div>
 
 			<div class="bg-black border border-[#FFD700]/40 rounded-3xl p-8 shadow-[0_0_30px_rgba(255,215,0,0.12)]">
-				{% if error %}
-					<div class="mb-6 rounded-lg border border-rose-500/60 bg-rose-500/10 px-4 py-3 text-rose-300 text-sm">
-						{{ error.messageKey|trans(error.messageData, 'security') }}
-					</div>
-				{% endif %}
 
 				{% if app.user %}
 					<div class="mb-6 rounded-lg border border-[#FFD700] bg-[#FFD700]/10 px-4 py-3 text-[#FFD700] text-sm">
