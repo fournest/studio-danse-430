@@ -37,19 +37,19 @@ L'interface arbore une identité visuelle forte et cohérente : fond **noir prof
 | Domaine | Technologie | Détails |
 | :--- | :--- | :--- |
 | 🐘 **Langage** | PHP `8.2+` | Typage strict, enums, attributs |
-| 🎼 **Framework** | Symfony `7.4` | Architecture MVC, AssetMapper, Security, Mailer, Notifier |
+| 🎼 **Framework** | Symfony `7.4` | Architecture MVC, AssetMapper, Security, Mailer, RateLimiter |
 | 🖋️ **Templating** | Twig `3` | Templates du site vitrine et du back-office |
 | 🗄️ **ORM** | Doctrine ORM `3` + Migrations | Entités, relations, migrations versionnées |
 | 🔐 **Back-office** | EasyAdmin `5` | CRUD, tableau de bord, menu personnalisé en français |
-| 🛡️ **Sécurité** | Symfony Security + Reset Password | `UserChecker` (compte actif + email vérifié), `login_throttling` (anti brute-force), **mot de passe oublié** (`symfonycasts/reset-password-bundle`), hiérarchie `ROLE_PROF` / `ROLE_TRESORIER` / `ROLE_BUREAU` |
+| 🛡️ **Sécurité** | Symfony Security + bundles | `UserChecker` (compte actif + email vérifié), `login_throttling` (anti brute-force), **vérification d'e-mail** (`symfonycasts/verify-email-bundle`), **mot de passe oublié** (`symfonycasts/reset-password-bundle`), hiérarchie `ROLE_PROF` / `ROLE_TRESORIER` / `ROLE_BUREAU` |
 | 🎨 **CSS (site public)** | Tailwind CSS `v4` | Via `symfonycasts/tailwind-bundle` (compilation locale) |
 | 🎨 **CSS (admin)** | Tailwind CSS `v3` | Chargé via **CDN autonome** sans écraser le CSS natif d'EasyAdmin (`preflight: false`) |
-| 📤 **Uploads** | VichUploaderBundle | Gestion des fichiers (certificats médicaux, etc.) |
+| 📤 **Uploads** | EasyAdmin `ImageField` | Photos des costumes (stockées dans `public/uploads/costumes/`) |
 | ⚡ **Front interactif** | Symfony UX (Turbo + Stimulus) | Navigation fluide sans rechargement |
-| 🗃️ **Base de données** | PostgreSQL *(défaut)* / MySQL / MariaDB | Configurable via `DATABASE_URL` |
-| 🎟️ **Billetterie** | Billetweb | Réservation des places de Gala |
-| 💳 **Paiement** *(prévu)* | HelloAsso | Point d'intégration préparé pour les cotisations |
-| 🔄 **Automatisation** *(prévu)* | n8n | Webhook prêt pour notifier les nouvelles inscriptions |
+| 🗃️ **Base de données** | PostgreSQL *(défaut)* / MySQL / MariaDB | Configurable via `DATABASE_URL` ; Postgres fourni via Docker Compose |
+| 🎟️ **Billetterie** | Billetweb | Lien de réservation Gala via `billetwebEventId` |
+| 🔄 **Automatisation** | n8n | Webhook déclenché à chaque nouvelle inscription (si `N8N_WEBHOOK_URL` est défini) |
+| 💳 **Paiement** *(prévu)* | HelloAsso | Champ `helloAssoPaymentId` + variables d'environnement préparés ; checkout non branché |
 
 > 💡 **À noter sur Tailwind :** le back-office charge Tailwind v3 via CDN avec `corePlugins.preflight: false`. Cette configuration "autonome" permet d'utiliser les classes utilitaires Tailwind **par-dessus** le design natif d'EasyAdmin sans en casser les styles.
 
@@ -59,31 +59,37 @@ L'interface arbore une identité visuelle forte et cohérente : fond **noir prof
 
 ### 🌐 Côté public (site vitrine)
 
-- 🏠 **Page d'accueil** immersive avec hero, présentation de l'école, aperçu des cours et **fil d'actualités** (publications Facebook / Instagram synchronisées).
-- 🤝 **Bandeau de sponsors** — Carrousel défilant (effet *marquee* avec pause au survol) mettant en avant les partenaires de l'association.
-- 📅 **Catalogue des cours** — Liste détaillée (jour, horaire, professeur, capacité) et fiche par cours.
-- 📝 **Inscription des danseurs** — Formulaire permettant à un parent d'inscrire un ou plusieurs danseurs à plusieurs cours en une seule fois (statut dossier/paiement initialisés automatiquement).
-- 👨‍👩‍👧 **Espace « Mon Foyer »** *(réservé aux membres connectés)* — Configuration du foyer familial (adresse, contact d'urgence), puis tableau de bord (`/mon-foyer`) pour **consulter, ajouter et modifier les danseurs du foyer**, avec validation des champs et contrôle d'accès strict (un parent ne peut éditer que les danseurs de son propre foyer). **Gestion du compte** : zone de danger permettant de **désactiver** son compte (déconnexion immédiate) ou de le **supprimer définitivement** (suppression en cascade du foyer et des danseurs associés).
-- 📱 **Navigation responsive** — En-tête et pied de page adaptés au mobile (libellés compacts, grille footer en 4 colonnes sur grand écran, widget Facebook redimensionné).
-- 👗 **Location de costumes** — Catalogue public (`/location-costumes`) présentant les costumes disponibles à la location (nom, taille, prix au week-end, exemplaires, photo et consignes).
-- 🎟️ **Billetterie Gala intégrée** — Page de réservation du **Gala annuel à la salle de la Boissière-des-Landes**, avec redirection vers **Billetweb** (via l'identifiant d'événement `billetwebEventId`) et affichage des places disponibles.
-- 🔐 **Authentification sécurisée** — Connexion / déconnexion, avec **vérification de l'email**, **suspension de compte** et **limitation des tentatives** (anti brute-force).
-- 🔑 **Mot de passe oublié** — Depuis la page de connexion (`/login`), demande de réinitialisation par e-mail (`/reset-password`) via un lien sécurisé à usage unique (token stocké en base, expiration automatique).
+- 🏠 **Page d'accueil** immersive avec hero, présentation de l'école, aperçu des cours et **fil d'actualités** (entité `Actualite` : contenu, média, plateforme, date — affichage des dernières publications).
+- 🤝 **Bandeau de sponsors** — Carrousel défilant (effet *marquee* avec pause au survol) mettant en avant les partenaires de l'association (nom, logo, lien optionnel).
+- 📅 **Catalogue des cours** — Liste détaillée (jour, horaire, professeur, capacité) et fiche par cours (`/cours`, `/cours/{id}`).
+- 👤 **Création de compte** — Inscription parent (`/register`) avec **vérification de l'e-mail** (`/verify/email`) obligatoire avant connexion.
+- 👨‍👩‍👧 **Tunnel d'inscription familial** — Parcours guidé pour les familles connectées :
+  1. Configurer le **foyer** (`/mon-foyer/configuration`)
+  2. Ajouter un ou plusieurs **danseurs**
+  3. Inscrire un danseur à un ou plusieurs **cours** (`/inscription`) — statut dossier / paiement initialisés automatiquement (`En attente` / `Non payé`)
+  4. Consultation et suivi depuis l'espace **Mon Foyer**
+- 👨‍👩‍👧 **Espace « Mon Foyer »** *(réservé aux membres connectés)* — Tableau de bord (`/mon-foyer`) pour consulter, ajouter et modifier les danseurs du foyer, avec contrôle d'accès strict. **Gestion du compte** : désactivation (déconnexion immédiate) ou **suppression définitive** (cascade foyer + danseurs).
+- 📱 **Navigation responsive** — En-tête et pied de page adaptés au mobile.
+- 👗 **Location de costumes** — Catalogue public (`/location-costumes`) : nom, taille, prix au week-end, exemplaires, photo et consignes. Les membres connectés peuvent **réserver** un costume (`/location-costumes/{id}/reserver`) : dates de location, quantité, taille, mode de livraison (retrait aux locaux ou point relais), remarques. Le stock est décrémenté à la validation ; le statut initial est `En attente`.
+- 🎟️ **Billetterie Gala** — Pages Gala (`/galas`, `/galas/reservation`) avec redirection vers **Billetweb** via `billetwebEventId`.
+- 🔐 **Authentification sécurisée** — Connexion / déconnexion, vérification e-mail, suspension de compte, limitation des tentatives (anti brute-force).
+- 🔑 **Mot de passe oublié** — Depuis `/login` → `/reset-password` : demande par e-mail, lien sécurisé à usage unique (token hashé en base, expiration automatique), puis saisie du nouveau mot de passe.
 
 ### 🛠️ Côté administration (EasyAdmin — thème Noir/Or)
 
 > Accès réservé aux comptes **`ROLE_TRESORIER`** ou supérieurs (`ROLE_BUREAU` hérite de ce rôle).
 
 - 📊 **Tableau de bord** avec indicateurs clés (KPI) : total danseurs, cours, inscriptions, dossiers en attente + tableau des dernières inscriptions.
-- 👥 **Gestion des utilisateurs** (parents et membres de l'équipe : bureau, trésorier, prof) — Consultation du foyer rattaché, bascule **E-mail vérifié** / **Compte actif**, action rapide **Bannir / Débannir** depuis la liste, suppression avec message de confirmation.
+- 👥 **Gestion des utilisateurs** (parents et membres de l'équipe : bureau, trésorier, prof) — Foyer rattaché, bascule **E-mail vérifié** / **Compte actif**, action **Bannir / Débannir**, suppression avec confirmation.
 - 🏠 **Gestion des foyers / familles** (coordonnées, rattachement au compte parent).
 - 🕺 **Gestion des danseurs** rattachés à leur foyer.
 - 🎵 **Gestion des cours** (professeur, jour, horaire, capacité, lien de groupe WhatsApp).
-- 🗂️ **Gestion des inscriptions** avec suivi du **statut du dossier** (En attente / Incomplet / Validé) et du **statut de paiement**.
+- 🗂️ **Gestion des inscriptions** avec suivi du **statut du dossier** et du **statut de paiement**, saison, certificat médical (texte), mode de paiement, ID HelloAsso.
 - ⭐ **Gestion des galas** (date, salle, places, identifiant Billetweb).
 - 📍 **Gestion des salles**.
-- 👗 **Gestion des costumes** (nom, taille, prix, stock, description et **upload de la photo** du costume).
-- 🤝 **Gestion des sponsors** (nom, logo).
+- 👗 **Gestion des costumes** (nom, taille, prix, stock, description et **upload de la photo**).
+- 🛒 **Gestion des réservations de costumes** — Suivi des demandes (costume, demandeur, dates, quantité, mode de livraison, prix total) et changement de **statut** (`En attente` · `Validée` · `Refusée` · `Restituée` · `Annulée`).
+- 🤝 **Gestion des sponsors** (nom, logo, lien).
 
 ---
 
@@ -94,6 +100,7 @@ L'interface arbore une identité visuelle forte et cohérente : fond **noir prof
 - **PHP** `>= 8.2` (avec extensions `ctype`, `iconv`)
 - **Composer** `2.x`
 - **Un serveur de base de données** : PostgreSQL, MySQL ou MariaDB
+- **Docker** *(optionnel)* — pour démarrer PostgreSQL via `compose.yaml`
 - **Symfony CLI** *(recommandé)* — [télécharger ici](https://symfony.com/download)
 - **Git**
 
@@ -122,8 +129,8 @@ APP_SECRET=changez_moi_par_une_chaine_aleatoire
 # --- Base de données ---
 # Choisissez UNE des lignes ci-dessous selon votre SGBD :
 
-# PostgreSQL (valeur par défaut du projet)
-DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:5432/studio_danse_430?serverVersion=16&charset=utf8"
+# PostgreSQL (aligné sur Docker Compose : user/db = app)
+DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&charset=utf8"
 
 # MySQL / MariaDB (ex. environnement WAMP)
 # DATABASE_URL="mysql://root:@127.0.0.1:3306/studio_danse_430?serverVersion=8.0.32&charset=utf8mb4"
@@ -138,30 +145,41 @@ MAILER_DSN=null://null
 BILLETWEB_API_KEY=ta_cle_api_ici
 BILLETWEB_API_URL=https://api.billetweb.fr/v1
 
-# --- Intégrations futures (optionnel) ---
-HELLOASSO_CLIENT_ID=ton_client_id_ici
-HELLOASSO_CLIENT_SECRET=ton_client_secret_ici
+# --- Automatisation n8n (optionnel) ---
 N8N_WEBHOOK_URL=https://ton-instance-n8n/webhook/studio-danse-430
 N8N_WEBHOOK_TOKEN=ton_token_secret_ici
+
+# --- Paiement HelloAsso (prévu, optionnel) ---
+HELLOASSO_CLIENT_ID=ton_client_id_ici
+HELLOASSO_CLIENT_SECRET=ton_client_secret_ici
+HELLOASSO_API_URL=https://api.helloasso.com
 ```
 
 > ⚠️ Ne mettez **jamais** de secrets de production dans le fichier `.env` versionné. Utilisez toujours `.env.local`.
 >
 > 💡 Les flux **vérification d'e-mail** et **mot de passe oublié** nécessitent un `MAILER_DSN` fonctionnel pour recevoir les liens. En `dev`, consultez aussi le profiler Symfony (`/_profiler`) pour intercepter les e-mails si le transport est configuré en conséquence.
 
-### 🗃️ 4. Créer la base de données
+### 🐳 4. (Optionnel) Démarrer PostgreSQL avec Docker
+
+```bash
+docker compose up -d
+```
+
+Cela lance PostgreSQL 16 (utilisateur / base / mot de passe par défaut : `app` / `app` / `!ChangeMe!`).
+
+### 🗃️ 5. Créer la base de données
 
 ```bash
 php bin/console doctrine:database:create
 ```
 
-### 🧬 5. Lancer les migrations
+### 🧬 6. Lancer les migrations
 
 ```bash
 php bin/console doctrine:migrations:migrate
 ```
 
-### 👤 6. Créer un compte membre de l'équipe
+### 👤 7. Créer un compte membre de l'équipe
 
 Les comptes d'équipe se créent via la commande `app:create-staff` avec l'un des types : `bureau`, `tresorier` ou `prof`. Seuls **`tresorier`** et **`bureau`** peuvent accéder au back-office (`/admin`).
 
@@ -173,7 +191,7 @@ php bin/console app:create-staff tresorier@studio430.fr "MotDePasseSolide!" tres
 php bin/console app:create-staff bureau@studio430.fr "MotDePasseSolide!" bureau 0612345678
 ```
 
-### 🌱 7. (Optionnel) Charger un jeu de données de test
+### 🌱 8. (Optionnel) Charger un jeu de données de test
 
 Crée 2 familles (dont une membre du bureau), 3 danseurs, 2 cours et 3 inscriptions :
 
@@ -185,13 +203,13 @@ php bin/console app:seed-test-family
 > - Parent standard : `parent.test@studio430.fr`
 > - Parent bureau (accès admin) : `bureau.parent@studio430.fr`
 
-### 🤝 8. (Optionnel) Charger les sponsors depuis les logos
+### 🤝 9. (Optionnel) Charger les sponsors depuis les logos
 
 ```bash
 php bin/console app:seed-sponsors
 ```
 
-### 🎨 9. Compiler le CSS Tailwind du site public
+### 🎨 10. Compiler le CSS Tailwind du site public
 
 ```bash
 php bin/console tailwind:build
@@ -199,7 +217,7 @@ php bin/console tailwind:build
 php bin/console tailwind:build --watch
 ```
 
-### ▶️ 10. Lancer le serveur local
+### ▶️ 11. Lancer le serveur local
 
 ```bash
 # Avec la Symfony CLI (recommandé)
@@ -268,6 +286,7 @@ php bin/console app:seed-sponsors                                       # Import
 
 ```text
 studio-danse-430/
+├── compose.yaml            # PostgreSQL 16 (Docker Compose)
 ├── config/                 # Configuration Symfony (packages, routes, services)
 ├── migrations/             # Migrations Doctrine versionnées
 ├── public/                 # Racine web (point d'entrée, images, assets compilés)
@@ -275,17 +294,20 @@ studio-danse-430/
 │   └── uploads/costumes/   # Photos des costumes uploadées via l'admin
 ├── src/
 │   ├── Command/            # Commandes CLI (create-staff, seed-test-family, seed-sponsors)
-│   ├── Controller/         # Contrôleurs publics (Home, Inscription, Foyer, Costume, ResetPassword…)
-│   │   └── Admin/          # Contrôleurs EasyAdmin (Dashboard + CRUD, dont Costume)
-│   ├── Entity/             # Entités Doctrine (User, Foyer, Danseur, Cours, Inscription, Gala, Salle, Costume, Sponsor, Actualite, ResetPasswordRequest)
-│   ├── Form/               # Types de formulaires (InscriptionType, DanseurType, ChangePasswordFormType, ResetPasswordRequestFormType…)
+│   ├── Controller/         # Contrôleurs publics (Home, Registration, Inscription, Foyer, Costume, ResetPassword…)
+│   │   └── Admin/          # Contrôleurs EasyAdmin (Dashboard + CRUD)
+│   ├── Entity/             # Entités Doctrine (User, Foyer, Costume, ReservationCostume…)
+│   ├── Enum/               # ModeLivraison, StatutReservation (+ StatutDossier / StatutPaiement dans Entity/)
+│   ├── Form/               # Types de formulaires (Inscription, Danseur, CostumeReservation, ResetPassword…)
 │   ├── Repository/         # Repositories Doctrine
 │   └── Security/           # Authentification (LoginFormAuthenticator) & contrôle d'accès (UserChecker)
 ├── templates/
 │   ├── admin/              # Templates du back-office (dashboard Noir/Or)
 │   ├── home/               # Page d'accueil
-│   ├── foyer/              # Espace « Mon Foyer » (liste + formulaire danseur)
-│   ├── costume/            # Catalogue de location de costumes
+│   ├── foyer/              # Espace « Mon Foyer »
+│   ├── inscription/        # Tunnel d'inscription aux cours
+│   ├── registration/       # Création de compte & e-mail de vérification
+│   ├── costume/            # Catalogue + formulaire de réservation de costumes
 │   ├── reset_password/     # Demande / e-mail / confirmation / nouveau mot de passe
 │   ├── security/           # Connexion (lien « Mot de passe oublié »)
 │   ├── sponsor/            # Bandeau défilant des partenaires
@@ -300,22 +322,27 @@ studio-danse-430/
 
 ```text
 User (parent / équipe) ── email + telephone + isVerified + isActif + roles
- └── 1,1 ── Foyer (nom, adresse, codePostal, ville, contactUrgence)  [orphanRemoval : suppression en cascade si le User est supprimé]
+ └── 1,1 ── Foyer (nom, adresse, codePostal, ville, contactUrgence)  [orphanRemoval : cascade si User supprimé]
               └── 1,N ── Danseur (prenom, nom, dateNaissance)
-                           └── N,N ── Cours
+                           └── N,N ── Cours (via Inscription)
 Inscription ── Danseur + Cours + Saison + StatutDossier + StatutPaiement
+               + certificatMedical + modePaiement + helloAssoPaymentId
 ResetPasswordRequest ── User + expiresAt + selector + hashedToken
 Gala ── Salle + dateHeure + placesDisponibles + billetwebEventId
 Salle ── 1,N ── Gala
 Costume ── nom + taille + prix + quantite + photo + description
-Sponsor ── nom + logo
+ReservationCostume ── Costume + User + dates (événement / début / fin) + taille + quantite
+                       + ModeLivraison + prixTotal + StatutReservation + remarques + createdAt
+Sponsor ── nom + logo + lien
 Actualite ── contenu + urlMedia + urlOrigine + plateforme + datePublication
 ```
 
 - **`StatutDossier`** : `En attente` · `Incomplet` · `Validé`
-- **`StatutPaiement`** : suivi du règlement des cotisations
+- **`StatutPaiement`** : `Non payé` · `Partiel` · `Soldé`
+- **`StatutReservation`** : `En attente` · `Validée` · `Refusée` · `Restituée` · `Annulée`
+- **`ModeLivraison`** : `retrait_locaux` (gratuit, Nieul-le-Dolent) · `point_relais` (sur devis)
 - **`User.isVerified`** : l'email doit être validé pour se connecter
-- **`User.isActif`** : un compte suspendu (par l'association ou par l'utilisateur lui-même via « Désactiver mon compte ») ne peut plus se connecter
+- **`User.isActif`** : un compte suspendu (par l'association ou via « Désactiver mon compte ») ne peut plus se connecter
 - **`ResetPasswordRequest`** : demande de réinitialisation de mot de passe (token hashé, expiration, lié à un `User`)
 - **Rôles d'équipe** : `ROLE_PROF` (professeur) · `ROLE_TRESORIER` (accès admin) · `ROLE_BUREAU` (hérite trésorier + prof)
 

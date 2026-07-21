@@ -117,7 +117,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __toString(): string
     {
-        return $this->email ?? 'Utilisateur sans email';
+        return $this->email ?? ($this->id ? 'Utilisateur #' . $this->id : 'Utilisateur sans email');
     }
 
     public function getFoyer(): ?Foyer

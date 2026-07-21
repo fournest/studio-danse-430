@@ -66,7 +66,7 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::section('Adhérents');
         yield MenuItem::linkTo(UserCrudController::class, 'Utilisateurs', 'fa fa-users');
-        yield MenuItem::linkTo(FoyerCrudController::class, 'Foyers / Familles', 'fa fa-house-user'); // 👈 À AJOUTER
+        yield MenuItem::linkTo(FoyerCrudController::class, 'Foyers / Familles', 'fa fa-house-user'); 
         yield MenuItem::linkTo(DanseurCrudController::class, 'Danseurs', 'fa fa-person-walking');
 
         yield MenuItem::section('Activités');
@@ -75,6 +75,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(GalaCrudController::class, 'Galas', 'fa fa-star');
         yield MenuItem::linkTo(SalleCrudController::class, 'Salles', 'fa fa-location-dot');
         yield MenuItem::linkTo(CostumeCrudController::class, 'Costumes', 'fa fa-shirt');
+        yield MenuItem::linkTo(ReservationCostumeCrudController::class, 'Réservations de costumes', 'fa fa-shopping-cart');
 
         yield MenuItem::section('Sponsors');
         yield MenuItem::linkTo(SponsorCrudController::class, 'Sponsors', 'fa fa-handshake');
