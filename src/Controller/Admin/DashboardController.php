@@ -12,11 +12,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use Symfony\Component\HttpFoundation\Response;
 use App\Controller\Admin\FoyerCrudController;
+use App\Entity\Album;
+use App\Entity\Media;
 
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
 {
-    
+
     public function __construct(
         private readonly DanseurRepository $danseurRepository,
         private readonly CoursRepository $coursRepository,
@@ -29,11 +31,11 @@ class DashboardController extends AbstractDashboardController
         $totalDanseurs = $this->danseurRepository->count([]);
         $totalCours = $this->coursRepository->count([]);
         $totalInscriptions = $this->inscriptionRepository->count([]);
-        
+
         $dossiersEnAttente = $this->inscriptionRepository->count([
             'statutDossier' => StatutDossier::EN_ATTENTE
         ]);
-        
+
         $dernieresInscriptions = $this->inscriptionRepository->findBy(
             [],
             ['id' => 'DESC'],
@@ -66,7 +68,7 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::section('Adhérents');
         yield MenuItem::linkTo(UserCrudController::class, 'Utilisateurs', 'fa fa-users');
-        yield MenuItem::linkTo(FoyerCrudController::class, 'Foyers / Familles', 'fa fa-house-user'); 
+        yield MenuItem::linkTo(FoyerCrudController::class, 'Foyers / Familles', 'fa fa-house-user');
         yield MenuItem::linkTo(DanseurCrudController::class, 'Danseurs', 'fa fa-person-walking');
 
         yield MenuItem::section('Activités');
@@ -79,5 +81,9 @@ class DashboardController extends AbstractDashboardController
 
         yield MenuItem::section('Sponsors');
         yield MenuItem::linkTo(SponsorCrudController::class, 'Sponsors', 'fa fa-handshake');
+
+        yield MenuItem::section('Galerie & Communication');
+        yield MenuItem::linkTo(AlbumCrudController::class, 'Albums Photos', 'fas fa-images');
+        yield MenuItem::linkTo(MediaCrudController::class, 'Tous les Médias', 'fas fa-photo-video');
     }
 }

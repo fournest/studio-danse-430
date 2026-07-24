@@ -23,7 +23,10 @@ class CoursCrudController extends AbstractCrudController
         yield TextField::new('nom');
         yield TextField::new('jour');
         yield TimeField::new('heure');
-        yield TextField::new('professeur');
+        yield TextField::new('professeur', 'Professeur');
+
+
+
         yield IntegerField::new('capaciteMax')->setLabel('Capacité max');
         yield UrlField::new('whatsappGroupLink')
             ->setLabel('Lien groupe WhatsApp')

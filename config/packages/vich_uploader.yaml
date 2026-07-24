@@ -3,9 +3,8 @@ vich_uploader:
     metadata:
         type: attribute
 
-    # Définis tes mappings d'upload ici. Exemple :
-    # mappings:
-    #     produits:
-    #         uri_prefix: /uploads/produits
-    #         upload_destination: '%kernel.project_dir%/public/uploads/produits'
-    #         namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
+    mappings:
+        galerie_images:
+            uri_prefix: /uploads/galerie
+            upload_destination: '%kernel.project_dir%/public/uploads/galerie'
+            namer: Vich\UploaderBundle\Naming\SmartUniqueNamer

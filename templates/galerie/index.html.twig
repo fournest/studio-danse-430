@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Galerie Photos & Médias - Studio Danse 430{% endblock %}
+
+{% block body %}
+<div class="bg-zinc-950 min-h-screen py-12">
+    <div class="max-w-7xl mx-auto px-4">
+        
+        <h1 class="text-3xl font-bold text-white mb-8 border-b border-zinc-800 pb-4">
+            📷 Galerie Photos & Événements
+        </h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for album in albums %}
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-lg flex flex-col justify-between">
+                    
+                    <div class="p-6">
+                        <span class="text-xs font-semibold text-amber-400 uppercase tracking-wider">
+                            {{ album.dateEvenement|date('d/m/Y') }}
+                        </span>
+                        <h2 class="text-xl font-bold text-white mt-2 mb-3">
+                            {{ album.titre }}
+                        </h2>
+                        {% if album.description %}
+                            <p class="text-zinc-400 text-sm line-clamp-3">
+                                {{ album.description|striptags|raw }}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <div class="p-6 pt-0 mt-auto">
+                        <a href="{{ path('app_galerie_show', { id: album.id }) }}" class="block w-full text-center py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm transition">
+                            Découvrir les {{ album.medias|length }} média(s)
+                        </a>
+                    </div>
+
+                </div>
+            {% else %}
+                <div class="col-span-full text-center py-12 text-zinc-500">
+                    Aucun album n'a été publié pour le moment.
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

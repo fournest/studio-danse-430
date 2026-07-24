@@ -54,7 +54,7 @@
 
 							{# 💃 BOUTON ESPACE PROF (Optionnel : si tu as un espace dédié aux profs) #}
 							{% if is_granted('ROLE_PROF') %}
-								<a href="#" class="px-2 sm:px-4 py-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-200">
+								<a href="{{ path('app_espace_prof') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-200">
 									💃 Espace Prof
 								</a>
 							{% endif %}
@@ -182,7 +182,7 @@
 						<div class="w-full max-w-full overflow-hidden">
 							<h4 class="text-lg font-extrabold mb-3 text-neutral-900">Suivez-nous</h4>
 							<div class="bg-black/5 rounded-xl p-2 inline-block max-w-full overflow-hidden shadow-inner">
-								<iframe title="Page Facebook Studio Danse 430" src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fstudiodanse430&tabs=timeline&width=270&height=200&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true" class="w-full max-w-[270px] h-[200px]" style="border:none;overflow:hidden;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+								<iframe title="Page Facebook Studio Danse 430" src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fstudiodanse430&tabs=timeline&width=270&height=200&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true" class="w-full max-w-67.5 h-50" style="border:none;overflow:hidden;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
 							</div>
 						</div>
 
@@ -195,11 +195,13 @@
 							class="flex flex-col md:flex-row items-center justify-between gap-4">
 
 							{# 🚀 Lien Retour / Ticket à gauche #}
+							{% if is_granted('ROLE_BUREAU') or is_granted('ROLE_TRESORIER') or is_granted('ROLE_PROF') %}
 							<div class="order-3 md:order-1">
-								<a href="#" class="inline-flex items-center gap-1.5 font-bold underline hover:text-neutral-700 transition-colors">
+								<a href="{{ path('app_support') }}" class="inline-flex items-center gap-1.5 font-bold underline hover:text-neutral-700 transition-colors">
 									🚀 Envoyer un retour / Ticket
 								</a>
 							</div>
+							{% endif %}
 
 							{# 📩 Infos Maintenance au centre #}
 							<div class="order-1 md:order-2 text-center space-y-0.5">

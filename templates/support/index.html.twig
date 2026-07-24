@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Support Technique | S1 Digital
+{% endblock %}
+
+{% block body %}
+	<div class="min-h-screen bg-zinc-950 text-zinc-100 py-12 px-4 sm:px-6 lg:px-8">
+		<div
+			class="max-w-2xl mx-auto space-y-8">
+
+			{# Titre de la page #}
+			<div class="border-b border-zinc-800 pb-5 text-center">
+				<h1 class="text-3xl font-extrabold text-white tracking-tight">
+					Support &
+					<span class="text-amber-400">Assistance Technique</span>
+				</h1>
+				<p class="mt-2 text-sm text-zinc-400">
+					Espace réservé au bureau de l'association. Transmettez directement votre demande d'assistance ou vos signalements de bugs à l'équipe de maintenance
+					<strong>S1 Digital</strong>.
+				</p>
+			</div>
+
+			{# Formulaire #}
+			<div class="bg-zinc-900/80 rounded-2xl border border-zinc-800 p-6 sm:p-8 shadow-xl">
+				{{ form_start(form, {'attr': {'class': 'space-y-6'}}) }}
+
+				{# Nom & Email #}
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					<div>
+						{{ form_label(form.nom, null, {'label_attr': {'class': 'block text-xs font-medium text-zinc-300 mb-1'}}) }}
+						{{ form_widget(form.nom) }}
+						{{ form_errors(form.nom, {'attr': {'class': 'text-red-400 text-xs mt-1'}}) }}
+					</div>
+					<div>
+						{{ form_label(form.email, null, {'label_attr': {'class': 'block text-xs font-medium text-zinc-300 mb-1'}}) }}
+						{{ form_widget(form.email) }}
+						{{ form_errors(form.email, {'attr': {'class': 'text-red-400 text-xs mt-1'}}) }}
+					</div>
+				</div>
+
+				{# Sujet #}
+				<div>
+					{{ form_label(form.sujet, null, {'label_attr': {'class': 'block text-xs font-medium text-zinc-300 mb-1'}}) }}
+					{{ form_widget(form.sujet) }}
+					{{ form_errors(form.sujet, {'attr': {'class': 'text-red-400 text-xs mt-1'}}) }}
+				</div>
+
+				{# Message #}
+				<div>
+					{{ form_label(form.message, null, {'label_attr': {'class': 'block text-xs font-medium text-zinc-300 mb-1'}}) }}
+					{{ form_widget(form.message) }}
+					{{ form_errors(form.message, {'attr': {'class': 'text-red-400 text-xs mt-1'}}) }}
+				</div>
+
+				{# Pièce jointe (Capture / PDF) #}
+				<div>
+					{{ form_label(form.fichier, null, {'label_attr': {'class': 'block text-xs font-medium text-zinc-300 mb-1'}}) }}
+					{{ form_widget(form.fichier) }}
+					{{ form_errors(form.fichier, {'attr': {'class': 'text-red-400 text-xs mt-1'}}) }}
+					<p class="text-[11px] text-zinc-500 mt-1 italic">
+						Formats acceptés : PNG, JPG, WEBP, PDF (Max : 10 Mo).
+					</p>
+				</div>
+
+				{# Bouton d'envoi #}
+				<div class="pt-2">
+					<button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold shadow-lg shadow-amber-400/10 transition-all text-center flex items-center justify-center gap-2">
+						🚀 Envoyer le ticket à S1 Digital
+					</button>
+				</div>
+
+				{{ form_end(form) }}
+			</div>
+
+		</div>
+	</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+	{{ album.titre }}
+	- Galerie Studio Danse 430
+{% endblock %}
+
+{% block body %}
+	<div class="bg-zinc-950 min-h-screen py-12 text-white">
+		<div
+			class="max-w-7xl mx-auto px-4">
+
+			{# Bouton Retour #}
+			<a href="{{ path('app_galerie_index') }}" class="inline-flex items-center text-sm text-zinc-400 hover:text-amber-400 mb-6 transition">
+				← Retour aux albums
+			</a>
+
+			{# Titre & Détails de l'album #}
+			<h1 class="text-3xl font-bold mb-2">{{ album.titre }}</h1>
+			<p class="text-amber-400 text-sm mb-6">{{ album.dateEvenement|date('d/m/Y') }}</p>
+
+			{% if album.description %}
+				<div class="text-zinc-300 mb-8 max-w-3xl border-l-2 border-amber-500 pl-4 py-1">
+					{{ album.description|striptags|raw }}
+				</div>
+			{% endif %}
+
+			{# Grille des médias avec alignement adapté aux formats verticaux #}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+				{% for media in album.medias %}
+					<div
+						class="bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 shadow-lg flex flex-col justify-between">
+
+						{# CAS 1 : Image Locale #}
+						{% if media.type.value == 'IMAGE_LOCAL' %}
+							<img
+							src="{{ asset('uploads/galerie/' ~ media.imageName) }}" alt="{{ media.legende }}" class="w-full h-64 object-cover">
+
+							{# CAS 2 : Post / Reel Instagram #}
+						{% elseif media.type.value == 'INSTAGRAM' %}
+							<div class="p-2 flex justify-center bg-black min-h-112.5">
+								<blockquote class="instagram-media" data-instgrm-permalink="{{ media.embedUrl }}" data-instgrm-version="14"></blockquote>
+							</div>
+
+							{# CAS 3 : Vidéo YouTube (format horizontal 16:9) #}
+						{% elseif media.type.value == 'YOUTUBE' %}
+							<iframe class="w-full h-64" src="{{ media.embedUrl }}" frameborder="0" allowfullscreen></iframe>
+
+							{# CAS 4 : Reel / Vidéo Facebook (format vertical 9:16) #}
+						{% elseif media.type.value == 'FACEBOOK' %}
+							<div class="w-full bg-black flex justify-center">
+								<iframe class="w-full h-125 border-0" src="https://www.facebook.com/plugins/video.php?href={{ media.embedUrl|url_encode }}&show_text=false" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; webshare"></iframe>
+							</div>
+						{% endif %}
+
+						{% if media.legende %}
+							<p class="p-3 text-xs text-zinc-400 border-t border-zinc-800/50 bg-zinc-900">{{ media.legende }}</p>
+						{% endif %}
+					</div>
+				{% else %}
+					<p class="col-span-full text-zinc-500">Aucun média dans cet album pour le moment.</p>
+				{% endfor %}
+			</div>
+
+		</div>
+	</div>
+
+	{# Script d'intégration Instagram #}
+	<script async src="//www.instagram.com/embed.js"></script>
+{% endblock %}

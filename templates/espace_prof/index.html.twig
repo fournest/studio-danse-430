@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Espace Professeur - Studio Danse 430{% endblock %}
+
+{% block body %}
+    <div class="bg-zinc-950 min-h-screen py-12 text-white">
+        <div class="max-w-7xl mx-auto px-4">
+
+            <h1 class="text-3xl font-bold mb-2">💃 Espace Professeur</h1>
+            <p class="text-zinc-400 mb-8">Gestion de vos cours et appel des élèves.</p>
+
+            <div class="space-y-8">
+                {% for c in cours %}
+                    {% set hasInscriptions = c.inscriptions is defined and c.inscriptions is not empty %}
+                    {% set countInscriptions = (c.inscriptions is defined) ? c.inscriptions|length : 0 %}
+
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-lg">
+
+                        <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-zinc-800 pb-4 mb-4 gap-2">
+                            <div>
+                                <h2 class="text-2xl font-bold text-amber-400">{{ c.nom }}</h2>
+                                <p class="text-sm text-zinc-400">
+                                    {{ c.jour }}
+                                    {% if c.heure %} | {{ c.heure|date('H\\hi') }}{% endif %}
+                                    {% if c.professeur %} (Prof : {{ c.professeur }}){% endif %}
+                                </p>
+                            </div>
+                            <span class="px-3 py-1 bg-zinc-800 text-amber-400 text-xs font-bold rounded-full w-fit">
+                                {{ countInscriptions }} inscrit(s)
+                            </span>
+                        </div>
+
+                        {# Liste des élèves / danseurs du cours #}
+                        {% if hasInscriptions %}
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm text-zinc-300">
+                                    <thead class="bg-zinc-800/50 text-xs uppercase text-zinc-400">
+                                        <tr>
+                                            <th class="p-3">Élève / Danseur</th>
+                                            <th class="p-3">Âge / Catégorie</th>
+                                            <th class="p-3">Contact Responsable</th>
+                                            <th class="p-3 text-center">Présence</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-zinc-800/50">
+                                        {% for inscription in c.inscriptions %}
+                                            <tr class="hover:bg-zinc-800/30">
+                                                <td class="p-3 font-semibold text-white">
+                                                    {% if inscription.danseur is defined %}
+                                                        {{ inscription.danseur.nom }} {{ inscription.danseur.prenom }}
+                                                    {% else %}
+                                                        Élève #{{ loop.index }}
+                                                    {% endif %}
+                                                </td>
+                                                <td class="p-3">
+                                                    {% if inscription.danseur is defined and inscription.danseur.dateNaissance is defined and inscription.danseur.dateNaissance %}
+                                                        {{ inscription.danseur.dateNaissance|date('d/m/Y') }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                                <td class="p-3 text-xs text-zinc-400">
+                                                    {% if inscription.user is defined %}
+                                                        {{ inscription.user.email }}
+                                                        {% if inscription.user.telephone is defined and inscription.user.telephone %}
+                                                            <br>{{ inscription.user.telephone }}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                                <td class="p-3 text-center">
+                                                    <input type="checkbox" class="w-5 h-5 accent-amber-400 rounded cursor-pointer">
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-sm text-zinc-500 italic">
+                                {% if c.inscriptions is not defined %}
+                                    Liaison des inscriptions en cours de configuration.
+                                {% else %}
+                                    Aucun élève inscrit à ce cours pour le moment.
+                                {% endif %}
+                            </p>
+                        {% endif %}
+
+                    </div>
+                {% else %}
+                    <div class="text-center py-12 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-500">
+                        Aucun cours ne vous est attribué pour le moment.
+                    </div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+{% endblock %}
