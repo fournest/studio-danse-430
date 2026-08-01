@@ -23,7 +23,12 @@
                     </div>
                     <div>
                         <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Horaire</p>
-                        <p class="text-lg text-white mt-1">{{ cours.heure|date('H\\hi') }}</p>
+                        <p class="text-lg text-white mt-1">
+                            {{ cours.heure|date('H\\hi') }}
+                            {% if cours.dureeMinutes is defined %}
+                                <span class="text-white/50 text-base">({{ cours.dureeLabel }})</span>
+                            {% endif %}
+                        </p>
                     </div>
                     <div>
                         <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Professeur</p>
@@ -33,6 +38,12 @@
                         <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Capacité</p>
                         <p class="text-lg text-white mt-1">{{ cours.capaciteMax }} danseurs</p>
                     </div>
+                    {% if cours.tarif is defined and cours.tarif > 0 %}
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Tarif saison</p>
+                            <p class="text-lg text-[#FFD700] font-bold mt-1">{{ cours.tarif|number_format(2, ',', ' ') }} €</p>
+                        </div>
+                    {% endif %}
                 </div>
 
                 <div class="px-8 pb-8 flex flex-wrap items-center gap-3">

@@ -33,3 +33,8 @@ $RECYCLE.BIN/
 .history/
 *.log
 ###< IDE & Éditeurs (Cursor / VS Code) ###
+
+###> Uploads de fichiers (Galerie, Costumes, Docs) ###
+/public/uploads/*
+!/public/uploads/.gitkeep
+###< Uploads de fichiers ###

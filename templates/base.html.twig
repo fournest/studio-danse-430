@@ -59,23 +59,18 @@
 								</a>
 							{% endif %}
 
-							{# 🏠 GESTION DYNAMIQUE DU FOYER (Évite les bugs pour les admins sans foyer) #}
-							{% if app.user.foyer %}
-								{# CAS A : L'utilisateur (Parent ou Admin-Parent) a bien un foyer configuré #}
+							{# 🏠 GESTION DYNAMIQUE DU FOYER
+							   - Titulaire : mon foyer
+							   - 2ᵉ parent sans foyer : aussi mon foyer (lecture seule via index)
+							   - Staff sans foyer (bureau/prof/trésorier) : pas de lien #}
+							{% if app.user.foyer or (not is_granted('ROLE_BUREAU') and not is_granted('ROLE_TRESORIER') and not is_granted('ROLE_PROF')) %}
 								<a href="{{ path('app_foyer_index') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">
 									🏠 Mon Foyer
 								</a>
-							{% else %}
-								{# CAS B : L'utilisateur n'a pas de foyer #}
-								{# On n'affiche le bouton de configuration QUE si ce n'est PAS un admin pur ou un prof #}
-									{% if not is_granted('ROLE_BUREAU') and not is_granted('ROLE_TRESORIER') and not is_granted('ROLE_PROF') %}
-										<a href="{{ path('app_foyer_new') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors duration-200 animate-pulse"> ⚙️ Configurer mon Foyer
-									</a>
-								{% endif %}
 							{% endif %}
 
 							{# 📝 LIEN INSCRIPTIONS (Accessible pour tout le monde connecté) #}
-							<a href="{{ path('app_inscription') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">
+							<a href="{{ path('app_foyer_inscription_cours') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">
 								Inscriptions
 							</a>
 
@@ -149,8 +144,8 @@
 								<li>
 									{% if not app.user %}
 										<a href="{{ path('app_register') }}" class="hover:underline">Créez votre compte</a>
-									{% elseif not app.user.foyer %}
-										<a href="{{ path('app_foyer_new') }}" class="hover:underline text-amber-900">Configurer mon Foyer</a>
+									{% elseif app.user.foyer or (not is_granted('ROLE_BUREAU') and not is_granted('ROLE_TRESORIER') and not is_granted('ROLE_PROF')) %}
+										<a href="{{ path('app_foyer_index') }}" class="hover:underline">Mon espace familial</a>
 									{% else %}
 										<a href="{{ path('app_inscription') }}" class="hover:underline">Inscription aux cours</a>
 									{% endif %}

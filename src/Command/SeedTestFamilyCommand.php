@@ -52,6 +52,10 @@ class SeedTestFamilyCommand extends Command
         $eveil->setHeure(\DateTime::createFromFormat('!H:i', '14:00'));
         $eveil->setProfesseur('Marie Dupont');
         $eveil->setCapaciteMax(15);
+        $eveil->setDureeMinutes(60);
+        $eveil->setTarif(164);
+        $eveil->setAnneeNaissanceMin(2008);
+        $eveil->setAnneeNaissanceMax(2022);
         $this->entityManager->persist($eveil);
 
         $modernJazz = new Cours();
@@ -60,6 +64,10 @@ class SeedTestFamilyCommand extends Command
         $modernJazz->setHeure(\DateTime::createFromFormat('!H:i', '18:30'));
         $modernJazz->setProfesseur('Jean Martin');
         $modernJazz->setCapaciteMax(20);
+        $modernJazz->setDureeMinutes(90);
+        $modernJazz->setTarif(190);
+        $modernJazz->setAnneeNaissanceMin(2008);
+        $modernJazz->setAnneeNaissanceMax(2022);
         $this->entityManager->persist($modernJazz);
 
 
@@ -78,6 +86,7 @@ class SeedTestFamilyCommand extends Command
         $parentStandard->setTelephone('0611223344');
         $parentStandard->setRoles(['ROLE_USER']);
         $parentStandard->setPassword($this->passwordHasher->hashPassword($parentStandard, 'Password123!'));
+        $parentStandard->setIsVerified(true);
         $parentStandard->setFoyer($foyerStandard);
         $this->entityManager->persist($parentStandard);
 
@@ -112,6 +121,7 @@ class SeedTestFamilyCommand extends Command
         $parentBureau->setTelephone('0699887766');
         $parentBureau->setRoles(['ROLE_BUREAU']);
         $parentBureau->setPassword($this->passwordHasher->hashPassword($parentBureau, 'Password123!'));
+        $parentBureau->setIsVerified(true);
         $parentBureau->setFoyer($foyerBureau);
         $this->entityManager->persist($parentBureau);
 

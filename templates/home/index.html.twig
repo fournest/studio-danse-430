@@ -75,6 +75,9 @@
 										<li class="flex items-center gap-2">
 											<span class="text-[#FFD700]">&#9733;</span>
 											{{ c.heure|date('H\\hi') }}
+											{% if c.dureeMinutes is defined %}
+												<span class="text-white/50">({{ c.dureeLabel }})</span>
+											{% endif %}
 										</li>
 										<li class="flex items-center gap-2">
 											<span class="text-[#FFD700]">&#9733;</span>
@@ -85,6 +88,14 @@
 											{{ c.capaciteMax }}
 											places max
 										</li>
+										{% if c.tarif is defined and c.tarif > 0 %}
+											<li class="flex items-center gap-2">
+												<span class="text-[#FFD700]">&#9733;</span>
+												Tarif :
+												<span class="font-semibold text-[#FFD700]">{{ c.tarif|number_format(2, ',', ' ') }} €</span>
+												<span class="text-white/50">/ saison</span>
+											</li>
+										{% endif %}
 									</ul>
 									<a href="{{ path('app_cours_show', { id: c.id }) }}" class="mt-6 text-center px-4 py-2 border border-[#FFD700] text-[#FFD700] font-semibold rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
 										En savoir plus

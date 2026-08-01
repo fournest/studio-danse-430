@@ -32,38 +32,190 @@ class Cours
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $whatsappGroupLink = null;
 
+    /** Durée du créneau en minutes (60, 75, 90). */
+    #[ORM\Column]
+    private int $dureeMinutes = 90;
+
+    /** Tarif saison (en euros) — grille modifiable en admin. */
+    #[ORM\Column(type: 'decimal', precision: 8, scale: 2)]
+    private string $tarif = '0.00';
+
+    /** Année de naissance minimale éligible (null = pas de borne basse). */
+    #[ORM\Column(nullable: true)]
+    private ?int $anneeNaissanceMin = null;
+
+    /** Année de naissance maximale éligible (null = pas de borne haute). */
+    #[ORM\Column(nullable: true)]
+    private ?int $anneeNaissanceMax = null;
+
     /**
      * @var Collection<int, Danseur>
      */
     #[ORM\ManyToMany(targetEntity: Danseur::class, mappedBy: 'cours')]
     private Collection $danseurs;
 
-   
-
     public function __construct()
     {
         $this->danseurs = new ArrayCollection();
     }
 
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
 
-    // Getters/Setters
-    public function getId(): ?int { return $this->id; }
-    public function getNom(): string { return $this->nom; }
-    public function setNom(string $nom): self { $this->nom = $nom; return $this; }
-    public function getJour(): string { return $this->jour; }
-    public function setJour(string $jour): self { $this->jour = $jour; return $this; }
-    public function getHeure(): \DateTimeInterface { return $this->heure; }
-    public function setHeure(\DateTimeInterface $heure): self { $this->heure = $heure; return $this; }
-    public function getProfesseur(): string { return $this->professeur; }
-    public function setProfesseur(string $professeur): self { $this->professeur = $professeur; return $this; }
-    public function getCapaciteMax(): int { return $this->capaciteMax; }
-    public function setCapaciteMax(int $capaciteMax): self { $this->capaciteMax = $capaciteMax; return $this; }
-    public function getWhatsAppGroupLink(): ?string { return $this->whatsappGroupLink; }
-    public function setWhatsAppGroupLink(?string $whatsappGroupLink): self { $this->whatsappGroupLink = $whatsappGroupLink; return $this; }
+    public function getNom(): string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(string $nom): self
+    {
+        $this->nom = $nom;
+        return $this;
+    }
+
+    public function getJour(): string
+    {
+        return $this->jour;
+    }
+
+    public function setJour(string $jour): self
+    {
+        $this->jour = $jour;
+        return $this;
+    }
+
+    public function getHeure(): \DateTimeInterface
+    {
+        return $this->heure;
+    }
+
+    public function setHeure(\DateTimeInterface $heure): self
+    {
+        $this->heure = $heure;
+        return $this;
+    }
+
+    public function getProfesseur(): string
+    {
+        return $this->professeur;
+    }
+
+    public function setProfesseur(string $professeur): self
+    {
+        $this->professeur = $professeur;
+        return $this;
+    }
+
+    public function getCapaciteMax(): int
+    {
+        return $this->capaciteMax;
+    }
+
+    public function setCapaciteMax(int $capaciteMax): self
+    {
+        $this->capaciteMax = $capaciteMax;
+        return $this;
+    }
+
+    public function getWhatsAppGroupLink(): ?string
+    {
+        return $this->whatsappGroupLink;
+    }
+
+    public function setWhatsAppGroupLink(?string $whatsappGroupLink): self
+    {
+        $this->whatsappGroupLink = $whatsappGroupLink;
+        return $this;
+    }
+
+    public function getDureeMinutes(): int
+    {
+        return $this->dureeMinutes;
+    }
+
+    public function setDureeMinutes(int $dureeMinutes): self
+    {
+        $this->dureeMinutes = $dureeMinutes;
+        return $this;
+    }
+
+    public function getTarif(): string
+    {
+        return $this->tarif;
+    }
+
+    public function setTarif(string|float|int $tarif): self
+    {
+        $this->tarif = number_format((float) $tarif, 2, '.', '');
+        return $this;
+    }
+
+    public function getAnneeNaissanceMin(): ?int
+    {
+        return $this->anneeNaissanceMin;
+    }
+
+    public function setAnneeNaissanceMin(?int $anneeNaissanceMin): self
+    {
+        $this->anneeNaissanceMin = $anneeNaissanceMin;
+        return $this;
+    }
+
+    public function getAnneeNaissanceMax(): ?int
+    {
+        return $this->anneeNaissanceMax;
+    }
+
+    public function setAnneeNaissanceMax(?int $anneeNaissanceMax): self
+    {
+        $this->anneeNaissanceMax = $anneeNaissanceMax;
+        return $this;
+    }
+
+    public function getDureeLabel(): string
+    {
+        return match ($this->dureeMinutes) {
+            60 => '1h00',
+            75 => '1h15',
+            90 => '1h30',
+            default => sprintf('%d min', $this->dureeMinutes),
+        };
+    }
+
+    /**
+     * Indique si le danseur (année de naissance) est éligible à ce créneau.
+     */
+    public function isEligibleForBirthYear(?int $anneeNaissance): bool
+    {
+        if (null === $anneeNaissance) {
+            return true;
+        }
+
+        if (null !== $this->anneeNaissanceMin && $anneeNaissance < $this->anneeNaissanceMin) {
+            return false;
+        }
+
+        if (null !== $this->anneeNaissanceMax && $anneeNaissance > $this->anneeNaissanceMax) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function isEligibleForDanseur(Danseur $danseur): bool
+    {
+        return $this->isEligibleForBirthYear($danseur->getAnneeNaissance());
+    }
+
     /**
      * @return Collection<int, Danseur>
      */
-    public function getDanseurs(): Collection { return $this->danseurs; }
+    public function getDanseurs(): Collection
+    {
+        return $this->danseurs;
+    }
 
     public function addDanseur(Danseur $danseur): static
     {
@@ -88,5 +240,4 @@ class Cours
     {
         return $this->nom ?? 'Cours';
     }
-  
 }

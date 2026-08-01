@@ -36,11 +36,7 @@ class DashboardController extends AbstractDashboardController
             'statutDossier' => StatutDossier::EN_ATTENTE
         ]);
 
-        $dernieresInscriptions = $this->inscriptionRepository->findBy(
-            [],
-            ['id' => 'DESC'],
-            5
-        );
+        $dernieresInscriptions = $this->inscriptionRepository->findRecentWithRelations(5);
 
         // 2. Envoi au template avec les clés EXACTES attendues par le fichier Twig
         return $this->render('admin/dashboard.html.twig', [

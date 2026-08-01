@@ -68,6 +68,7 @@ class CreateStaffCommand extends Command
         $user->setTelephone($telephone);
         $user->setRoles([$chosenRole]);
         $user->setPassword($this->passwordHasher->hashPassword($user, $password));
+        $user->setIsVerified(true);
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();

@@ -9,6 +9,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
 class InscriptionCrudController extends AbstractCrudController
@@ -45,6 +46,13 @@ class InscriptionCrudController extends AbstractCrudController
         yield TextField::new('certificatMedical')->hideOnIndex();
         yield TextField::new('helloAssoPaymentId')
             ->setLabel('ID paiement HelloAsso')
+            ->hideOnIndex();
+
+        yield NumberField::new('remiseManuelle', 'Remise manuelle (€)')
+            ->setNumDecimals(2)
+            ->setHelp('Remise bureau spécifique à cette inscription.')
+            ->hideOnIndex();
+        yield TextField::new('motifRemise', 'Motif de la remise')
             ->hideOnIndex();
     }
 

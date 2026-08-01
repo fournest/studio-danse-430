@@ -95,10 +95,14 @@
                             {% for inscription in dernieres_inscriptions %}
                                 <tr class="hover:bg-[#FFD700]/5 transition-colors group">
                                     <td class="p-4 border-b border-white/5 align-middle font-semibold group-last:border-0">
-                                        {{ inscription.danseur.prenom }} {{ inscription.danseur.nom }}
+                                        {% if inscription.danseur %}
+                                            {{ inscription.danseur.prenom }} {{ inscription.danseur.nom }}
+                                        {% else %}
+                                            <span class="text-rose-400 italic">Danseur introuvable</span>
+                                        {% endif %}
                                     </td>
                                     <td class="p-4 border-b border-white/5 align-middle group-last:border-0">
-                                        {{ inscription.cours.nom }}
+                                        {{ inscription.cours ? inscription.cours.nom : 'Cours introuvable' }}
                                     </td>
                                     <td class="p-4 border-b border-white/5 align-middle text-white/60 group-last:border-0">
                                         {{ inscription.saison }}

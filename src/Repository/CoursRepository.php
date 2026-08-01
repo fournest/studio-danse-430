@@ -29,4 +29,25 @@ class CoursRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Cours éligibles selon l'année de naissance du danseur.
+     *
+     * @return Cours[]
+     */
+    public function findEligibleForBirthYear(?int $anneeNaissance): array
+    {
+        if (null === $anneeNaissance) {
+            return $this->findAllOrdered();
+        }
+
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.anneeNaissanceMin IS NULL OR c.anneeNaissanceMin <= :annee')
+            ->andWhere('c.anneeNaissanceMax IS NULL OR c.anneeNaissanceMax >= :annee')
+            ->setParameter('annee', $anneeNaissance)
+            ->orderBy('c.jour', 'ASC')
+            ->addOrderBy('c.heure', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

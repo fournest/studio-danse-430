@@ -33,6 +33,9 @@
                             <ul class="space-y-2 text-sm text-white/80 flex-1">
                                 <li class="flex items-center gap-2">
                                     <span class="text-[#FFD700]">&#9733;</span> Horaire : {{ c.heure|date('H\\hi') }}
+                                    {% if c.dureeMinutes is defined %}
+                                        <span class="text-white/50">({{ c.dureeLabel }})</span>
+                                    {% endif %}
                                 </li>
                                 <li class="flex items-center gap-2">
                                     <span class="text-[#FFD700]">&#9733;</span> Professeur : {{ c.professeur }}
@@ -40,6 +43,13 @@
                                 <li class="flex items-center gap-2">
                                     <span class="text-[#FFD700]">&#9733;</span> Capacité : {{ c.capaciteMax }} danseurs
                                 </li>
+                                {% if c.tarif is defined and c.tarif > 0 %}
+                                    <li class="flex items-center gap-2">
+                                        <span class="text-[#FFD700]">&#9733;</span>
+                                        Tarif : <span class="font-semibold text-[#FFD700]">{{ c.tarif|number_format(2, ',', ' ') }} €</span>
+                                        <span class="text-white/50">/ saison</span>
+                                    </li>
+                                {% endif %}
                             </ul>
 
                             <div class="mt-6 flex items-center gap-3">

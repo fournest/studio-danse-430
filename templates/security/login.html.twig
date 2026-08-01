@@ -13,6 +13,22 @@
 
 			<div class="bg-black border border-[#FFD700]/40 rounded-3xl p-8 shadow-[0_0_30px_rgba(255,215,0,0.12)]">
 
+				{% for label, messages in app.flashes %}
+					{% for message in messages %}
+						<div class="mb-6 rounded-lg px-4 py-3 text-sm
+							{% if label == 'success' %}
+								border border-emerald-500/60 bg-emerald-500/10 text-emerald-300
+							{% elseif label == 'warning' %}
+								border border-amber-500/60 bg-amber-500/10 text-amber-300
+							{% else %}
+								border border-rose-500/60 bg-rose-500/10 text-rose-300
+							{% endif %}
+						">
+							{{ message }}
+						</div>
+					{% endfor %}
+				{% endfor %}
+
 				{% if app.user %}
 					<div class="mb-6 rounded-lg border border-[#FFD700] bg-[#FFD700]/10 px-4 py-3 text-[#FFD700] text-sm">
 						Vous êtes connecté en tant que
@@ -40,7 +56,20 @@
 						</button>
 					</div>
 
-					<input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+					{# data-controller obligatoire : CSRF stateless (authenticate) → cookie double-submit via Stimulus #}
+					<input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
+
+					{% if error %}
+						<div class="rounded-lg border border-rose-500/60 bg-rose-500/10 px-4 py-3 text-rose-300 text-sm">
+							{% if error.messageKey == 'Account is disabled.' %}
+								Votre compte a été désactivé. Veuillez contacter le bureau du Studio Danse 430 pour le réactiver.
+							{% elseif error.messageKey == 'Invalid CSRF token.' %}
+								La session a expiré. Veuillez réessayer de vous connecter.
+							{% else %}
+								{{ error.messageKey|trans(error.messageData, 'security') }}
+							{% endif %}
+						</div>
+					{% endif %}
 
 					<button type="submit" class="w-full px-8 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200 shadow-lg">
 						Se connecter
@@ -50,15 +79,6 @@
 							Mot de passe oublié ?
 						</a>
 					</div>
-					{% if error %}
-						<div class="mb-6 rounded-lg border border-rose-500/60 bg-rose-500/10 px-4 py-3 text-rose-300 text-sm">
-							{% if error.messageKey == 'Account is disabled' %}
-								Votre compte est désactivé. Veuillez contacter le bureau du Studio Danse 430 pour le réactiver.
-							{% else %}
-								Identifiants ou mot de passe incorrects.
-							{% endif %}
-						</div>
-					{% endif %}
 				</form>
 			</div>
 		</div>
