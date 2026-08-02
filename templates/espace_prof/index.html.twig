@@ -7,7 +7,7 @@
         <div class="max-w-7xl mx-auto px-4">
 
             <h1 class="text-3xl font-bold mb-2">💃 Espace Professeur</h1>
-            <p class="text-zinc-400 mb-8">Gestion de vos cours et appel des élèves.</p>
+            <p class="text-zinc-400 mb-8">Consultation de vos cours et liste des élèves inscrits.</p>
 
             <div class="space-y-8">
                 {% for c in cours %}
@@ -22,7 +22,10 @@
                                 <p class="text-sm text-zinc-400">
                                     {{ c.jour }}
                                     {% if c.heure %} | {{ c.heure|date('H\\hi') }}{% endif %}
-                                    {% if c.professeur %} (Prof : {{ c.professeur }}){% endif %}
+                                    {% if c.professeurLabel %}
+                                        · Prof{% if c.professeursNoms|length > 1 %}s{% endif %} :
+                                        {{ c.professeurLabel }}
+                                    {% endif %}
                                 </p>
                             </div>
                             <span class="px-3 py-1 bg-zinc-800 text-amber-400 text-xs font-bold rounded-full w-fit">
@@ -39,7 +42,6 @@
                                             <th class="p-3">Élève / Danseur</th>
                                             <th class="p-3">Âge / Catégorie</th>
                                             <th class="p-3">Contact Responsable</th>
-                                            <th class="p-3 text-center">Présence</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-zinc-800/50">
@@ -68,9 +70,6 @@
                                                     {% else %}
                                                         -
                                                     {% endif %}
-                                                </td>
-                                                <td class="p-3 text-center">
-                                                    <input type="checkbox" class="w-5 h-5 accent-amber-400 rounded cursor-pointer">
                                                 </td>
                                             </tr>
                                         {% endfor %}

@@ -4,6 +4,8 @@ twig:
         club_iban: '%club.iban%'
         club_bic: '%club.bic%'
         club_titulaire: '%club.titulaire%'
+        social_facebook_url: '%social.facebook_url%'
+        social_instagram_url: '%social.instagram_url%'
 
 when@test:
     twig:

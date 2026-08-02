@@ -60,10 +60,10 @@
 							{% endif %}
 
 							{# 🏠 GESTION DYNAMIQUE DU FOYER
-							   - Titulaire : mon foyer
-							   - 2ᵉ parent sans foyer : aussi mon foyer (lecture seule via index)
-							   - Staff sans foyer (bureau/prof/trésorier) : pas de lien #}
-							{% if app.user.foyer or (not is_granted('ROLE_BUREAU') and not is_granted('ROLE_TRESORIER') and not is_granted('ROLE_PROF')) %}
+							   - Titulaire / 2ᵉ parent : mon foyer
+							   - Prof (ROLE_PROF) : aussi, s’il a (ou crée) un foyer familial
+							   - Bureau / Trésorier sans foyer : pas de lien #}
+							{% if app.user.foyer or not is_granted('ROLE_TRESORIER') %}
 								<a href="{{ path('app_foyer_index') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">
 									🏠 Mon Foyer
 								</a>
@@ -112,18 +112,10 @@
 						<div>
 							<h4 class="text-lg font-extrabold mb-3 text-neutral-900">Studio Danse 430</h4>
 							<p class="text-sm text-neutral-800 mb-2">École de danse à Nieul-le-Dolent</p>
-							<p class="text-sm text-neutral-800 mb-4 flex items-start">
+							<p class="text-sm text-neutral-800 flex items-start">
 								<span class="mr-2">📍</span>
 								<span>Rue Armand Calleau,<br>85430 Nieul-le-Dolent</span>
 							</p>
-							<div class="flex space-x-4 mt-2">
-								<a href="https://www.facebook.com/studiodanse430" target="_blank" rel="noopener noreferrer" class="text-neutral-700 hover:text-black font-bold text-sm transition">
-									Facebook
-								</a>
-								<a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" class="text-neutral-700 hover:text-black font-bold text-sm transition">
-									Instagram
-								</a>
-							</div>
 						</div>
 
 						<div>
@@ -144,7 +136,7 @@
 								<li>
 									{% if not app.user %}
 										<a href="{{ path('app_register') }}" class="hover:underline">Créez votre compte</a>
-									{% elseif app.user.foyer or (not is_granted('ROLE_BUREAU') and not is_granted('ROLE_TRESORIER') and not is_granted('ROLE_PROF')) %}
+									{% elseif app.user.foyer or not is_granted('ROLE_TRESORIER') %}
 										<a href="{{ path('app_foyer_index') }}" class="hover:underline">Mon espace familial</a>
 									{% else %}
 										<a href="{{ path('app_inscription') }}" class="hover:underline">Inscription aux cours</a>
@@ -174,10 +166,27 @@
 							</div>
 						</div>
 
-						<div class="w-full max-w-full overflow-hidden">
+						<div>
 							<h4 class="text-lg font-extrabold mb-3 text-neutral-900">Suivez-nous</h4>
-							<div class="bg-black/5 rounded-xl p-2 inline-block max-w-full overflow-hidden shadow-inner">
-								<iframe title="Page Facebook Studio Danse 430" src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fstudiodanse430&tabs=timeline&width=270&height=200&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true" class="w-full max-w-67.5 h-50" style="border:none;overflow:hidden;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+							<div class="flex flex-col gap-2.5">
+								<a href="{{ social_facebook_url|default('#') }}"
+								   target="_blank"
+								   rel="noopener noreferrer"
+								   class="inline-flex items-center gap-2.5 self-start px-3.5 py-2 rounded-md border border-black/15 bg-black/5 text-sm font-bold text-neutral-900 hover:bg-black hover:text-[#FFD700] transition-colors">
+									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 shrink-0" aria-hidden="true">
+										<path d="M22 12.07C22 6.48 17.52 2 11.93 2S1.86 6.48 1.86 12.07c0 5.02 3.66 9.18 8.44 9.93v-7.02H7.9v-2.91h2.4V9.84c0-2.37 1.41-3.68 3.56-3.68 1.03 0 2.11.18 2.11.18v2.32h-1.19c-1.17 0-1.54.73-1.54 1.48v1.78h2.62l-.42 2.91h-2.2V22c4.78-.75 8.44-4.91 8.44-9.93Z"/>
+									</svg>
+									Facebook
+								</a>
+								<a href="{{ social_instagram_url|default('#') }}"
+								   target="_blank"
+								   rel="noopener noreferrer"
+								   class="inline-flex items-center gap-2.5 self-start px-3.5 py-2 rounded-md border border-black/15 bg-black/5 text-sm font-bold text-neutral-900 hover:bg-black hover:text-[#FFD700] transition-colors">
+									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 shrink-0" aria-hidden="true">
+										<path d="M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2Zm0 1.5A4.25 4.25 0 0 0 3.5 7.75v8.5A4.25 4.25 0 0 0 7.75 20.5h8.5a4.25 4.25 0 0 0 4.25-4.25v-8.5A4.25 4.25 0 0 0 16.25 3.5h-8.5ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm5.75-.88a1.13 1.13 0 1 1 0 2.25 1.13 1.13 0 0 1 0-2.25Z"/>
+									</svg>
+									Instagram
+								</a>
 							</div>
 						</div>
 

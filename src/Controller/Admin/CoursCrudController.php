@@ -117,7 +117,8 @@ class CoursCrudController extends AbstractCrudController
         yield TextField::new('nom');
         yield TextField::new('jour');
         yield TimeField::new('heure');
-        yield TextField::new('professeur', 'Professeur');
+        yield TextField::new('professeur', 'Professeur(s)')
+            ->setHelp('Nom(s) uniquement (pas d’email). Plusieurs professeurs : séparez par une virgule, ex. « Marie Dupont, Jean Martin ».');
         yield ChoiceField::new('dureeMinutes', 'Durée')
             ->setChoices([
                 '1h00' => 60,

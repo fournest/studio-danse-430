@@ -17,8 +17,7 @@ class EspaceProfController extends AbstractController
         /** @var \App\Entity\User $prof */
         $prof = $this->getUser();
 
-        // Récupère uniquement les cours dispensés par ce prof
-        $mesCours = $coursRepository->findBy(['professeur' => $prof->getEmail()]);
+        $mesCours = $coursRepository->findForProfesseur($prof->getEmail());
 
         return $this->render('espace_prof/index.html.twig', [
             'cours' => $mesCours,

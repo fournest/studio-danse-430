@@ -15,6 +15,10 @@ parameters:
     club.iban: '%env(CLUB_IBAN)%'
     club.bic: '%env(CLUB_BIC)%'
     club.titulaire: '%env(CLUB_TITULAIRE)%'
+    env(SOCIAL_FACEBOOK_URL): '#'
+    env(SOCIAL_INSTAGRAM_URL): '#'
+    social.facebook_url: '%env(SOCIAL_FACEBOOK_URL)%'
+    social.instagram_url: '%env(SOCIAL_INSTAGRAM_URL)%'
 
 services:
     # default configuration for services in *this* file

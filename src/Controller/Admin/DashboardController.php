@@ -84,5 +84,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Galerie & Communication');
         yield MenuItem::linkTo(AlbumCrudController::class, 'Albums Photos', 'fas fa-images');
         yield MenuItem::linkTo(MediaCrudController::class, 'Tous les Médias', 'fas fa-photo-video');
+        yield MenuItem::linkTo(FlyerAdminController::class, 'Créer un Flyer', 'fas fa-qrcode')
+            ->setAction('index');
     }
 }

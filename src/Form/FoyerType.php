@@ -4,6 +4,7 @@ namespace App\Form;
 
 use App\Entity\Foyer;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -23,6 +24,20 @@ class FoyerType extends AbstractType
                 'attr' => ['class' => $inputClass, 'placeholder' => 'M. ou Mme DURAND'],
                 'constraints' => [
                     new NotBlank(['message' => 'Le nom du responsable ou de la famille est obligatoire.']),
+                ],
+            ])
+            ->add('telephone', TelType::class, [
+                'mapped' => false,
+                'label' => 'Téléphone',
+                'label_attr' => ['class' => $labelClass],
+                'data' => $options['telephone'],
+                'attr' => [
+                    'class' => $inputClass,
+                    'placeholder' => '06 12 34 56 78',
+                    'autocomplete' => 'tel',
+                ],
+                'constraints' => [
+                    new NotBlank(['message' => 'Le numéro de téléphone est obligatoire.']),
                 ],
             ])
             ->add('adresse', TextType::class, [
@@ -62,6 +77,8 @@ class FoyerType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Foyer::class,
+            'telephone' => '',
         ]);
+        $resolver->setAllowedTypes('telephone', ['string', 'null']);
     }
 }

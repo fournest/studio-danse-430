@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titre }} — Flyer — Studio Danse 430</title>
+    <style>
+        :root {
+            --bg: #141414;
+            --gold: #d4af37;
+            --gold-bright: #ffd700;
+            --ink: #f5f5f5;
+            --muted: #b8b8b8;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            background: #1a1a1a;
+            color: var(--ink);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.1rem;
+            background: #0a0a0a;
+            border-bottom: 2px solid var(--gold-bright);
+        }
+        .toolbar a,
+        .toolbar button {
+            appearance: none;
+            border: 1px solid var(--gold-bright);
+            background: var(--gold-bright);
+            color: #000;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 0.35rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .toolbar a.secondary {
+            background: transparent;
+            color: var(--gold-bright);
+        }
+
+        /* Format flyer A5 réel : 148 × 210 mm */
+        .flyer {
+            position: relative;
+            width: 148mm;
+            height: 210mm;
+            max-width: 100%;
+            margin: 1.25rem auto;
+            padding: 8mm 7mm 6mm;
+            background-color: var(--bg);
+            background-image: var(--flyer-bg);
+            background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+            border: 1.5px solid var(--gold);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 4mm;
+            overflow: hidden;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .flyer::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(180deg, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.62) 45%, rgba(0, 0, 0, 0.82) 100%),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.15));
+            z-index: 0;
+            pointer-events: none;
+        }
+        .flyer > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .flyer-header { text-align: center; flex-shrink: 0; }
+        .flyer-badge {
+            display: inline-block;
+            margin-bottom: 2.5mm;
+            padding: 1.5mm 3.5mm;
+            border: 1px solid var(--gold);
+            border-radius: 999px;
+            color: var(--gold-bright);
+            font-size: 8.5pt;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .flyer-header h1 {
+            margin: 0;
+            font-size: 18pt;
+            line-height: 1.1;
+            color: var(--gold-bright);
+            letter-spacing: 0.01em;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
+        }
+        .flyer-header .subtitle {
+            margin: 2mm 0 0;
+            color: #e8e8e8;
+            font-size: 9pt;
+            font-style: italic;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+        }
+        .gold-separator {
+            height: 1.5px;
+            border: 0;
+            margin: 0;
+            flex-shrink: 0;
+            background: linear-gradient(90deg, transparent, var(--gold-bright), var(--gold), transparent);
+        }
+
+        /* ===== Mode simple ===== */
+        .flyer-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 4mm;
+            text-align: center;
+            min-height: 0;
+            padding: 4mm;
+            background: rgba(10, 10, 10, 0.45);
+            border: 1px solid rgba(212, 175, 55, 0.22);
+            border-radius: 0.35rem;
+        }
+        .flyer-body .event {
+            margin: 0;
+            font-size: 11pt;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--gold);
+        }
+        .flyer-body .description {
+            margin: 0;
+            color: var(--ink);
+            font-size: 10pt;
+            line-height: 1.4;
+        }
+        .tags {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2mm;
+        }
+        .tags li {
+            border: 1px solid rgba(212, 175, 55, 0.55);
+            color: var(--gold-bright);
+            padding: 1.2mm 2.5mm;
+            border-radius: 0.25rem;
+            font-size: 8.5pt;
+            font-weight: 600;
+        }
+        .qr-zone {
+            flex-shrink: 0;
+            text-align: center;
+        }
+        .qr-zone img {
+            width: 32mm;
+            height: 32mm;
+            background: #fff;
+            padding: 2mm;
+            border: 1.5px solid var(--gold);
+            border-radius: 0.3rem;
+        }
+        .qr-zone .hint {
+            margin: 2mm 0 0.5mm;
+            color: var(--gold);
+            font-size: 8pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .qr-zone .url {
+            margin: 0;
+            color: var(--muted);
+            font-size: 7pt;
+            word-break: break-all;
+        }
+
+        /* ===== Mode planning ===== */
+        .planning-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 4mm;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .planning-col {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5mm;
+            min-height: 0;
+            overflow: hidden;
+            padding: 3mm;
+            background: rgba(10, 10, 10, 0.55);
+            border: 1px solid rgba(212, 175, 55, 0.28);
+            border-radius: 0.35rem;
+            backdrop-filter: blur(1px);
+        }
+        .planning-col h2 {
+            margin: 0;
+            font-size: 8.5pt;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--gold-bright);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.4);
+            padding-bottom: 1.2mm;
+            flex-shrink: 0;
+        }
+        .planning-list {
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .day-block { margin: 0 0 2mm; }
+        .day-block h3 {
+            margin: 0 0 0.8mm;
+            font-size: 8pt;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .day-block ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .day-block li {
+            display: grid;
+            grid-template-columns: 11mm 1fr;
+            gap: 1.5mm;
+            align-items: baseline;
+            font-size: 8pt;
+            line-height: 1.25;
+            padding: 0.4mm 0;
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.1);
+            color: var(--ink);
+        }
+        .day-block .time {
+            color: var(--gold-bright);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+        .day-block .name { font-weight: 600; }
+        .planning-desc {
+            margin: 0;
+            font-size: 7.5pt;
+            color: var(--muted);
+            line-height: 1.3;
+            flex-shrink: 0;
+        }
+        .photos {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 2.5mm;
+            flex: 1;
+            min-height: 0;
+        }
+        .photos figure {
+            margin: 0;
+            border: 1px solid var(--gold);
+            border-radius: 0.25rem;
+            overflow: hidden;
+            background: #000;
+            min-height: 0;
+        }
+        .photos img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .planning-qr {
+            flex-shrink: 0;
+            text-align: center;
+        }
+        .planning-qr img {
+            width: 24mm;
+            height: 24mm;
+            background: #fff;
+            padding: 1.5mm;
+            border: 1.5px solid var(--gold);
+            border-radius: 0.25rem;
+        }
+        .planning-qr .hint {
+            margin: 1.5mm 0 0;
+            color: var(--gold);
+            font-size: 7pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .flyer-footer {
+            flex-shrink: 0;
+            margin-top: auto;
+            padding: 2.5mm 2mm 0;
+            border-top: 1px solid rgba(212, 175, 55, 0.35);
+            text-align: center;
+            color: var(--muted);
+            font-size: 7.5pt;
+            letter-spacing: 0.02em;
+            line-height: 1.35;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+        }
+        .flyer-footer strong {
+            color: var(--gold-bright);
+            font-weight: 700;
+        }
+
+        /* ===== Verso : Sponsors ===== */
+        .flyer--verso {
+            background-image: none;
+            background-color: #0a0a0a;
+        }
+        .flyer--verso::before {
+            background:
+                radial-gradient(ellipse at 50% 20%, rgba(212, 175, 55, 0.12), transparent 55%),
+                linear-gradient(180deg, #121212 0%, #0a0a0a 100%);
+        }
+        .verso-header {
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .verso-header .eyebrow {
+            margin: 0 0 2mm;
+            color: var(--gold);
+            font-size: 8pt;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .verso-header h1 {
+            margin: 0;
+            font-size: 15pt;
+            color: var(--gold-bright);
+            line-height: 1.15;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+        }
+        .verso-header p {
+            margin: 2.5mm 0 0;
+            color: #d0d0d0;
+            font-size: 8.5pt;
+            line-height: 1.35;
+        }
+        .sponsors-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3.5mm;
+            align-content: center;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .sponsors-grid--few {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .sponsor-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2mm;
+            min-height: 28mm;
+            padding: 3mm;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(212, 175, 55, 0.55);
+            border-radius: 0.4rem;
+        }
+        .sponsor-card img {
+            max-width: 100%;
+            max-height: 18mm;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        .sponsor-card .sponsor-name {
+            margin: 0;
+            text-align: center;
+            color: #222;
+            font-size: 7.5pt;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .sponsors-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: var(--muted);
+            font-size: 9pt;
+            padding: 8mm;
+            border: 1px dashed rgba(212, 175, 55, 0.35);
+            border-radius: 0.4rem;
+        }
+        .verso-thanks {
+            flex-shrink: 0;
+            text-align: center;
+            color: var(--muted);
+            font-size: 8pt;
+            line-height: 1.4;
+        }
+        .verso-thanks strong {
+            color: var(--gold-bright);
+        }
+        .screen-label {
+            display: none;
+        }
+        @media screen {
+            .screen-label {
+                display: block;
+                max-width: 148mm;
+                margin: 1rem auto 0.35rem;
+                color: #FFD700;
+                font-size: 0.8rem;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+            }
+            .flyer + .screen-label {
+                margin-top: 1.75rem;
+            }
+        }
+
+        @media print {
+            html, body {
+                width: auto;
+                height: auto;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #000 !important;
+            }
+            .no-print { display: none !important; }
+            .screen-label { display: none !important; }
+            .flyer {
+                width: 148mm;
+                height: 210mm;
+                margin: 0 !important;
+                box-shadow: none;
+                border-width: 0;
+                page-break-after: always;
+                page-break-inside: avoid;
+                break-after: page;
+                break-inside: avoid;
+            }
+            .flyer:last-of-type {
+                page-break-after: auto;
+                break-after: auto;
+            }
+            a { color: inherit; text-decoration: none; }
+        }
+        @page {
+            size: A5 portrait;
+            margin: 0;
+        }
+        @media screen and (max-width: 720px) {
+            .flyer {
+                width: calc(100% - 1rem);
+                height: auto;
+                min-height: 210mm;
+                margin: 0.5rem auto;
+            }
+            .planning-grid { grid-template-columns: 1fr; }
+            .photos { grid-template-rows: 80px 80px; }
+            .sponsors-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar no-print">
+        <div>
+            <a href="{{ path('admin_flyer_creator_index') }}" class="secondary">← Retour au créateur</a>
+            <a href="{{ path('admin') }}" class="secondary" style="margin-left:0.4rem;">Admin</a>
+        </div>
+        <div>
+            <button type="button" onclick="window.print()">🖨️ Imprimer recto / verso (A5)</button>
+        </div>
+    </div>
+
+    <p class="screen-label">Recto — Flyer</p>
+    <article
+        class="flyer flyer--{{ mode }}"
+        style="--flyer-bg: url('{{ absolute_url(asset(background_image)) }}');"
+    >
+        <header class="flyer-header">
+            <div class="flyer-badge">{{ badge }}</div>
+            <h1>{{ titre }}</h1>
+            {% if sous_titre %}
+                <p class="subtitle">{{ sous_titre }}</p>
+            {% endif %}
+        </header>
+
+        <hr class="gold-separator">
+
+        {% if mode == 'planning' %}
+            <div class="planning-grid">
+                <section class="planning-col">
+                    <h2>Planning des cours</h2>
+                    <div class="planning-list">
+                        {% if cours_par_jour is empty %}
+                            <p class="planning-desc">Le planning sera bientôt disponible.</p>
+                        {% else %}
+                            {% for jour, cours_list in cours_par_jour %}
+                                <div class="day-block">
+                                    <h3>{{ jour }}</h3>
+                                    <ul>
+                                        {% for c in cours_list %}
+                                            <li>
+                                                <span class="time">{{ c.heure|date('H\\hi') }}</span>
+                                                <span class="name">{{ c.nom }}</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% if description %}
+                        <p class="planning-desc">{{ description }}</p>
+                    {% endif %}
+                </section>
+
+                <aside class="planning-col">
+                    <h2>Le studio</h2>
+                    <div class="photos">
+                        {% for photo in photos|slice(0, 2) %}
+                            <figure>
+                                <img src="{{ absolute_url(asset(photo)) }}" alt="Studio Danse 430">
+                            </figure>
+                        {% endfor %}
+                    </div>
+                    <div class="planning-qr">
+                        <img
+                            src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ target_url|url_encode }}"
+                            alt="QR Code Studio Danse 430"
+                            width="120"
+                            height="120"
+                        >
+                        <p class="hint">Scannez pour vous inscrire</p>
+                    </div>
+                </aside>
+            </div>
+        {% else %}
+            <section class="flyer-body">
+                <p class="event">{{ badge }}</p>
+                {% if description %}
+                    <p class="description">{{ description }}</p>
+                {% endif %}
+                {% if tags is not empty %}
+                    <ul class="tags">
+                        {% for tag in tags %}
+                            <li>{{ tag }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </section>
+            <section class="qr-zone">
+                <img
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={{ target_url|url_encode }}"
+                    alt="QR Code inscription Studio Danse 430"
+                    width="160"
+                    height="160"
+                >
+                <p class="hint">Scannez pour vous inscrire</p>
+                <p class="url">{{ display_url }}</p>
+            </section>
+        {% endif %}
+
+        <footer class="flyer-footer">
+            <strong>Studio Danse 430</strong><br>
+            Rue Armand Calleau · 85430 Nieul-le-Dolent<br>
+            contact@studiodanse430.fr
+        </footer>
+    </article>
+
+    <p class="screen-label">Verso — Sponsors</p>
+    <article class="flyer flyer--verso">
+        <header class="verso-header">
+            <p class="eyebrow">Ils nous font confiance</p>
+            <h1>Nos partenaires &amp; sponsors</h1>
+            <p>Merci à ceux qui soutiennent Studio Danse 430 et la vie du club.</p>
+        </header>
+
+        <hr class="gold-separator">
+
+        <div class="sponsors-grid{% if sponsors|length <= 4 %} sponsors-grid--few{% endif %}">
+            {% for sponsor in sponsors %}
+                <div class="sponsor-card">
+                    {% if sponsor.logo %}
+                        <img
+                            src="{{ absolute_url(asset('uploads/logos/sponsors/' ~ sponsor.logo)) }}"
+                            alt="{{ sponsor.nom }}"
+                        >
+                    {% endif %}
+                    <p class="sponsor-name">{{ sponsor.nom }}</p>
+                </div>
+            {% else %}
+                <div class="sponsors-empty">
+                    Aucun sponsor enregistré pour le moment.<br>
+                    Ajoutez-les depuis l’administration → Sponsors.
+                </div>
+            {% endfor %}
+        </div>
+
+        <p class="verso-thanks">
+            <strong>Studio Danse 430</strong> · Nieul-le-Dolent<br>
+            contact@studiodanse430.fr
+        </p>
+    </article>
+</body>
+</html>

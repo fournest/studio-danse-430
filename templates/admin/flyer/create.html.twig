@@ -1,0 +1,277 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Créer un Flyer{% endblock %}
+
+{% block main %}
+<style>
+    .flyer-admin {
+        max-width: 980px;
+        color: #f3f3f3;
+    }
+    .flyer-admin__intro {
+        margin: 0 0 1.75rem;
+        padding: 1.25rem 1.5rem;
+        background: #161616;
+        border-left: 3px solid #FFD700;
+        border-radius: 0 0.75rem 0.75rem 0;
+    }
+    .flyer-admin__intro h2 {
+        margin: 0 0 0.5rem;
+        color: #FFD700;
+        font-size: 1.15rem;
+        font-weight: 700;
+    }
+    .flyer-admin__intro p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 0.95rem;
+        line-height: 1.55;
+    }
+    .flyer-admin__grid {
+        display: grid;
+        grid-template-columns: 1.35fr 1fr;
+        gap: 1.75rem;
+        align-items: start;
+    }
+    @media (max-width: 900px) {
+        .flyer-admin__grid { grid-template-columns: 1fr; }
+    }
+    .flyer-admin__panel {
+        background: #141414;
+        border: 1px solid rgba(255, 215, 0, 0.22);
+        border-radius: 1rem;
+        padding: 1.75rem 1.75rem 1.5rem;
+    }
+    .flyer-admin__panel-title {
+        margin: 0 0 1.35rem;
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        color: #FFD700;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .flyer-admin .form-group,
+    .flyer-admin .mb-3 {
+        margin-bottom: 1.35rem !important;
+    }
+    .flyer-admin label,
+    .flyer-admin .form-control-label,
+    .flyer-admin .col-form-label {
+        display: block !important;
+        float: none !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 0 0.45rem !important;
+        padding: 0 !important;
+        color: rgba(255, 215, 0, 0.95) !important;
+        font-size: 0.92rem !important;
+        font-weight: 650 !important;
+        text-align: left !important;
+    }
+    .flyer-admin .form-widget,
+    .flyer-admin .form-widget-col,
+    .flyer-admin .col-md-*,
+    .flyer-admin [class*="col-"] {
+        width: 100% !important;
+        max-width: none !important;
+        flex: none !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    .flyer-admin .form-row,
+    .flyer-admin .row {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+    .flyer-admin .form-control,
+    .flyer-admin .form-select,
+    .flyer-admin textarea,
+    .flyer-admin input[type="text"],
+    .flyer-admin input[type="url"] {
+        width: 100% !important;
+        min-height: 2.75rem;
+        padding: 0.7rem 0.95rem !important;
+        background: #0c0c0c !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        color: #fff !important;
+        border-radius: 0.65rem !important;
+        font-size: 0.98rem !important;
+        line-height: 1.4 !important;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .flyer-admin textarea {
+        min-height: 7.5rem;
+        resize: vertical;
+    }
+    .flyer-admin .form-control:focus,
+    .flyer-admin textarea:focus,
+    .flyer-admin input:focus {
+        border-color: #FFD700 !important;
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15) !important;
+        outline: none !important;
+    }
+    .flyer-admin .form-help,
+    .flyer-admin .form-text,
+    .flyer-admin .help-text {
+        display: block;
+        margin-top: 0.45rem !important;
+        color: rgba(255, 255, 255, 0.45) !important;
+        font-size: 0.82rem !important;
+        line-height: 1.4 !important;
+    }
+    .flyer-admin .form-check {
+        margin: 0 0 0.85rem !important;
+        padding: 0.95rem 1.05rem 0.95rem 2.6rem !important;
+        background: #0c0c0c;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        min-height: auto;
+    }
+    .flyer-admin .form-check:last-child {
+        margin-bottom: 0 !important;
+    }
+    .flyer-admin .form-check:has(input:checked) {
+        border-color: rgba(255, 215, 0, 0.55);
+        background: rgba(255, 215, 0, 0.06);
+    }
+    .flyer-admin .form-check-input {
+        margin-top: 0.2rem;
+        width: 1.05rem;
+        height: 1.05rem;
+    }
+    .flyer-admin .form-check-input:checked {
+        background-color: #FFD700;
+        border-color: #FFD700;
+    }
+    .flyer-admin .form-check-label {
+        color: #f0f0f0 !important;
+        font-size: 0.95rem !important;
+        font-weight: 500 !important;
+        line-height: 1.4 !important;
+        cursor: pointer;
+    }
+    .flyer-admin__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin-top: 1.75rem;
+        padding-top: 1.35rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .flyer-admin__actions .btn {
+        min-height: 2.85rem;
+        padding: 0.7rem 1.35rem !important;
+        border-radius: 999px !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+    }
+    .flyer-admin__actions .btn-primary,
+    .flyer-admin__actions button[type="submit"] {
+        background: #FFD700 !important;
+        border-color: #FFD700 !important;
+        color: #111 !important;
+    }
+    .flyer-admin__actions .btn-primary:hover,
+    .flyer-admin__actions button[type="submit"]:hover {
+        background: #e6c200 !important;
+        border-color: #e6c200 !important;
+        color: #111 !important;
+    }
+    .flyer-admin__actions .btn-secondary {
+        background: transparent !important;
+        border: 1px solid rgba(255, 215, 0, 0.45) !important;
+        color: #FFD700 !important;
+    }
+</style>
+
+    <div class="flyer-admin">
+        <div class="flyer-admin__intro">
+            <h2><i class="fa fa-qrcode"></i> Composer un flyer</h2>
+            <p>
+                Remplissez les champs, puis cliquez sur
+                <strong style="color:#FFD700;">Générer &amp; Imprimer</strong>.
+                Le flyer A5 s’ouvre dans un nouvel onglet, prêt à imprimer
+                (Inscription, AG, Gala, Stages…).
+            </p>
+        </div>
+
+        {{ form_start(form, {
+            attr: {
+                id: 'flyer-config-form',
+                target: '_blank',
+                class: 'ea-form'
+            }
+        }) }}
+
+            <div class="flyer-admin__grid">
+                <section class="flyer-admin__panel">
+                    <h3 class="flyer-admin__panel-title">Contenu du flyer</h3>
+                    {{ form_row(form.titre) }}
+                    {{ form_row(form.sous_titre) }}
+                    {{ form_row(form.badge) }}
+                    {{ form_row(form.description) }}
+                    {{ form_row(form.tags) }}
+                </section>
+
+                <section class="flyer-admin__panel">
+                    <h3 class="flyer-admin__panel-title">Options</h3>
+                    {{ form_row(form.mode) }}
+                    {{ form_row(form.target) }}
+                    <div id="flyer-custom-url" hidden>
+                        {{ form_row(form.target_url) }}
+                    </div>
+                </section>
+            </div>
+
+            <div class="flyer-admin__actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-print"></i> Générer &amp; Imprimer
+                </button>
+                <a href="{{ path('admin') }}" class="btn btn-secondary">Annuler</a>
+            </div>
+
+        {{ form_end(form) }}
+    </div>
+
+    <script>
+        (function () {
+            const form = document.getElementById('flyer-config-form');
+            if (!form) return;
+
+            const customWrap = document.getElementById('flyer-custom-url');
+            const urlInscription = {{ url_inscription|json_encode|raw }};
+            const urlHome = {{ url_home|json_encode|raw }};
+
+            function selectedValue(name) {
+                const checked = form.querySelector('input[name="' + name + '"]:checked');
+                if (checked) return checked.value;
+                const select = form.querySelector('[name="' + name + '"]');
+                return select ? select.value : null;
+            }
+
+            function syncCustomUrl() {
+                const target = selectedValue('target');
+                if (customWrap) {
+                    customWrap.hidden = target !== 'custom';
+                }
+            }
+
+            form.addEventListener('change', syncCustomUrl);
+            syncCustomUrl();
+
+            form.addEventListener('submit', function () {
+                const target = selectedValue('target');
+                const urlField = form.querySelector('[name="target_url"]');
+                if (!urlField) return;
+
+                if (target === 'inscription') {
+                    urlField.value = urlInscription;
+                } else if (target === 'home') {
+                    urlField.value = urlHome;
+                }
+            });
+        })();
+    </script>
+{% endblock %}

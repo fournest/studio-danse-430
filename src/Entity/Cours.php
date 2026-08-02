@@ -116,6 +116,47 @@ class Cours
         return $this;
     }
 
+    /**
+     * Noms des professeurs prêts pour l’affichage (jamais d’email brut).
+     * Accepte plusieurs valeurs séparées par virgule, point-virgule ou « / ».
+     * Un email éventuel est transformé en libellé (partie avant @).
+     *
+     * @return list<string>
+     */
+    public function getProfesseursNoms(): array
+    {
+        $parts = preg_split('/[,;\/|]+/', $this->professeur) ?: [];
+        $noms = [];
+
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+
+            if (str_contains($part, '@')) {
+                if (preg_match('/^(.+?)\s*[<\(]\s*([^@\s]+@[^>\)]+)\s*[>\)]\s*$/u', $part, $m)) {
+                    $part = trim($m[1]);
+                } else {
+                    $local = (string) strstr($part, '@', true);
+                    $part = ucwords(str_replace(['.', '_', '-'], ' ', $local));
+                }
+            }
+
+            if ($part !== '') {
+                $noms[] = $part;
+            }
+        }
+
+        return array_values(array_unique($noms));
+    }
+
+    /** Libellé d’affichage : « Marie Dupont · Jean Martin ». */
+    public function getProfesseurLabel(): string
+    {
+        return implode(' · ', $this->getProfesseursNoms());
+    }
+
     public function getCapaciteMax(): int
     {
         return $this->capaciteMax;

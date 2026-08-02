@@ -25,6 +25,7 @@ final class CotisationCalculatorService
 
     /**
      * Calcule la cotisation à partir des inscriptions (ou des cours ManyToMany) du foyer.
+     * Prend en compte tous les cours rattachés aux danseurs pour la saison, avec dégressivité.
      */
     public function calculateForFoyer(Foyer $foyer, string $saison = self::SAISON_COURANTE): CotisationDetail
     {
@@ -39,6 +40,14 @@ final class CotisationCalculatorService
         }
 
         return $this->calculate($selection, $foyer, $saison);
+    }
+
+    /**
+     * Alias métier : montant total dû par le foyer pour la saison (dégressivité incluse).
+     */
+    public function calculerTotalFoyer(Foyer $foyer, string $saison = self::SAISON_COURANTE): CotisationDetail
+    {
+        return $this->calculateForFoyer($foyer, $saison);
     }
 
     /**

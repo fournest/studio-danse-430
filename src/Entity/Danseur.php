@@ -41,6 +41,9 @@ class Danseur
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $parent2Email = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $parent2InvitedAt = null;
+
     /** @var Collection<int, Cours> */
     #[ORM\ManyToMany(targetEntity: Cours::class, inversedBy: 'danseurs')]
     private Collection $cours;
@@ -201,7 +204,11 @@ class Danseur
 
     public function setParent2Telephone(?string $parent2Telephone): self
     {
-        $this->parent2Telephone = $parent2Telephone;
+        if (null === $parent2Telephone || trim($parent2Telephone) === '') {
+            $this->parent2Telephone = null;
+        } else {
+            $this->parent2Telephone = \App\Entity\User::formatTelephone($parent2Telephone);
+        }
 
         return $this;
     }
@@ -214,6 +221,18 @@ class Danseur
     public function setParent2Email(?string $parent2Email): self
     {
         $this->parent2Email = $parent2Email;
+
+        return $this;
+    }
+
+    public function getParent2InvitedAt(): ?\DateTimeImmutable
+    {
+        return $this->parent2InvitedAt;
+    }
+
+    public function setParent2InvitedAt(?\DateTimeImmutable $parent2InvitedAt): self
+    {
+        $this->parent2InvitedAt = $parent2InvitedAt;
 
         return $this;
     }

@@ -47,9 +47,17 @@
                         {% if hasVirement %}
                             <h2 style="margin:24px 0 12px;color:#FFD700;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;">Virement bancaire</h2>
                             <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#d4d4d4;">
-                                Pour régler par virement, utilisez les coordonnées ci-dessous et indiquez le nom du foyer
-                                (<strong style="color:#fff;">{{ foyer.nom }}</strong>) en libellé.
+                                Programmez vos virements aux dates convenues avec le <strong style="color:#fff;">libellé exact</strong> ci-dessous.
                             </p>
+                            {% if libelleVirement %}
+                                <p style="margin:0 0 12px;font-size:15px;line-height:1.5;">
+                                    Libellé : <strong style="color:#FFD700;font-family:monospace;">{{ libelleVirement }}</strong>
+                                </p>
+                            {% else %}
+                                <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#d4d4d4;">
+                                    Indiquez le nom du foyer (<strong style="color:#fff;">{{ foyer.nom }}</strong>) en libellé.
+                                </p>
+                            {% endif %}
                             {% if club_iban %}
                                 <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#d4d4d4;">
                                     Titulaire : <strong style="color:#fff;">{{ club_titulaire }}</strong><br>
@@ -59,10 +67,19 @@
                             {% endif %}
                         {% endif %}
 
-                        {% if not hasHelloAsso and not hasVirement %}
+                        {% if hasCheque %}
+                            <h2 style="margin:24px 0 12px;color:#FFD700;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;">Dépôt des chèques</h2>
+                            <p style="margin:0 0 16px;font-size:14px;line-height:1.5;color:#d4d4d4;">
+                                Merci de remettre l’ensemble des chèques au bureau lors des permanences de rentrée
+                                en indiquant au dos le nom du foyer (<strong style="color:#fff;">{{ foyer.nom }}</strong>).<br>
+                                Studio Danse 430 — Rue Armand Calleau, 85430 Nieul-le-Dolent.
+                            </p>
+                        {% endif %}
+
+                        {% if not hasHelloAsso and not hasVirement and not hasCheque %}
                             <h2 style="margin:24px 0 12px;color:#FFD700;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;">Dépôt des règlements</h2>
                             <p style="margin:0;font-size:14px;line-height:1.5;color:#d4d4d4;">
-                                Déposez vos chèques / justificatifs au studio :<br>
+                                Déposez vos justificatifs au studio :<br>
                                 Studio Danse 430 — Rue Armand Calleau, 85430 Nieul-le-Dolent.
                             </p>
                         {% endif %}

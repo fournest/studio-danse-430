@@ -20,10 +20,13 @@ use App\Repository\CoursRepository;
 use App\Repository\DanseurRepository;
 use App\Repository\InscriptionRepository;
 use App\Security\Voter\InscriptionTunnelVoter;
+use App\Service\CoParentMailerService;
 use App\Service\CotisationCalculatorService;
 use App\Service\EchelonnementService;
 use App\Service\InscriptionConfirmationMailer;
 use App\Service\QsSportQuestionnaire;
+use App\Service\VirementLibelleService;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -43,8 +46,12 @@ class FoyerController extends AbstractController
     ) {
     }
     #[Route('', name: 'app_foyer_index', methods: ['GET'])]
-    public function index(DanseurRepository $danseurRepository): Response
-    {
+    public function index(
+        DanseurRepository $danseurRepository,
+        UserRepository $userRepository,
+        CotisationCalculatorService $cotisationService,
+        EntityManagerInterface $em,
+    ): Response {
         /** @var User $user */
         $user = $this->getUser();
         $foyer = $user->getFoyer();
@@ -62,48 +69,168 @@ class FoyerController extends AbstractController
             return $this->redirectToRoute('app_foyer_new');
         }
 
+        $saison = CotisationCalculatorService::SAISON_COURANTE;
+        $cotisation = null;
+        $paiementInscriptionId = null;
+        $reglementSoumis = false;
+        $reglementSolde = false;
+
+        // Recalcule le total foyer ; persiste les parts tant qu’aucun règlement n’a commencé.
+        if ($foyer && !$foyer->getDanseurs()->isEmpty()) {
+            $cotisation = $cotisationService->calculerTotalFoyer($foyer, $saison);
+            $reglementSoumis = $this->foyerHasPaiementsSaison($foyer, $saison);
+            if (!$reglementSoumis) {
+                $this->applyMontantsToInscriptions($foyer, $saison, $cotisation);
+                $em->flush();
+            } else {
+                foreach ($foyer->getDanseurs() as $danseur) {
+                    foreach ($danseur->getInscriptions() as $inscription) {
+                        if ($inscription->getSaison() === $saison && $inscription->hasPlanReglement()) {
+                            $inscription->refreshStatutPaiement();
+                        }
+                    }
+                }
+                $em->flush();
+                $reglementSolde = $this->foyerReglementSolde($foyer, $saison);
+            }
+
+            $sansPaiement = $this->findFirstInscriptionSansPaiement($foyer, $saison);
+            $paiementInscriptionId = $sansPaiement?->getId()
+                ?? $this->findFirstInscriptionAvecMontant($foyer, $saison)?->getId()
+                ?? $this->findFirstInscriptionSaison($foyer, $saison)?->getId();
+        }
+
+        $parent2CompteCree = [];
+        $danseursAvecCours = 0;
+        $danseursSanteOk = 0;
+        $nbInscriptions = 0;
+        $nbReglementsOk = 0;
+        $premiereInscriptionId = null;
+
+        foreach ($allDanseurs as $danseur) {
+            $email = trim((string) $danseur->getParent2EmailEffectif());
+            if ($email !== '') {
+                $existing = $userRepository->createQueryBuilder('u')
+                    ->andWhere('LOWER(u.email) = :email')
+                    ->setParameter('email', mb_strtolower($email))
+                    ->setMaxResults(1)
+                    ->getQuery()
+                    ->getOneOrNullResult();
+                $parent2CompteCree[$danseur->getId()] = null !== $existing;
+            }
+
+            if ($danseur->getInscriptions()->isEmpty()) {
+                continue;
+            }
+
+            ++$danseursAvecCours;
+            if ($danseur->hasJustificatifSanteComplet()) {
+                ++$danseursSanteOk;
+            }
+
+            foreach ($danseur->getInscriptions() as $inscription) {
+                ++$nbInscriptions;
+                if (null === $premiereInscriptionId) {
+                    $premiereInscriptionId = $inscription->getId();
+                }
+                // Étape 4 OK dès qu’un plan est soumis OU que la ligne est soldée / sans montant.
+                $paiementOk = $inscription->getStatutPaiement() === StatutPaiement::SOLDE
+                    || $inscription->hasPlanReglement()
+                    || ($inscription->getMontantTotal() ?? 0.0) <= 0.0;
+                if ($paiementOk) {
+                    ++$nbReglementsOk;
+                }
+            }
+        }
+
+        $step1Done = \count($allDanseurs) > 0;
+        $step2Done = $danseursAvecCours > 0;
+        $step3Done = $step2Done && $danseursSanteOk >= $danseursAvecCours;
+        $step4Done = $reglementSoumis
+            || ($step2Done && $nbInscriptions > 0 && $nbReglementsOk >= $nbInscriptions);
+        $stepCourante = match (true) {
+            !$step1Done => 1,
+            !$step2Done => 2,
+            !$step3Done => 3,
+            !$step4Done => 4,
+            default => 4,
+        };
+
         return $this->render('foyer/index.html.twig', [
             'foyer' => $foyer,
             'danseurs' => $allDanseurs,
             'isFoyerOwner' => $foyer !== null,
             'ownedFoyerId' => $foyer?->getId(),
+            'parent2_compte_cree' => $parent2CompteCree,
+            'step1_done' => $step1Done,
+            'step2_done' => $step2Done,
+            'step3_done' => $step3Done,
+            'step4_done' => $step4Done,
+            'step_courante' => $stepCourante,
+            'premiere_inscription_id' => $premiereInscriptionId,
+            'paiement_inscription_id' => $paiementInscriptionId ?? $premiereInscriptionId,
+            'cotisation' => $cotisation,
+            'reglement_soumis' => $reglementSoumis,
+            'reglement_solde' => $reglementSolde,
         ]);
     }
 
     #[Route('/configuration', name: 'app_foyer_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $em): Response
+    #[Route('/modifier', name: 'app_foyer_edit_dossier', methods: ['GET', 'POST'])]
+    public function configure(Request $request, EntityManagerInterface $em): Response
     {
         /** @var User $user */
         $user = $this->getUser();
+        $foyer = $user->getFoyer();
+        $isEdit = $foyer !== null;
 
-        if ($user->getFoyer()) {
-            return $this->redirectToRoute('app_foyer_index');
+        if (!$isEdit) {
+            $foyer = new Foyer();
         }
 
-        $foyer = new Foyer();
-        $form = $this->createForm(FoyerType::class, $foyer);
+        $form = $this->createForm(FoyerType::class, $foyer, [
+            'telephone' => (string) $user->getTelephone(),
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $foyer->setUser($user);
-            $user->setFoyer($foyer);
+            $user->setTelephone(trim((string) $form->get('telephone')->getData()));
 
-            $em->persist($foyer);
+            if (!$isEdit) {
+                $foyer->setUser($user);
+                $user->setFoyer($foyer);
+                $em->persist($foyer);
+            }
+
             $em->flush();
 
-            $this->addFlash('success', 'Votre dossier familial a bien été configuré ! Vous pouvez maintenant ajouter vos danseurs.');
+            if ($isEdit) {
+                $this->addFlash('success', 'Les informations de votre dossier familial ont bien été mises à jour.');
+            } else {
+                $this->addFlash('success', 'Votre dossier familial a bien été configuré ! Vous pouvez maintenant ajouter vos danseurs.');
+            }
+
             return $this->redirectToRoute('app_foyer_index');
         }
 
-        return $this->render('foyer/form.html.twig', [
+        return $this->render('foyer/configuration.html.twig', [
             'form' => $form->createView(),
-            'title' => 'Configuration du dossier familial (Foyer)'
+            'is_edit' => $isEdit,
+            'title' => $isEdit
+                ? 'Modification du dossier familial'
+                : 'Configuration du dossier familial',
+            'submit_label' => $isEdit
+                ? 'Enregistrer les modifications'
+                : 'Enregistrer et continuer',
         ]);
     }
 
     #[Route('/ajouter-un-danseur', name: 'app_foyer_add', methods: ['GET', 'POST'])]
-    public function add(Request $request, EntityManagerInterface $em): Response
-    {
+    public function add(
+        Request $request,
+        EntityManagerInterface $em,
+        CoParentMailerService $coParentMailer,
+    ): Response {
         /** @var User $user */
         $user = $this->getUser();
         $foyer = $user->getFoyer();
@@ -123,13 +250,21 @@ class FoyerController extends AbstractController
             $em->persist($danseur);
             $em->flush();
 
+            if ($this->shouldSendParent2Invitation($danseur, false)) {
+                if ($coParentMailer->sendInvitation($danseur)) {
+                    $em->flush();
+                    $this->addFlash('success', 'Une invitation a été envoyée au second parent.');
+                }
+            }
+
             $this->addFlash('success', $danseur->getPrenom() . ' a bien été ajouté(e) au foyer !');
             return $this->redirectToRoute('app_foyer_index');
         }
 
         return $this->render('foyer/form.html.twig', [
             'form' => $form->createView(),
-            'title' => 'Ajouter un membre au foyer'
+            'title' => 'Ajouter un membre au foyer',
+            'show_parent2_section' => true,
         ]);
     }
 
@@ -150,8 +285,12 @@ class FoyerController extends AbstractController
     }
 
     #[Route('/modifier-un-danseur/{id}', name: 'app_foyer_edit', methods: ['GET', 'POST'])]
-    public function edit(Danseur $danseur, Request $request, EntityManagerInterface $em): Response
-    {
+    public function edit(
+        Danseur $danseur,
+        Request $request,
+        EntityManagerInterface $em,
+        CoParentMailerService $coParentMailer,
+    ): Response {
         /** @var User $user */
         $user = $this->getUser();
 
@@ -160,11 +299,32 @@ class FoyerController extends AbstractController
             return $this->redirectToRoute('app_foyer_show', ['id' => $danseur->getId()]);
         }
 
-        $form = $this->createForm(DanseurType::class, $danseur);
+        $previousEmail = $danseur->getParent2Email();
+        $allowResend = $danseur->getParent2InvitedAt() !== null;
+
+        $form = $this->createForm(DanseurType::class, $danseur, [
+            'allow_resend_invite' => $allowResend,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $emailChanged = mb_strtolower(trim((string) $previousEmail))
+                !== mb_strtolower(trim((string) $danseur->getParent2Email()));
+
+            if ($emailChanged) {
+                $danseur->setParent2InvitedAt(null);
+            }
+
+            $resend = $allowResend && (bool) $form->get('renvoyerInvitation')->getData();
+
             $em->flush();
+
+            if ($this->shouldSendParent2Invitation($danseur, $resend || $emailChanged)) {
+                if ($coParentMailer->sendInvitation($danseur)) {
+                    $em->flush();
+                    $this->addFlash('success', 'Une invitation a été envoyée au second parent.');
+                }
+            }
 
             $this->addFlash('success', 'Le profil de ' . $danseur->getPrenom() . ' a été mis à jour.');
             return $this->redirectToRoute('app_foyer_index');
@@ -172,8 +332,23 @@ class FoyerController extends AbstractController
 
         return $this->render('foyer/form.html.twig', [
             'form' => $form->createView(),
-            'title' => 'Modifier le profil de ' . $danseur->getPrenom()
+            'title' => 'Modifier le profil de ' . $danseur->getPrenom(),
+            'show_parent2_section' => true,
         ]);
+    }
+
+    private function shouldSendParent2Invitation(Danseur $danseur, bool $forceResend): bool
+    {
+        $email = trim((string) $danseur->getParent2Email());
+        if ($email === '') {
+            return false;
+        }
+
+        if ($forceResend) {
+            return true;
+        }
+
+        return null === $danseur->getParent2InvitedAt();
     }
 
     #[Route('/inscription-cours', name: 'app_foyer_inscription_cours', methods: ['GET', 'POST'])]
@@ -284,7 +459,7 @@ class FoyerController extends AbstractController
                     $attenteByDanseur[$danseur->getId()] = $attenteIds;
                 }
 
-                $detail = $calculator->calculateForFoyer($foyer, $saison);
+                $detail = $calculator->calculerTotalFoyer($foyer, $saison);
                 $this->applyMontantsToInscriptions($foyer, $saison, $detail);
                 $em->flush();
 
@@ -543,6 +718,8 @@ class FoyerController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         EchelonnementService $echelonnementService,
+        CotisationCalculatorService $cotisationService,
+        VirementLibelleService $virementLibelleService,
     ): Response {
         /** @var User $user */
         $user = $this->getUser();
@@ -556,10 +733,56 @@ class FoyerController extends AbstractController
             return $this->redirectToRoute('app_foyer_inscription_confirmation', ['id' => $inscription->getId()]);
         }
 
-        $montantTotal = $inscription->getMontantTotal() ?? 0.0;
-        $resteAPayer = $inscription->getResteAPayer();
+        $foyer = $danseur->getFoyer();
+        $saison = $inscription->getSaison() ?: CotisationCalculatorService::SAISON_COURANTE;
+        $cotisation = null;
+        $libelleVirement = null;
+
+        if ($foyer) {
+            $cotisation = $cotisationService->calculerTotalFoyer($foyer, $saison);
+            $hadRef = (bool) $foyer->getReferenceVirement();
+            $libelleVirement = $virementLibelleService->ensureReference($foyer, $saison);
+
+            if (!$this->foyerHasPaiementsSaison($foyer, $saison)) {
+                $this->applyMontantsToInscriptions($foyer, $saison, $cotisation);
+                // Règlement unique : concentre le total foyer sur l’inscription courante.
+                $this->concentrerMontantFoyerSurInscription($foyer, $saison, $inscription, $cotisation);
+                $em->flush();
+            } else {
+                if (!$hadRef) {
+                    $em->flush();
+                }
+                if (($inscription->getMontantTotal() ?? 0.0) <= 0 && $cotisation->total > 0) {
+                    $cible = $this->findFirstInscriptionSansPaiement($foyer, $saison)
+                        ?? $this->findFirstInscriptionAvecMontant($foyer, $saison);
+                    if (null !== $cible && $cible->getId() !== $inscription->getId()) {
+                        return $this->redirectToRoute('app_foyer_inscription_paiement', ['id' => $cible->getId()]);
+                    }
+                }
+            }
+        }
+
+        $montantTotal = $cotisation?->total > 0
+            ? $cotisation->total
+            : ($inscription->getMontantTotal() ?? 0.0);
+        $resteAPayer = $foyer
+            ? $this->calculerResteAPayerFoyer($foyer, $saison)
+            : $inscription->getResteAPayer();
+
+        // Si l’inscription porte déjà le total foyer (après concentration), utilise ses valeurs.
+        if (($inscription->getMontantTotal() ?? 0.0) >= ($cotisation?->total ?? 0.0) - 0.01
+            && ($cotisation?->total ?? 0.0) > 0) {
+            $montantTotal = $inscription->getMontantTotal() ?? $montantTotal;
+            $resteAPayer = $inscription->getResteAPayer();
+        }
+
         if ($resteAPayer <= 0 && $montantTotal <= 0) {
             $this->addFlash('warning', 'Aucun montant à régler pour cette inscription.');
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        if ($resteAPayer <= 0 && $montantTotal > 0) {
+            $this->addFlash('success', 'Le règlement de votre cotisation foyer est déjà enregistré.');
             return $this->redirectToRoute('app_foyer_index');
         }
 
@@ -568,53 +791,52 @@ class FoyerController extends AbstractController
                 throw $this->createAccessDeniedException('Jeton CSRF invalide.');
             }
 
-            $type = (string) $request->request->get('type_reglement', 'cheques');
-
             try {
-                if ($type === 'cheques') {
-                    $this->handleReglementCheques($request, $inscription, $echelonnementService, $resteAPayer > 0 ? $resteAPayer : $montantTotal);
-                } elseif ($type === 'mixte') {
-                    $this->handleReglementMixte($request, $inscription, $resteAPayer > 0 ? $resteAPayer : $montantTotal);
-                } else {
-                    throw new \InvalidArgumentException('Mode de règlement inconnu.');
-                }
+                $this->handleReglementEchelonne(
+                    $request,
+                    $inscription,
+                    $foyer,
+                    $echelonnementService,
+                    $virementLibelleService,
+                    $resteAPayer,
+                );
 
                 $inscription->refreshStatutPaiement();
+
+                if ($foyer && $inscription->getResteAPayer() <= 0) {
+                    $this->marquerInscriptionsFoyerSoldees($foyer, $saison, $inscription);
+                }
+
                 $em->flush();
 
                 $this->addFlash('success', 'Vos moyens de paiement ont bien été enregistrés. Le bureau procédera à l’encaissement.');
 
-                $foyer = $danseur->getFoyer();
-                $next = $foyer ? $this->findFirstInscriptionSansPaiement($foyer, $inscription->getSaison()) : null;
-                if (null !== $next && $next->getId() !== $inscription->getId()) {
-                    return $this->redirectToRoute('app_foyer_inscription_paiement', ['id' => $next->getId()]);
-                }
-
-                return $this->redirectToRoute('app_foyer_inscription_sante', ['id' => $inscription->getId()]);
+                return $this->redirectToRoute('app_foyer_index');
             } catch (\InvalidArgumentException $e) {
                 $this->addFlash('error', $e->getMessage());
             }
         }
 
         $datesParOption = [];
+        $montantsParOption = [];
         foreach ([1, 3, 10] as $n) {
             $datesParOption[$n] = array_map(
                 static fn (\DateTimeImmutable $d) => $d->format('d/m/Y'),
                 $echelonnementService->genererDatesEncaissement($inscription->getSaison(), $n)
             );
+            $montantsParOption[$n] = $echelonnementService->repartirMontants($resteAPayer, $n);
         }
 
         return $this->render('foyer/inscription_paiement.html.twig', [
             'inscription' => $inscription,
             'danseur' => $danseur,
             'montantTotal' => $montantTotal,
-            'resteAPayer' => $resteAPayer > 0 ? $resteAPayer : $montantTotal,
+            'resteAPayer' => $resteAPayer,
+            'cotisation' => $cotisation,
+            'libelleVirement' => $libelleVirement,
             'datesParOption' => $datesParOption,
-            'modesMixte' => array_filter(
-                ModePaiement::cases(),
-                static fn (ModePaiement $m) => $m !== ModePaiement::CHEQUE
-            ),
-            'modesAll' => ModePaiement::cases(),
+            'montantsParOption' => $montantsParOption,
+            'modesDeduction' => ModePaiement::modesDeductionFoyer(),
             'paiementsExistants' => $inscription->getPaiements(),
         ]);
     }
@@ -798,68 +1020,125 @@ class FoyerController extends AbstractController
         return array_values($byId);
     }
 
-    private function handleReglementCheques(
+    private function handleReglementEchelonne(
         Request $request,
         Inscription $inscription,
+        ?Foyer $foyer,
         EchelonnementService $echelonnementService,
+        VirementLibelleService $virementLibelleService,
         float $resteMax,
     ): void {
-        $nombre = (int) $request->request->get('nombre_echeances', 1);
-        $emetteur = trim((string) $request->request->get('emetteur', ''));
-        $montantRaw = str_replace(',', '.', (string) $request->request->get('montant_echelonne', (string) $resteMax));
-        $montant = round((float) $montantRaw, 2);
+        [$deductions, $sommeDeductions] = $this->parseLignesDeduction($request);
 
-        if ($emetteur === '') {
-            throw new \InvalidArgumentException('Veuillez indiquer le nom de l’émetteur du/des chèque(s).');
-        }
-
-        if ($montant <= 0) {
-            throw new \InvalidArgumentException('Le montant à échelonner doit être positif.');
-        }
-
-        if ($montant - $resteMax > 0.009) {
+        if ($sommeDeductions - $resteMax > 0.009) {
             throw new \InvalidArgumentException(sprintf(
-                'Le montant à échelonner (%s €) ne peut pas dépasser le reste à payer (%s €).',
-                number_format($montant, 2, ',', ' '),
+                'Le total des aides (%s €) ne peut pas dépasser la cotisation (%s €).',
+                number_format($sommeDeductions, 2, ',', ' '),
                 number_format($resteMax, 2, ',', ' ')
             ));
         }
 
+        $montantAEchelonner = round(max(0.0, $resteMax - $sommeDeductions), 2);
+
         $inscription->clearPaiements();
-        $paiements = $echelonnementService->generateEcheances($inscription, $nombre, $montant, $emetteur);
-        foreach ($paiements as $paiement) {
+        foreach ($deductions as $paiement) {
             $inscription->addPaiement($paiement);
         }
-        $inscription->setModePaiement(sprintf('Chèque(s) %dx', $nombre));
-    }
 
-    private function handleReglementMixte(
-        Request $request,
-        Inscription $inscription,
-        float $montantTotal,
-    ): void {
-        $lignes = $request->request->all('lignes') ?? [];
-        if (!\is_array($lignes) || $lignes === []) {
-            throw new \InvalidArgumentException('Ajoutez au moins une ligne de paiement.');
+        $labels = array_map(
+            static fn (Paiement $p) => $p->getMode()->getLabel(),
+            $deductions
+        );
+
+        if ($montantAEchelonner > 0.009) {
+            $nombre = (int) $request->request->get('nombre_echeances', 1);
+            $modeValue = (string) $request->request->get('mode_echeance', ModePaiement::CHEQUE->value);
+            $mode = ModePaiement::tryFrom($modeValue);
+            if (null === $mode || !\in_array($mode, ModePaiement::modesEchelonnes(), true)) {
+                throw new \InvalidArgumentException('Choisissez Chèque(s) ou Virement(s) pour le solde à échelonner.');
+            }
+
+            $emetteur = null;
+            $libelleVirement = null;
+
+            if ($mode === ModePaiement::CHEQUE) {
+                $emetteur = trim((string) $request->request->get('emetteur', ''));
+                if ($emetteur === '') {
+                    throw new \InvalidArgumentException('Veuillez indiquer le nom de l’émetteur du/des chèque(s).');
+                }
+            } else {
+                if (null === $foyer) {
+                    throw new \InvalidArgumentException('Foyer introuvable pour générer le libellé de virement.');
+                }
+                $libelleVirement = $virementLibelleService->ensureReference($foyer, $inscription->getSaison());
+            }
+
+            $echeances = $echelonnementService->generateEcheances(
+                $inscription,
+                $nombre,
+                $montantAEchelonner,
+                $emetteur,
+                $mode,
+                $libelleVirement,
+            );
+            foreach ($echeances as $paiement) {
+                $inscription->addPaiement($paiement);
+            }
+
+            $labels[] = sprintf(
+                '%s %dx',
+                $mode === ModePaiement::VIREMENT ? 'Virement(s)' : 'Chèque(s)',
+                $nombre
+            );
+        } elseif ($deductions === []) {
+            throw new \InvalidArgumentException('Indiquez au moins une aide ou un solde à échelonner.');
         }
 
-        $somme = 0.0;
+        $totalCouvert = round($sommeDeductions + $montantAEchelonner, 2);
+        if (abs($totalCouvert - $resteMax) > 0.009) {
+            throw new \InvalidArgumentException(sprintf(
+                'Le règlement (%s €) doit couvrir exactement la cotisation (%s €).',
+                number_format($totalCouvert, 2, ',', ' '),
+                number_format($resteMax, 2, ',', ' ')
+            ));
+        }
+
+        $inscription->setModePaiement(implode(' + ', array_unique($labels)));
+    }
+
+    /**
+     * @return array{0: list<Paiement>, 1: float}
+     */
+    private function parseLignesDeduction(Request $request): array
+    {
+        $lignes = $request->request->all('deductions') ?? [];
+        if (!\is_array($lignes)) {
+            return [[], 0.0];
+        }
+
         $paiements = [];
+        $somme = 0.0;
+        $modesAutorises = ModePaiement::modesDeductionFoyer();
 
         foreach ($lignes as $index => $ligne) {
             if (!\is_array($ligne)) {
                 continue;
             }
 
-            $modeValue = (string) ($ligne['mode'] ?? '');
-            $mode = ModePaiement::tryFrom($modeValue);
-            if (null === $mode) {
-                throw new \InvalidArgumentException(sprintf('Mode de paiement invalide (ligne %d).', $index + 1));
+            $montantRaw = trim((string) ($ligne['montant'] ?? ''));
+            if ($montantRaw === '') {
+                continue;
             }
 
-            $montant = round((float) str_replace(',', '.', (string) ($ligne['montant'] ?? '0')), 2);
+            $modeValue = (string) ($ligne['mode'] ?? '');
+            $mode = ModePaiement::tryFrom($modeValue);
+            if (null === $mode || !\in_array($mode, $modesAutorises, true)) {
+                throw new \InvalidArgumentException(sprintf('Mode d’aide invalide (ligne %d).', $index + 1));
+            }
+
+            $montant = round((float) str_replace(',', '.', $montantRaw), 2);
             if ($montant <= 0) {
-                throw new \InvalidArgumentException(sprintf('Montant invalide (ligne %d).', $index + 1));
+                throw new \InvalidArgumentException(sprintf('Montant d’aide invalide (ligne %d).', $index + 1));
             }
 
             $somme = round($somme + $montant, 2);
@@ -869,28 +1148,11 @@ class FoyerController extends AbstractController
             $paiement->setMontant($montant);
             $paiement->setStatut(StatutLignePaiement::EN_ATTENTE);
             $paiement->setReference(trim((string) ($ligne['reference'] ?? '')) ?: null);
-            $paiement->setEmetteur(trim((string) ($ligne['emetteur'] ?? '')) ?: null);
+            $paiement->setRemarques('Aide / autre règlement soustrait du solde à échelonner');
             $paiements[] = $paiement;
         }
 
-        if (abs($somme - $montantTotal) > 0.009) {
-            throw new \InvalidArgumentException(sprintf(
-                'La somme des moyens de paiement (%s €) doit être égale au montant total (%s €).',
-                number_format($somme, 2, ',', ' '),
-                number_format($montantTotal, 2, ',', ' ')
-            ));
-        }
-
-        $inscription->clearPaiements();
-        foreach ($paiements as $paiement) {
-            $inscription->addPaiement($paiement);
-        }
-
-        $labels = array_unique(array_map(
-            static fn (Paiement $p) => $p->getMode()->getLabel(),
-            $paiements
-        ));
-        $inscription->setModePaiement(implode(' + ', $labels));
+        return [$paiements, $somme];
     }
 
     /**
@@ -953,6 +1215,71 @@ class FoyerController extends AbstractController
         }
     }
 
+    private function foyerHasPaiementsSaison(Foyer $foyer, string $saison): bool
+    {
+        foreach ($foyer->getDanseurs() as $danseur) {
+            foreach ($danseur->getInscriptions() as $inscription) {
+                if ($inscription->getSaison() !== $saison) {
+                    continue;
+                }
+                if (!$inscription->getPaiements()->isEmpty()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * True si tous les montants du foyer pour la saison sont effectivement encaissés / soldés.
+     */
+    private function foyerReglementSolde(Foyer $foyer, string $saison): bool
+    {
+        $hasPayable = false;
+        foreach ($foyer->getDanseurs() as $danseur) {
+            foreach ($danseur->getInscriptions() as $inscription) {
+                if ($inscription->getSaison() !== $saison) {
+                    continue;
+                }
+                $total = $inscription->getMontantTotal() ?? 0.0;
+                if ($total <= 0.001 && $inscription->getPaiements()->isEmpty()) {
+                    continue;
+                }
+                $hasPayable = true;
+                if ($inscription->getStatutPaiement() !== StatutPaiement::SOLDE) {
+                    return false;
+                }
+            }
+        }
+
+        return $hasPayable;
+    }
+
+    /**
+     * Place le total cotisation foyer sur une inscription (règlement unique).
+     */
+    private function concentrerMontantFoyerSurInscription(
+        Foyer $foyer,
+        string $saison,
+        Inscription $cible,
+        CotisationDetail $detail,
+    ): void {
+        foreach ($foyer->getDanseurs() as $danseur) {
+            foreach ($danseur->getInscriptions() as $inscription) {
+                if ($inscription->getSaison() !== $saison) {
+                    continue;
+                }
+                if ($inscription->getId() === $cible->getId()) {
+                    $inscription->setMontantTotal($detail->total);
+                } else {
+                    $inscription->setMontantTotal(0);
+                }
+                $inscription->refreshStatutPaiement();
+            }
+        }
+    }
+
     private function findFirstInscriptionSansPaiement(Foyer $foyer, string $saison): ?Inscription
     {
         foreach ($foyer->getDanseurs() as $danseur) {
@@ -970,6 +1297,60 @@ class FoyerController extends AbstractController
         }
 
         return null;
+    }
+
+    private function findFirstInscriptionAvecMontant(Foyer $foyer, string $saison): ?Inscription
+    {
+        foreach ($foyer->getDanseurs() as $danseur) {
+            foreach ($danseur->getInscriptions() as $inscription) {
+                if ($inscription->getSaison() !== $saison) {
+                    continue;
+                }
+                if (($inscription->getMontantTotal() ?? 0.0) > 0) {
+                    return $inscription;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function calculerResteAPayerFoyer(Foyer $foyer, string $saison): float
+    {
+        $reste = 0.0;
+        foreach ($foyer->getDanseurs() as $danseur) {
+            foreach ($danseur->getInscriptions() as $inscription) {
+                if ($inscription->getSaison() !== $saison) {
+                    continue;
+                }
+                $reste += $inscription->getResteAPayer();
+            }
+        }
+
+        return round($reste, 2);
+    }
+
+    /**
+     * Après règlement du total foyer sur une inscription, solde les autres lignes de la saison.
+     */
+    private function marquerInscriptionsFoyerSoldees(Foyer $foyer, string $saison, Inscription $payee): void
+    {
+        foreach ($foyer->getDanseurs() as $danseur) {
+            foreach ($danseur->getInscriptions() as $inscription) {
+                if ($inscription->getSaison() !== $saison) {
+                    continue;
+                }
+                if ($inscription->getId() === $payee->getId()) {
+                    continue;
+                }
+                // Conserve le montant déjà encaissé ; le reste du foyer a été réglé sur $payee.
+                $inscription->setMontantTotal($inscription->getMontantRegle());
+                if (($inscription->getMontantTotal() ?? 0.0) <= 0.001) {
+                    $inscription->setMontantTotal(0);
+                }
+                $inscription->setStatutPaiement(StatutPaiement::SOLDE);
+            }
+        }
     }
 
     private function findFirstInscriptionSaison(Foyer $foyer, string $saison): ?Inscription
@@ -1197,6 +1578,9 @@ class FoyerController extends AbstractController
             'inscriptionsDanseur' => $inscriptionsDanseur,
             'documentTitre' => $documentTitre,
             'isAcquitte' => $isAcquitte,
+            'hasVirement' => $inscription->utiliseVirement(),
+            'hasCheque' => $inscription->utiliseCheque(),
+            'libelleVirement' => $foyer->getReferenceVirement(),
             'numeroFacture' => sprintf(
                 'SD430-%s-%04d',
                 preg_replace('/\D+/', '', $saison) ?: date('Y'),

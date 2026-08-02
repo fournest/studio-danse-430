@@ -86,12 +86,37 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getTelephone(): ?string
     {
-        return $this->telephone;
+        return null !== $this->telephone ? self::formatTelephone($this->telephone) : null;
     }
+
     public function setTelephone(string $telephone): self
     {
-        $this->telephone = $telephone;
+        $this->telephone = self::formatTelephone($telephone);
+
         return $this;
+    }
+
+    /**
+     * Affiche un numéro FR lisible : 0612345678 → 06 12 34 56 78
+     */
+    public static function formatTelephone(?string $telephone): string
+    {
+        $raw = trim((string) $telephone);
+        if ($raw === '') {
+            return '';
+        }
+
+        $digits = preg_replace('/\D+/', '', $raw) ?? '';
+
+        if (str_starts_with($digits, '33') && \strlen($digits) >= 11) {
+            $digits = '0'.substr($digits, 2);
+        }
+
+        if ($digits === '') {
+            return $raw;
+        }
+
+        return trim(chunk_split($digits, 2, ' '));
     }
 
     // Getters et Setters pour la sécurité

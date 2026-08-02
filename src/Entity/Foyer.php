@@ -57,6 +57,10 @@ class Foyer
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $motifRemise = null;
 
+    /** Libellé unique de virement (ex. COTIS-2026-DUPONT). */
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $referenceVirement = null;
+
     /**
      * @var Collection<int, Danseur>
      */
@@ -246,6 +250,18 @@ class Foyer
     public function setMotifRemise(?string $motifRemise): static
     {
         $this->motifRemise = $motifRemise;
+        return $this;
+    }
+
+    public function getReferenceVirement(): ?string
+    {
+        return $this->referenceVirement;
+    }
+
+    public function setReferenceVirement(?string $referenceVirement): static
+    {
+        $this->referenceVirement = $referenceVirement ? trim($referenceVirement) : null;
+
         return $this;
     }
 

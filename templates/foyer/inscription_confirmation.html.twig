@@ -129,9 +129,19 @@
             {% if hasVirement %}
                 <div class="space-y-3 {% if hasHelloAsso %}pt-4 border-t border-neutral-800{% endif %}">
                     <p class="text-sm text-neutral-200 leading-relaxed">
-                        Pour régler par <strong class="text-white">virement bancaire</strong>, utilisez les coordonnées ci-dessous.
-                        Indiquez le <strong class="text-white">nom du foyer</strong> ({{ foyer.nom }}) en libellé du virement.
+                        Pour régler par <strong class="text-white">virement bancaire</strong>, utilisez les coordonnées ci-dessous
+                        et le libellé exact indiqué.
                     </p>
+                    {% if foyer.referenceVirement %}
+                        <div class="rounded-lg border border-[#FFD700]/40 bg-[#FFD700]/10 px-4 py-3">
+                            <p class="text-xs font-bold uppercase tracking-wider text-[#FFD700]/80 mb-1">Libellé obligatoire</p>
+                            <p class="text-lg font-extrabold text-[#FFD700] font-mono tracking-wide break-all">{{ foyer.referenceVirement }}</p>
+                        </div>
+                    {% else %}
+                        <p class="text-sm text-neutral-400">
+                            Indiquez le <strong class="text-white">nom du foyer</strong> ({{ foyer.nom }}) en libellé du virement.
+                        </p>
+                    {% endif %}
                     {% if club_iban %}
                         <dl class="rounded-lg bg-neutral-950/60 border border-neutral-700 p-4 space-y-3 text-sm"
                             data-controller="clipboard"
@@ -173,7 +183,8 @@
             {% if hasDepot or (not hasHelloAsso and not hasVirement) %}
                 <div class="space-y-3 {% if hasHelloAsso or hasVirement %}pt-4 border-t border-neutral-800{% endif %}">
                     <p class="text-sm text-neutral-300 leading-relaxed">
-                        Merci de déposer vos chèques / justificatifs (Pass’Sport, ANCV…) au studio :
+                        Merci de déposer vos chèques / justificatifs (Pass’Sport, ANCV…) au bureau lors des permanences de rentrée,
+                        en indiquant au dos le nom du foyer (<strong class="text-white">{{ foyer.nom }}</strong>) :
                     </p>
                     <p class="text-sm text-white font-medium">
                         {{ association.nom }}<br>

@@ -8,7 +8,7 @@ use App\Enum\ModePaiement;
 use App\Enum\StatutPaiement as StatutLignePaiement;
 
 /**
- * Génère les échéances de chèques pour une inscription.
+ * Génère les échéances de paiement (chèques ou virements) pour une inscription.
  */
 final class EchelonnementService
 {
@@ -25,11 +25,20 @@ final class EchelonnementService
         int $nbEcheances,
         float $montant,
         ?string $emetteur = null,
+        ModePaiement $mode = ModePaiement::CHEQUE,
+        ?string $libelleVirement = null,
     ): array {
         if (!\in_array($nbEcheances, self::ECHEANCES_SUPPORTES, true)) {
             throw new \InvalidArgumentException(sprintf(
                 'Nombre d\'échéances non supporté : %d (attendu : 1, 3 ou 10).',
                 $nbEcheances
+            ));
+        }
+
+        if (!\in_array($mode, ModePaiement::modesEchelonnes(), true)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Mode d\'échelonnement non supporté : %s (attendu : chèque ou virement).',
+                $mode->value
             ));
         }
 
@@ -45,11 +54,23 @@ final class EchelonnementService
             $paiement = new Paiement();
             $paiement->setInscription($inscription);
             $paiement->setMontant($part);
-            $paiement->setMode(ModePaiement::CHEQUE);
+            $paiement->setMode($mode);
             $paiement->setStatut(StatutLignePaiement::EN_ATTENTE);
             $paiement->setEmetteur($emetteur);
             $paiement->setDateEncaissementPrevue($dates[$index]);
-            $paiement->setReference(sprintf('Chèque %d/%d', $index + 1, $nbEcheances));
+
+            if ($mode === ModePaiement::VIREMENT) {
+                $paiement->setReference($libelleVirement);
+                $paiement->setRemarques(sprintf(
+                    'Virement %d/%d — libellé : %s',
+                    $index + 1,
+                    $nbEcheances,
+                    $libelleVirement ?? '—'
+                ));
+            } else {
+                $paiement->setReference(sprintf('Chèque %d/%d', $index + 1, $nbEcheances));
+            }
+
             $paiements[] = $paiement;
         }
 

@@ -236,6 +236,18 @@ class Inscription
         return str_contains(mb_strtolower((string) $this->modePaiement), 'virement');
     }
 
+    public function utiliseCheque(): bool
+    {
+        foreach ($this->paiements as $paiement) {
+            if ($paiement->getMode() === \App\Enum\ModePaiement::CHEQUE) {
+                return true;
+            }
+        }
+
+        return str_contains(mb_strtolower((string) $this->modePaiement), 'chèque')
+            || str_contains(mb_strtolower((string) $this->modePaiement), 'cheque');
+    }
+
     public function getCertificatMedical(): ?string
     {
         return $this->certificatMedical;
@@ -445,21 +457,64 @@ class Inscription
 
     /**
      * Met à jour le statut global (Non payé / Partiel / Soldé) selon les encaissements.
+     * Un plan de règlement soumis (chèques/virements en attente) n’est plus « Non payé ».
      */
     public function refreshStatutPaiement(): self
     {
         $total = $this->getMontantTotal() ?? 0.0;
         $regle = $this->getMontantRegle();
+        $planifie = $this->getMontantPlanifie();
 
-        if ($regle <= 0.001) {
-            $this->statutPaiement = StatutPaiement::NON_PAYE;
+        if ($total <= 0.001) {
+            $this->statutPaiement = $this->paiements->isEmpty()
+                ? StatutPaiement::NON_PAYE
+                : StatutPaiement::SOLDE;
         } elseif ($regle + 0.001 >= $total) {
             $this->statutPaiement = StatutPaiement::SOLDE;
-        } else {
+        } elseif ($regle > 0.001 || $planifie > 0.001) {
             $this->statutPaiement = StatutPaiement::PARTIEL;
+        } else {
+            $this->statutPaiement = StatutPaiement::NON_PAYE;
         }
 
         return $this;
+    }
+
+    public function hasPlanReglement(): bool
+    {
+        return !$this->paiements->isEmpty();
+    }
+
+    /**
+     * Plan soumis, en attente de validation / encaissement par le trésorier.
+     */
+    public function isEnAttenteEncaissement(): bool
+    {
+        if (!$this->hasPlanReglement()) {
+            return false;
+        }
+
+        if ($this->statutPaiement === StatutPaiement::SOLDE) {
+            return false;
+        }
+
+        return $this->getMontantRegle() + 0.001 < ($this->getMontantTotal() ?? 0.0);
+    }
+
+    /**
+     * Libellé affiché côté espace familial (plus précis que la valeur brute de l’enum).
+     */
+    public function getLibelleStatutPaiement(): string
+    {
+        if ($this->statutPaiement === StatutPaiement::SOLDE) {
+            return 'Soldé';
+        }
+
+        if ($this->isEnAttenteEncaissement()) {
+            return 'En attente d\'encaissement';
+        }
+
+        return $this->statutPaiement->value;
     }
 
     public function getIndicateurReglement(): string
@@ -473,7 +528,7 @@ class Inscription
             number_format($total, 2, ',', ' '),
             number_format($regle, 2, ',', ' '),
             number_format($reste, 2, ',', ' '),
-            $this->statutPaiement->value
+            $this->getLibelleStatutPaiement()
         );
     }
 }

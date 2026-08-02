@@ -6,6 +6,7 @@ use App\Entity\User;
 use App\Form\RegistrationFormType;
 use App\Repository\UserRepository;
 use App\Security\EmailVerifier;
+use App\Service\CoParentInvitationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,9 +25,33 @@ class RegistrationController extends AbstractController
     }
 
     #[Route('/register', name: 'app_register')]
-    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, EntityManagerInterface $entityManager): Response
-    {
+    public function register(
+        Request $request,
+        UserPasswordHasherInterface $userPasswordHasher,
+        EntityManagerInterface $entityManager,
+        CoParentInvitationService $coParentInvitation,
+    ): Response {
         $user = new User();
+
+        $inviteEmail = trim((string) $request->query->get('email', ''));
+        $danseurId = (int) $request->query->get('danseur', 0);
+        $foyerId = (int) $request->query->get('foyer', 0);
+        $expires = (int) $request->query->get('expires', 0);
+        $token = (string) $request->query->get('token', '');
+        $isCoParentInvite = false;
+
+        if (
+            $inviteEmail !== ''
+            && $danseurId > 0
+            && $foyerId > 0
+            && $expires > 0
+            && $token !== ''
+            && $coParentInvitation->isValidInvitation($danseurId, $foyerId, $inviteEmail, $expires, $token)
+        ) {
+            $user->setEmail($inviteEmail);
+            $isCoParentInvite = true;
+        }
+
         $form = $this->createForm(RegistrationFormType::class, $user);
         $form->handleRequest($request);
 
@@ -49,7 +74,9 @@ class RegistrationController extends AbstractController
 
             $this->addFlash(
                 'success',
-                'Votre compte a été créé. Veuillez vérifier vos e-mails pour activer votre compte avant de vous connecter.'
+                $isCoParentInvite
+                    ? 'Votre compte co-parent a été créé. Vérifiez vos e-mails pour l’activer, puis connectez-vous pour consulter la fiche de votre enfant.'
+                    : 'Votre compte a été créé. Veuillez vérifier vos e-mails pour activer votre compte avant de vous connecter.'
             );
 
             return $this->redirectToRoute('app_login');
@@ -57,6 +84,7 @@ class RegistrationController extends AbstractController
 
         return $this->render('registration/register.html.twig', [
             'registrationForm' => $form,
+            'is_coparent_invite' => $isCoParentInvite,
         ]);
     }
 

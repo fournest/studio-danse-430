@@ -76,7 +76,7 @@
                                                 <span class="block text-xs text-neutral-400 mt-0.5">
                                                     {{ cours.jour }} · {{ cours.heure|date('H\\hi') }}
                                                     · {{ cours.dureeLabel }}
-                                                    · {{ cours.professeur }}
+                                                    · {{ cours.professeurLabel|default(cours.professeur) }}
                                                 </span>
                                                 <span class="block text-xs text-amber-400/90 mt-1">
                                                     Cochez pour vous positionner en liste d’attente (non facturé tant qu’une place ne se libère pas).
@@ -111,7 +111,7 @@
                                                 <span class="block text-xs text-neutral-400 mt-0.5">
                                                     {{ cours.jour }} · {{ cours.heure|date('H\\hi') }}
                                                     · {{ cours.dureeLabel }}
-                                                    · {{ cours.professeur }}
+                                                    · {{ cours.professeurLabel|default(cours.professeur) }}
                                                 </span>
                                             </span>
                                             <span class="text-sm font-bold text-[#FFD700] whitespace-nowrap">

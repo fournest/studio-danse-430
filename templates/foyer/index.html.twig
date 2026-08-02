@@ -15,6 +15,76 @@
 				{% endfor %}
 			{% endfor %}
 
+			{% if isFoyerOwner %}
+				{# ===== Stepper inscription ===== #}
+				<nav class="inscription-stepper rounded-xl border border-neutral-800 bg-neutral-900/70 p-3 sm:p-4" aria-label="Étapes d’inscription">
+					<ol class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+						{% set step4_href = premiere_inscription_id
+							? (step4_done
+								? path('app_foyer_inscription_facture', {id: premiere_inscription_id})
+								: path('app_foyer_inscription_paiement', {id: paiement_inscription_id|default(premiere_inscription_id)}))
+							: null %}
+						{% set steps = [
+							{ n: 1, label: 'Famille', done: step1_done, href: path('app_foyer_add'), enabled: true },
+							{ n: 2, label: 'Choix des cours', done: step2_done, href: path('app_foyer_inscription_cours'), enabled: step1_done },
+							{ n: 3, label: 'Questionnaires Santé', done: step3_done, href: premiere_inscription_id ? path('app_foyer_inscription_sante', {id: premiere_inscription_id}) : null, enabled: step2_done },
+							{ n: 4, label: 'Règlement & Facture', done: step4_done, href: step4_href, enabled: step2_done }
+						] %}
+						{% for s in steps %}
+							{% set is_current = step_courante == s.n and not s.done %}
+							<li class="min-w-0">
+								{% if s.enabled and s.href %}
+									<a href="{{ s.href }}"
+									   class="flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors
+									   {{ s.done ? 'border-emerald-700/60 bg-emerald-950/30 text-emerald-300' : (is_current ? 'border-[#FFD700] bg-[#FFD700]/10 text-[#FFD700]' : 'border-neutral-700 bg-black/30 text-neutral-400 hover:border-neutral-500') }}">
+										<span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold
+											{{ s.done ? 'bg-emerald-500 text-black' : (is_current ? 'bg-[#FFD700] text-black' : 'bg-neutral-800 text-neutral-400') }}">
+											{{ s.done ? '✓' : s.n }}
+										</span>
+										<span class="min-w-0">
+											<span class="block text-[10px] uppercase tracking-wider opacity-70">{{ s.n }}. Étape</span>
+											<span class="block text-xs sm:text-sm font-bold truncate">{{ s.label }}</span>
+										</span>
+									</a>
+								{% else %}
+									<div class="flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-950/50 px-2.5 py-2 text-neutral-600 cursor-not-allowed opacity-70">
+										<span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-[11px] font-extrabold text-neutral-600">
+											{{ s.n }}
+										</span>
+										<span class="min-w-0">
+											<span class="block text-[10px] uppercase tracking-wider">{{ s.n }}. Étape</span>
+											<span class="block text-xs sm:text-sm font-bold truncate">{{ s.label }}</span>
+										</span>
+									</div>
+								{% endif %}
+							</li>
+						{% endfor %}
+					</ol>
+				</nav>
+
+				{# ===== Bandeau aide première connexion ===== #}
+				<div id="onboarding-banner" class="onboarding-banner rounded-xl border border-[#FFD700]/40 bg-neutral-900/80 p-4 sm:p-5 hidden">
+					<div class="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+						<div class="text-2xl shrink-0" aria-hidden="true">💡</div>
+						<div class="flex-1 min-w-0">
+							<p class="text-sm sm:text-[15px] text-neutral-200 leading-relaxed">
+								<strong class="text-[#FFD700]">Bienvenue sur votre espace !</strong>
+								Pour inscrire votre famille :
+								1. Ajoutez vos danseurs ➜
+								2. Cliquez sur « Choix des cours » ➜
+								3. Complétez les certificats ➜
+								4. Validez votre paiement.
+							</p>
+						</div>
+						<button type="button"
+								id="hide-onboarding-btn"
+								class="shrink-0 inline-flex items-center justify-center gap-1.5 self-end sm:self-start px-3 py-1.5 rounded-md border border-neutral-600 text-xs font-semibold text-neutral-300 hover:border-[#FFD700] hover:text-[#FFD700] transition-colors">
+							<span aria-hidden="true">✕</span> Masquer l'aide
+						</button>
+					</div>
+				</div>
+			{% endif %}
+
 			<div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-neutral-800 pb-6 gap-4">
 				<div>
 					<h1 class="text-3xl font-extrabold text-[#FFD700] tracking-tight">Mon Espace Familial</h1>
@@ -34,6 +104,53 @@
 					</div>
 				{% endif %}
 			</div>
+
+			{% if isFoyerOwner and cotisation is defined and cotisation and cotisation.total > 0 and not reglement_soumis|default(false) %}
+				<div class="rounded-xl border border-[#FFD700]/40 bg-[#FFD700]/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+					<div>
+						<p class="text-xs font-bold uppercase tracking-wider text-[#FFD700]/80">Cotisation foyer · Saison en cours</p>
+						<p class="text-lg sm:text-xl font-extrabold text-[#FFD700] mt-1">
+							Montant total de votre cotisation foyer :
+							{{ cotisation.total|number_format(2, ',', ' ') }} €
+							{% if cotisation.foyerDiscountPercentage > 0 %}
+								<span class="text-sm font-semibold text-neutral-300">(Dégressivité incluse)</span>
+							{% endif %}
+						</p>
+						{% if cotisation.foyerDiscountAmount > 0 %}
+							<p class="text-sm text-neutral-400 mt-1">
+								Remise foyer −{{ cotisation.foyerDiscountPercentage }} % :
+								−{{ cotisation.foyerDiscountAmount|number_format(2, ',', ' ') }} €
+							</p>
+						{% endif %}
+					</div>
+					{% if paiement_inscription_id and not step4_done %}
+						<a href="{{ path('app_foyer_inscription_paiement', {id: paiement_inscription_id}) }}"
+						   class="inline-flex justify-center shrink-0 px-4 py-2.5 rounded-md text-sm font-bold text-black bg-[#FFD700] hover:bg-amber-300 transition-colors">
+							Régler maintenant →
+						</a>
+					{% endif %}
+				</div>
+			{% elseif isFoyerOwner and cotisation is defined and cotisation and cotisation.total > 0 and reglement_soumis|default(false) %}
+				<div class="rounded-xl border {{ reglement_solde|default(false) ? 'border-emerald-700/50 bg-emerald-950/20' : 'border-sky-700/50 bg-sky-950/20' }} px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+					<div>
+						<p class="text-xs font-bold uppercase tracking-wider {{ reglement_solde|default(false) ? 'text-emerald-400/80' : 'text-sky-300/80' }}">Cotisation foyer · Saison en cours</p>
+						<p class="text-lg sm:text-xl font-extrabold text-white mt-1">
+							{{ cotisation.total|number_format(2, ',', ' ') }} €
+						</p>
+						<p class="mt-2">
+							{% if reglement_solde|default(false) %}
+								<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-950/60 border border-emerald-700/60 text-emerald-300">
+									✅ Soldé
+								</span>
+							{% else %}
+								<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-amber-950/50 border border-amber-700/50 text-amber-200">
+									⏳ En attente d'encaissement
+								</span>
+							{% endif %}
+						</p>
+					</div>
+				</div>
+			{% endif %}
 
 			<div class="grid gap-6 md:grid-cols-3">
 
@@ -64,7 +181,15 @@
 									<span class="text-neutral-200 block mt-0.5 font-medium">{{ foyer.contactUrgence }}</span>
 								</div>
 							{% endif %}
-							<div class="mt-12 p-6 border border-red-900/50 rounded-xl bg-red-950/10">
+							{% if isFoyerOwner %}
+								<div class="pt-2">
+									<a href="{{ path('app_foyer_edit_dossier') }}"
+									   class="inline-flex items-center justify-center w-full px-4 py-2.5 border border-[#FFD700] rounded-md text-sm font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-colors uppercase tracking-wider">
+										✏️ Modifier le dossier
+									</a>
+								</div>
+							{% endif %}
+							<div class="mt-8 p-6 border border-red-900/50 rounded-xl bg-red-950/10">
 								<h3 class="text-red-500 font-bold mb-4">Zone de danger</h3>
 
 								<form action="{{ path('app_foyer_desactiver') }}" method="POST" class="inline-block mr-4">
@@ -126,6 +251,23 @@
 													{{ danseur.dateNaissance|date('d/m/Y') }}{% else %}Non renseignée
 												{% endif %}
 											</p>
+											{% set p2Email = danseur.parent2EmailEffectif %}
+											{% if p2Email %}
+												{% set compteCree = parent2_compte_cree[danseur.id]|default(false) %}
+												{% if compteCree %}
+													<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950/50 border border-emerald-800/60 text-emerald-300">
+														✅ Co-parent rattaché
+													</p>
+												{% elseif danseur.parent2InvitedAt %}
+													<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-950/40 border border-sky-800/50 text-sky-300">
+														📩 Invitation envoyée à {{ p2Email }}
+													</p>
+												{% else %}
+													<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-neutral-900 border border-neutral-700 text-neutral-400">
+														📩 Co-parent : {{ p2Email }}
+													</p>
+												{% endif %}
+											{% endif %}
 										</div>
 										<div class="flex gap-2 items-center shrink-0">
 											{% if canEdit %}
@@ -144,7 +286,7 @@
 										<ul class="space-y-2 border-t border-neutral-800/80 pt-3">
 											{% for inscription in danseur.inscriptions %}
 												{% set isSolde = inscription.statutPaiement.value == 'Soldé' %}
-												{% set needsPaiement = canEdit and (inscription.montantTotal ?? 0) > 0 and inscription.paiements is empty %}
+												{% set enAttente = inscription.enAttenteEncaissement %}
 												<li class="flex flex-col gap-2 text-sm">
 													<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
 														<div class="min-w-0">
@@ -152,28 +294,27 @@
 																{{ inscription.cours ? inscription.cours.nom : 'Cours' }}
 															</span>
 															<span class="text-neutral-500 text-xs ml-1">({{ inscription.saison }})</span>
-															{% if inscription.montantTotal is not null %}
-																<span class="block text-xs text-neutral-500 mt-0.5">
-																	{{ inscription.montantTotal|number_format(2, ',', ' ') }} €
-																	· {{ inscription.statutPaiement.value }}
+															{% if inscription.montantTotal is not null or inscription.planReglement %}
+																<span class="block text-xs mt-0.5">
+																	{% if (inscription.montantTotal ?? 0) > 0 %}
+																		<span class="text-neutral-500">{{ inscription.montantTotal|number_format(2, ',', ' ') }} €</span>
+																		<span class="text-neutral-600">·</span>
+																	{% endif %}
+																	{% if isSolde %}
+																		<span class="text-emerald-400 font-semibold">{{ inscription.libelleStatutPaiement }}</span>
+																	{% elseif enAttente %}
+																		<span class="inline-flex items-center gap-1 text-amber-300 font-semibold">⏳ {{ inscription.libelleStatutPaiement }}</span>
+																	{% else %}
+																		<span class="text-neutral-400">{{ inscription.libelleStatutPaiement }}</span>
+																	{% endif %}
 																</span>
 															{% endif %}
 														</div>
 														<div class="flex flex-wrap gap-2">
-															{% if canEdit and (inscription.montantTotal ?? 0) > 0 %}
-																<a href="{{ path('app_foyer_inscription_paiement', {id: inscription.id}) }}"
-																   class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors whitespace-nowrap {{ needsPaiement ? 'bg-[#FFD700] text-black hover:bg-amber-300' : 'border border-neutral-600 text-neutral-300 hover:border-[#FFD700] hover:text-[#FFD700]' }}">
-																	{{ needsPaiement ? 'Choisir le règlement' : 'Modifier le règlement' }}
-																</a>
-															{% endif %}
 															{% if canEdit %}
 																<a href="{{ path('app_foyer_inscription_sante', {id: inscription.id}) }}"
 																   class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors whitespace-nowrap border border-sky-700/60 text-sky-300 hover:bg-sky-500 hover:text-black">
 																	Santé / QS-Sport
-																</a>
-																<a href="{{ path('app_foyer_inscription_confirmation', {id: inscription.id}) }}"
-																   class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors whitespace-nowrap border border-emerald-700/50 text-emerald-300 hover:bg-emerald-500 hover:text-black">
-																	Confirmation
 																</a>
 															{% endif %}
 															<a href="{{ path('app_foyer_inscription_facture', {id: inscription.id}) }}"
@@ -191,10 +332,40 @@
 						</div>
 
 						{% if isFoyerOwner %}
-							<div class="mt-8 pt-6 border-t border-neutral-800 flex justify-end">
-								<a href="{{ path('app_foyer_inscription_cours') }}" class="inline-flex justify-center py-3 px-6 text-sm font-bold rounded-md text-black bg-[#FFD700] hover:bg-[#FFD700]/90 transition-colors duration-200 uppercase tracking-wider shadow-lg">
-									Étape suivante : Choix des cours →
-								</a>
+							<div class="mt-8 pt-6 border-t border-neutral-800 flex flex-col items-stretch sm:items-end gap-3">
+								{% if not step2_done %}
+									<a href="{{ path('app_foyer_inscription_cours') }}"
+									   class="inline-flex justify-center py-3 px-6 text-sm font-bold rounded-md text-black bg-[#FFD700] hover:bg-[#FFD700]/90 transition-colors duration-200 uppercase tracking-wider shadow-lg">
+										Étape suivante : Choix des cours →
+									</a>
+								{% elseif not step3_done %}
+									<a href="{{ path('app_foyer_inscription_sante', {id: premiere_inscription_id}) }}"
+									   class="inline-flex justify-center py-3 px-6 text-sm font-bold rounded-md text-black bg-[#FFD700] hover:bg-[#FFD700]/90 transition-colors duration-200 uppercase tracking-wider shadow-lg">
+										Étape suivante : Santé &amp; Certificats →
+									</a>
+									<a href="{{ path('app_foyer_inscription_cours') }}"
+									   class="inline-flex justify-center text-sm font-semibold text-neutral-400 hover:text-[#FFD700] transition-colors">
+										✏️ Modifier le choix des cours
+									</a>
+								{% elseif not step4_done %}
+									<a href="{{ path('app_foyer_inscription_paiement', {id: paiement_inscription_id|default(premiere_inscription_id)}) }}"
+									   class="inline-flex justify-center py-3 px-6 text-sm font-bold rounded-md text-black bg-[#FFD700] hover:bg-[#FFD700]/90 transition-colors duration-200 uppercase tracking-wider shadow-lg">
+										Étape suivante : Règlement &amp; Paiement →
+									</a>
+									<a href="{{ path('app_foyer_edit_dossier') }}"
+									   class="inline-flex justify-center text-sm font-semibold text-neutral-400 hover:text-[#FFD700] transition-colors">
+										✏️ Modifier mon dossier
+									</a>
+								{% else %}
+									<a href="{{ path('app_foyer_inscription_facture', {id: premiere_inscription_id}) }}"
+									   class="inline-flex justify-center py-3 px-6 text-sm font-bold rounded-md text-black bg-emerald-400 hover:bg-emerald-300 border border-[#FFD700]/50 transition-colors duration-200 uppercase tracking-wider shadow-lg">
+										📄 Télécharger l'Attestation / Facture CE
+									</a>
+									<a href="{{ path('app_foyer_inscription_confirmation', {id: premiere_inscription_id}) }}"
+									   class="inline-flex justify-center text-sm font-semibold text-neutral-400 hover:text-[#FFD700] transition-colors">
+										📋 Voir le détail de mes règlements
+									</a>
+								{% endif %}
 							</div>
 						{% endif %}
 					{% endif %}
@@ -203,4 +374,31 @@
 
 		</div>
 	</div>
+
+	{% if isFoyerOwner %}
+	<script>
+		(function () {
+			const banner = document.getElementById('onboarding-banner');
+			const hideBtn = document.getElementById('hide-onboarding-btn');
+			if (!banner || !hideBtn) return;
+
+			try {
+				if (localStorage.getItem('hide_onboarding') === 'true') {
+					banner.style.display = 'none';
+				} else {
+					banner.classList.remove('hidden');
+				}
+			} catch (e) {
+				banner.classList.remove('hidden');
+			}
+
+			hideBtn.addEventListener('click', function () {
+				banner.style.display = 'none';
+				try {
+					localStorage.setItem('hide_onboarding', 'true');
+				} catch (e) {}
+			});
+		})();
+	</script>
+	{% endif %}
 {% endblock %}

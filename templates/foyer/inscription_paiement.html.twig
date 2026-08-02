@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Règlement — {{ danseur.prenom }} / {{ inscription.cours.nom }} — Studio Danse 430{% endblock %}
+{% block title %}Règlement — Cotisation foyer — Studio Danse 430{% endblock %}
 
 {% block body %}
 <div class="py-12 px-4 sm:px-6 lg:px-8 bg-neutral-950 min-h-[calc(100vh-4rem)] text-white">
@@ -8,6 +8,7 @@
          data-montant-total="{{ montantTotal }}"
          data-reste-a-payer="{{ resteAPayer }}"
          data-dates-par-option="{{ datesParOption|json_encode|e('html_attr') }}"
+         data-libelle-virement="{{ libelleVirement|default('')|e('html_attr') }}"
          data-turbo="false">
 
         {% for label, messages in app.flashes %}
@@ -24,25 +25,28 @@
             </p>
             <h1 class="text-3xl font-extrabold text-[#FFD700] tracking-tight">Modes de paiement</h1>
             <p class="text-neutral-400 mt-1">
-                {{ danseur.prenom }} {{ danseur.nom }} — {{ inscription.cours.nom }}
-                <span class="text-neutral-600">·</span> Saison {{ inscription.saison }}
+                Cotisation foyer — saison {{ inscription.saison }}
+                {% if cotisation is defined and cotisation and cotisation.payingCoursesCount > 1 %}
+                    <span class="text-neutral-600">·</span> {{ cotisation.payingCoursesCount }} cours
+                {% endif %}
             </p>
         </div>
 
-        <div class="bg-neutral-900/60 border border-[#FFD700]/30 rounded-xl p-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-                <p class="text-xs font-bold uppercase tracking-wider text-neutral-500">Montant total</p>
-                <p class="text-4xl font-extrabold text-[#FFD700] mt-1" id="recap-total">
-                    {{ montantTotal|number_format(2, ',', ' ') }} €
-                </p>
-                <p class="text-sm text-neutral-400 mt-1">
-                    Reste à payer :
-                    <span class="text-white font-semibold">{{ resteAPayer|number_format(2, ',', ' ') }} €</span>
-                </p>
-            </div>
-            <div class="text-sm text-neutral-400 space-y-1 sm:text-right">
-                <p>Total saisi : <span class="text-white font-semibold" id="recap-saisi">0,00 €</span></p>
-                <p>Différence : <span class="font-semibold" id="recap-diff">0,00 €</span></p>
+        <div class="bg-neutral-900/60 border border-[#FFD700]/30 rounded-xl p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-neutral-500">Montant total de votre cotisation foyer</p>
+                    <p class="text-4xl font-extrabold text-[#FFD700] mt-1">
+                        {{ montantTotal|number_format(2, ',', ' ') }} €
+                    </p>
+                    {% if cotisation is defined and cotisation and cotisation.foyerDiscountPercentage > 0 %}
+                        <p class="text-sm text-[#FFD700]/80 mt-1 font-semibold">Dégressivité incluse (−{{ cotisation.foyerDiscountPercentage }} %)</p>
+                    {% endif %}
+                </div>
+                <div class="text-sm text-neutral-300 space-y-1 sm:text-right">
+                    <p>Aides / déductions : <span class="text-white font-semibold" id="recap-deductions">0,00 €</span></p>
+                    <p>Solde à échelonner : <span class="text-[#FFD700] font-extrabold" id="recap-solde">{{ resteAPayer|number_format(2, ',', ' ') }} €</span></p>
+                </div>
             </div>
         </div>
 
@@ -56,120 +60,167 @@
         <form method="post" id="paiement-form" class="space-y-6">
             <input type="hidden" name="_token" value="{{ csrf_token('inscription_paiement' ~ inscription.id) }}">
 
-            <fieldset class="space-y-3">
-                <legend class="text-sm font-bold uppercase tracking-wider text-neutral-500 mb-2">Choisissez un mode de règlement</legend>
-
-                <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors border-[#FFD700]/40 bg-[#FFD700]/5 has-checked:border-[#FFD700] has-checked:bg-[#FFD700]/10">
-                    <input type="radio" name="type_reglement" value="cheques" class="mt-1 accent-[#FFD700]" checked id="type-cheques">
-                    <span>
-                        <span class="block font-semibold text-white">A. Paiement par chèque(s) échelonné(s)</span>
-                        <span class="block text-sm text-neutral-400 mt-0.5">Échelonnement 1×, 3× ou 10× — dates d’encaissement automatiques</span>
-                    </span>
-                </label>
-
-                <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors border-neutral-800 bg-black/30 has-checked:border-[#FFD700] has-checked:bg-[#FFD700]/10">
-                    <input type="radio" name="type_reglement" value="mixte" class="mt-1 accent-[#FFD700]" id="type-mixte">
-                    <span>
-                        <span class="block font-semibold text-white">B. Règlement mixte / autre</span>
-                        <span class="block text-sm text-neutral-400 mt-0.5">Pass’Sport, ANCV, virement, espèces — une ou plusieurs lignes</span>
-                    </span>
-                </label>
-            </fieldset>
-
-            {# --- Option A : chèques --- #}
-            <div id="panel-cheques" class="bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 space-y-5">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Nombre d’échéances</label>
-                    <div class="flex flex-wrap gap-3">
-                        {% for n in [1, 3, 10] %}
-                            <label class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-700 cursor-pointer has-checked:border-[#FFD700] has-checked:bg-[#FFD700]/10">
-                                <input type="radio" name="nombre_echeances" value="{{ n }}" class="accent-[#FFD700] js-echeances" {{ n == 1 ? 'checked' : '' }}>
-                                <span class="text-sm font-semibold">{{ n }}×</span>
-                            </label>
-                        {% endfor %}
-                    </div>
-                    <p class="text-xs text-neutral-500 mt-2" id="echeances-hint">1 chèque encaissé le 10 octobre.</p>
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2">
+            {# --- 1. Aides / déductions (optionnel) --- #}
+            <section class="bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div>
-                        <label for="montant_echelonne" class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Montant à échelonner (€)</label>
-                        <input type="number" step="0.01" min="0.01" max="{{ resteAPayer }}"
-                               name="montant_echelonne" id="montant_echelonne"
-                               class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                               value="{{ resteAPayer|number_format(2, '.', '') }}">
-                        <p class="text-xs text-neutral-500 mt-1">Par défaut : reste à payer</p>
+                        <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-500">1. Aides &amp; autres règlements</h2>
+                        <p class="text-sm text-neutral-400 mt-1">
+                            Optionnel — soustrayez Pass’Sport, chèques vacances ANCV, espèces… avant d’échelonner le solde.
+                        </p>
                     </div>
-                    <div>
-                        <label for="emetteur" class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Nom de l’émetteur</label>
-                        <input type="text" name="emetteur" id="emetteur" required
-                               class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                               placeholder="Ex. Nom du parent qui signe le(s) chèque(s)"
-                               value="">
-                    </div>
-                </div>
-
-                <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Aperçu des échéances</h3>
-                    <div class="overflow-x-auto rounded-lg border border-neutral-800">
-                        <table class="w-full text-sm">
-                            <thead class="bg-black/40 text-neutral-400 text-left">
-                                <tr>
-                                    <th class="px-3 py-2 font-semibold">#</th>
-                                    <th class="px-3 py-2 font-semibold">Date prévue d’encaissement</th>
-                                    <th class="px-3 py-2 font-semibold text-right">Montant du chèque</th>
-                                </tr>
-                            </thead>
-                            <tbody id="preview-echeances" class="divide-y divide-neutral-800 text-neutral-200"></tbody>
-                            <tfoot class="border-t border-neutral-700 bg-black/30">
-                                <tr>
-                                    <td colspan="2" class="px-3 py-2 text-neutral-400 font-semibold">Total</td>
-                                    <td class="px-3 py-2 text-right font-bold text-[#FFD700]" id="preview-total">0,00 €</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {# --- Option B : mixte --- #}
-            <div id="panel-mixte" class="bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 space-y-4 hidden">
-                <div class="flex items-center justify-between gap-3">
-                    <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-500">Lignes de paiement</h2>
-                    <button type="button" id="btn-add-ligne"
-                            class="text-xs font-bold uppercase tracking-wider text-[#FFD700] hover:underline">
-                        + Ajouter une ligne
+                    <button type="button" id="btn-add-deduction"
+                            class="shrink-0 text-xs font-bold uppercase tracking-wider text-[#FFD700] hover:underline">
+                        + Ajouter une aide
                     </button>
                 </div>
-                <div id="lignes-container" class="space-y-3"></div>
-                <template id="ligne-template">
-                    <div class="grid gap-3 sm:grid-cols-12 items-end p-3 rounded-lg border border-neutral-800 bg-black/30 js-ligne">
+                <div id="deductions-container" class="space-y-3"></div>
+                <template id="deduction-template">
+                    <div class="grid gap-3 sm:grid-cols-12 items-end p-3 rounded-lg border border-neutral-800 bg-black/30 js-deduction">
                         <div class="sm:col-span-4">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Mode</label>
-                            <select name="lignes[__INDEX__][mode]" class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2">
-                                {% for mode in modesAll %}
+                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Type</label>
+                            <select name="deductions[__INDEX__][mode]" class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2">
+                                {% for mode in modesDeduction %}
                                     <option value="{{ mode.value }}">{{ mode.label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="sm:col-span-3">
                             <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Montant (€)</label>
-                            <input type="number" step="0.01" min="0.01" name="lignes[__INDEX__][montant]"
-                                   class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 js-paiement-montant"
+                            <input type="number" step="0.01" min="0.01" name="deductions[__INDEX__][montant]"
+                                   class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 js-deduction-montant"
                                    value="">
                         </div>
                         <div class="sm:col-span-4">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Référence</label>
-                            <input type="text" name="lignes[__INDEX__][reference]"
-                                   class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2"
-                                   placeholder="Code Pass'Sport, n°…">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Référence / Note</label>
+                            <input type="text" name="deductions[__INDEX__][reference]"
+                                   class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 js-deduction-ref"
+                                   placeholder="Code Pass’Sport, n°…">
                         </div>
                         <div class="sm:col-span-1 flex justify-end pb-1">
-                            <button type="button" class="js-remove-ligne text-red-400 hover:text-red-300 text-lg leading-none" title="Supprimer">×</button>
+                            <button type="button" class="js-remove-deduction text-red-400 hover:text-red-300 text-lg leading-none" title="Supprimer">×</button>
                         </div>
                     </div>
                 </template>
-            </div>
+            </section>
+
+            {# --- 2. Solde à échelonner --- #}
+            <section id="panel-echelonne" class="bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 space-y-5">
+                <div>
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-500">2. Solde à échelonner</h2>
+                    <p class="text-sm text-neutral-400 mt-1">
+                        Le reste après aides est réglé en chèques ou virements (1×, 3× ou 10×).
+                    </p>
+                    <p class="text-lg font-extrabold text-[#FFD700] mt-3" id="solde-affiche">
+                        {{ resteAPayer|number_format(2, ',', ' ') }} €
+                    </p>
+                    <input type="hidden" name="montant_echelonne" id="montant_echelonne" value="{{ resteAPayer|number_format(2, '.', '') }}">
+                </div>
+
+                <div id="bloc-echelonnement-options" class="space-y-5">
+                    <div>
+                        <p class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Moyen d’échéance</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="flex items-center gap-3 px-4 py-3 rounded-lg border border-neutral-700 cursor-pointer has-checked:border-[#FFD700] has-checked:bg-[#FFD700]/10">
+                                <input type="radio" name="mode_echeance" value="cheque" class="accent-[#FFD700] js-mode-echeance" checked id="mode-cheque">
+                                <span class="text-sm font-semibold">💳 Chèque(s)</span>
+                            </label>
+                            <label class="flex items-center gap-3 px-4 py-3 rounded-lg border border-neutral-700 cursor-pointer has-checked:border-[#FFD700] has-checked:bg-[#FFD700]/10">
+                                <input type="radio" name="mode_echeance" value="virement" class="accent-[#FFD700] js-mode-echeance" id="mode-virement">
+                                <span class="text-sm font-semibold">🏦 Virement(s)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Nombre d’échéances</label>
+                        <div class="flex flex-wrap gap-3">
+                            {% for n in [1, 3, 10] %}
+                                <label class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-700 cursor-pointer has-checked:border-[#FFD700] has-checked:bg-[#FFD700]/10">
+                                    <input type="radio" name="nombre_echeances" value="{{ n }}" class="accent-[#FFD700] js-echeances" {{ n == 1 ? 'checked' : '' }}>
+                                    <span class="text-sm font-semibold">{{ n }}×</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <p class="text-xs text-neutral-500 mt-2" id="echeances-hint">1 échéance le 10 octobre.</p>
+                    </div>
+
+                    <div id="bloc-cheque" class="space-y-4">
+                        <div>
+                            <label for="emetteur" class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Nom de l’émetteur du chèque</label>
+                            <input type="text" name="emetteur" id="emetteur"
+                                   class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                   placeholder="Ex. Nom du parent qui signe le(s) chèque(s)"
+                                   value="">
+                        </div>
+                        <div class="rounded-lg border border-amber-800/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-100/90 leading-relaxed">
+                            Merci de remettre l’ensemble des chèques au bureau lors des permanences de rentrée en indiquant au dos le nom du foyer.
+                        </div>
+                    </div>
+
+                    <div id="bloc-virement" class="space-y-4 hidden">
+                        <div class="rounded-lg border border-neutral-700 bg-black/40 p-4 space-y-3 text-sm">
+                            <p class="text-xs font-bold uppercase tracking-wider text-neutral-500">Coordonnées bancaires du club</p>
+                            {% if club_iban %}
+                                <dl class="space-y-2">
+                                    <div class="flex flex-col sm:flex-row sm:gap-3">
+                                        <dt class="text-neutral-500 sm:w-28 shrink-0">Titulaire</dt>
+                                        <dd class="text-white font-medium">{{ club_titulaire|default('Studio Danse 430') }}</dd>
+                                    </div>
+                                    <div class="flex flex-col sm:flex-row sm:gap-3">
+                                        <dt class="text-neutral-500 sm:w-28 shrink-0">IBAN</dt>
+                                        <dd class="text-[#FFD700] font-mono font-semibold tracking-wide break-all">{{ club_iban }}</dd>
+                                    </div>
+                                    <div class="flex flex-col sm:flex-row sm:gap-3">
+                                        <dt class="text-neutral-500 sm:w-28 shrink-0">BIC</dt>
+                                        <dd class="text-white font-mono">{{ club_bic }}</dd>
+                                    </div>
+                                </dl>
+                            {% else %}
+                                <p class="text-amber-300">Les coordonnées bancaires ne sont pas encore configurées. Contactez le bureau.</p>
+                            {% endif %}
+                        </div>
+
+                        {% if libelleVirement %}
+                            <div class="rounded-lg border border-[#FFD700]/40 bg-[#FFD700]/10 px-4 py-3">
+                                <p class="text-xs font-bold uppercase tracking-wider text-[#FFD700]/80 mb-1">Libellé de virement obligatoire</p>
+                                <p class="text-lg font-extrabold text-[#FFD700] font-mono tracking-wide break-all">{{ libelleVirement }}</p>
+                                <p class="text-xs text-neutral-400 mt-1">Inscrivez exactement cet intitulé sur chaque virement.</p>
+                            </div>
+                        {% endif %}
+
+                        <div class="rounded-lg border border-sky-800/40 bg-sky-950/20 px-4 py-3 text-sm text-sky-100/90 leading-relaxed">
+                            Merci de programmer vos virements automatiques sur votre banque en ligne aux dates indiquées ci-dessous avec le libellé exact.
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Tableau des échéances</h3>
+                        <div class="overflow-x-auto rounded-lg border border-neutral-800">
+                            <table class="w-full text-sm">
+                                <thead class="bg-black/40 text-neutral-400 text-left">
+                                    <tr>
+                                        <th class="px-3 py-2 font-semibold">#</th>
+                                        <th class="px-3 py-2 font-semibold" id="col-date-label">Date prévue</th>
+                                        <th class="px-3 py-2 font-semibold text-right" id="col-montant-label">Montant</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="preview-echeances" class="divide-y divide-neutral-800 text-neutral-200"></tbody>
+                                <tfoot class="border-t border-neutral-700 bg-black/30">
+                                    <tr>
+                                        <td colspan="2" class="px-3 py-2 text-neutral-400 font-semibold">Total échéances</td>
+                                        <td class="px-3 py-2 text-right font-bold text-[#FFD700]" id="preview-total">0,00 €</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="bloc-solde-couvert" class="hidden rounded-lg border border-emerald-800/40 bg-emerald-950/20 px-4 py-3 text-sm text-emerald-200">
+                    Les aides couvrent l’intégralité de la cotisation : aucun échéancier n’est nécessaire.
+                </div>
+            </section>
 
             <div class="flex flex-col sm:flex-row gap-3 sm:justify-end pt-2">
                 <a href="{{ path('app_foyer_index') }}"
@@ -190,8 +241,7 @@
     const root = document.getElementById('paiement-app');
     if (!root) return;
 
-    const montantTotal = parseFloat(root.dataset.montantTotal) || 0;
-    const resteAPayer = parseFloat(root.dataset.resteAPayer) || montantTotal;
+    const resteAPayer = parseFloat(root.dataset.resteAPayer) || 0;
     let datesParOption = {};
     try {
         datesParOption = JSON.parse(root.dataset.datesParOption || '{}');
@@ -199,26 +249,36 @@
         datesParOption = {};
     }
 
-    const typeCheques = document.getElementById('type-cheques');
-    const typeMixte = document.getElementById('type-mixte');
-    const panelCheques = document.getElementById('panel-cheques');
-    const panelMixte = document.getElementById('panel-mixte');
+    const blocCheque = document.getElementById('bloc-cheque');
+    const blocVirement = document.getElementById('bloc-virement');
+    const blocOptions = document.getElementById('bloc-echelonnement-options');
+    const blocSoldeCouvert = document.getElementById('bloc-solde-couvert');
+    const modeCheque = document.getElementById('mode-cheque');
+    const modeVirement = document.getElementById('mode-virement');
     const hint = document.getElementById('echeances-hint');
     const preview = document.getElementById('preview-echeances');
     const previewTotal = document.getElementById('preview-total');
+    const colDateLabel = document.getElementById('col-date-label');
+    const colMontantLabel = document.getElementById('col-montant-label');
     const montantInput = document.getElementById('montant_echelonne');
-    const recapSaisi = document.getElementById('recap-saisi');
-    const recapDiff = document.getElementById('recap-diff');
+    const soldeAffiche = document.getElementById('solde-affiche');
+    const recapDeductions = document.getElementById('recap-deductions');
+    const recapSolde = document.getElementById('recap-solde');
     const btnSubmit = document.getElementById('btn-submit');
     const emetteur = document.getElementById('emetteur');
-    const lignesContainer = document.getElementById('lignes-container');
-    const tpl = document.getElementById('ligne-template');
-    let ligneIndex = 0;
+    const deductionsContainer = document.getElementById('deductions-container');
+    const tpl = document.getElementById('deduction-template');
+    let deductionIndex = 0;
 
-    const hints = {
+    const hintsCheque = {
         1: '1 chèque encaissé le 10 octobre.',
         3: '3 chèques : 10 octobre, 10 janvier, 10 avril.',
         10: '10 chèques : le 10 de chaque mois d’octobre à juillet.'
+    };
+    const hintsVirement = {
+        1: '1 virement à programmer pour le 10 octobre.',
+        3: '3 virements : 10 octobre, 10 janvier, 10 avril.',
+        10: '10 virements : le 10 de chaque mois d’octobre à juillet.'
     };
 
     function fmt(n) {
@@ -234,26 +294,39 @@
         return arr;
     }
 
-    function getMontantEchelonne() {
-        const v = parseFloat(String(montantInput.value).replace(',', '.'));
-        return (!isNaN(v) && v > 0) ? Math.round(v * 100) / 100 : 0;
+    function getDeductionsTotal() {
+        let sum = 0;
+        deductionsContainer.querySelectorAll('.js-deduction-montant').forEach(function (input) {
+            const v = parseFloat(String(input.value).replace(',', '.'));
+            if (!isNaN(v) && v > 0) sum += v;
+        });
+        return Math.round(sum * 100) / 100;
     }
 
-    function updatePanels() {
-        const isCheques = typeCheques.checked;
-        panelCheques.classList.toggle('hidden', !isCheques);
-        panelMixte.classList.toggle('hidden', isCheques);
-        emetteur.required = isCheques;
-        updateRecap();
+    function getSolde() {
+        return Math.round(Math.max(0, resteAPayer - getDeductionsTotal()) * 100) / 100;
+    }
+
+    function isVirementMode() {
+        return modeVirement && modeVirement.checked;
+    }
+
+    function updateModeEcheance() {
+        const isVir = isVirementMode();
+        blocCheque.classList.toggle('hidden', isVir);
+        blocVirement.classList.toggle('hidden', !isVir);
+        colDateLabel.textContent = isVir ? 'Date de virement' : 'Date d’encaissement';
+        colMontantLabel.textContent = isVir ? 'Montant du virement' : 'Montant du chèque';
         updateEcheancesPreview();
+        updateRecap();
     }
 
     function updateEcheancesPreview() {
-        if (!typeCheques.checked) return;
+        const solde = getSolde();
         const n = parseInt(document.querySelector('input[name="nombre_echeances"]:checked')?.value || '1', 10);
-        hint.textContent = hints[n] || '';
-        const montant = getMontantEchelonne();
-        const parts = montant > 0 ? repartir(montant, n) : [];
+        const isVir = isVirementMode();
+        hint.textContent = (isVir ? hintsVirement : hintsCheque)[n] || '';
+        const parts = solde > 0 ? repartir(solde, n) : [];
         const dates = datesParOption[String(n)] || datesParOption[n] || [];
 
         preview.innerHTML = parts.map(function (m, i) {
@@ -262,67 +335,73 @@
                 + '<td class="px-3 py-2">' + (dates[i] || '—') + '</td>'
                 + '<td class="px-3 py-2 text-right font-semibold text-[#FFD700]">' + fmt(m) + '</td>'
                 + '</tr>';
-        }).join('');
-        previewTotal.textContent = fmt(montant);
-    }
-
-    function getSaisi() {
-        if (typeCheques.checked) {
-            return getMontantEchelonne();
-        }
-        let sum = 0;
-        lignesContainer.querySelectorAll('.js-paiement-montant').forEach(function (input) {
-            const v = parseFloat(String(input.value).replace(',', '.'));
-            if (!isNaN(v) && v > 0) sum += v;
-        });
-        return Math.round(sum * 100) / 100;
+        }).join('') || '<tr><td colspan="3" class="px-3 py-3 text-neutral-500">Aucune échéance — solde couvert par les aides.</td></tr>';
+        previewTotal.textContent = fmt(solde);
     }
 
     function updateRecap() {
-        const cible = typeCheques.checked ? resteAPayer : resteAPayer;
-        const saisi = getSaisi();
-        const diff = Math.round((saisi - cible) * 100) / 100;
-        recapSaisi.textContent = fmt(saisi);
-        recapDiff.textContent = fmt(diff);
-        // Chèques : on accepte un montant ≤ reste (partiel OK) ; mixte : somme = reste
-        let ok;
-        if (typeCheques.checked) {
-            ok = saisi > 0 && saisi - resteAPayer < 0.009;
+        const deductions = getDeductionsTotal();
+        const solde = getSolde();
+        const overflow = deductions - resteAPayer > 0.009;
+
+        recapDeductions.textContent = fmt(deductions);
+        recapSolde.textContent = fmt(solde);
+        soldeAffiche.textContent = fmt(solde);
+        montantInput.value = solde.toFixed(2);
+
+        const soldeCouvert = solde < 0.009;
+        blocOptions.classList.toggle('hidden', soldeCouvert);
+        blocSoldeCouvert.classList.toggle('hidden', !soldeCouvert);
+
+        if (soldeCouvert) {
+            emetteur.required = false;
         } else {
-            ok = Math.abs(diff) < 0.009 && saisi > 0;
+            emetteur.required = !isVirementMode();
         }
-        recapDiff.className = 'font-semibold ' + (ok ? 'text-emerald-400' : 'text-red-400');
+
+        let ok = !overflow && (solde > 0.009 || deductions > 0.009);
+        if (solde > 0.009 && !isVirementMode()) {
+            ok = ok && emetteur.value.trim().length > 0;
+        }
+
         btnSubmit.disabled = !ok;
         updateEcheancesPreview();
     }
 
-    function addLigne(prefill) {
-        const html = tpl.innerHTML.replaceAll('__INDEX__', String(ligneIndex++));
+    function addDeduction() {
+        const html = tpl.innerHTML.replaceAll('__INDEX__', String(deductionIndex++));
         const wrap = document.createElement('div');
         wrap.innerHTML = html.trim();
         const row = wrap.firstElementChild;
-        if (prefill && prefill.montant) {
-            row.querySelector('.js-paiement-montant').value = prefill.montant;
+        const modeSelect = row.querySelector('select');
+        const refInput = row.querySelector('.js-deduction-ref');
+
+        function syncPlaceholder() {
+            if (modeSelect.value === 'pass_sport') {
+                refInput.placeholder = 'Code Pass’Sport';
+            } else if (modeSelect.value === 'ancv') {
+                refInput.placeholder = 'N° / montant chèques vacances';
+            } else {
+                refInput.placeholder = 'Référence / note…';
+            }
         }
-        if (prefill && prefill.mode) {
-            row.querySelector('select').value = prefill.mode;
-        }
-        row.querySelector('.js-remove-ligne').addEventListener('click', function () {
+
+        modeSelect.addEventListener('change', syncPlaceholder);
+        syncPlaceholder();
+
+        row.querySelector('.js-remove-deduction').addEventListener('click', function () {
             row.remove();
             updateRecap();
         });
-        row.querySelector('.js-paiement-montant').addEventListener('input', updateRecap);
-        lignesContainer.appendChild(row);
+        row.querySelector('.js-deduction-montant').addEventListener('input', updateRecap);
+        deductionsContainer.appendChild(row);
         updateRecap();
     }
 
-    document.getElementById('btn-add-ligne').addEventListener('click', function () {
-        addLigne(null);
-    });
-
-    typeCheques.addEventListener('change', updatePanels);
-    typeMixte.addEventListener('change', updatePanels);
-    montantInput.addEventListener('input', updateRecap);
+    document.getElementById('btn-add-deduction').addEventListener('click', addDeduction);
+    modeCheque.addEventListener('change', updateModeEcheance);
+    modeVirement.addEventListener('change', updateModeEcheance);
+    emetteur.addEventListener('input', updateRecap);
     document.querySelectorAll('.js-echeances').forEach(function (el) {
         el.addEventListener('change', function () {
             updateEcheancesPreview();
@@ -330,13 +409,7 @@
         });
     });
 
-    typeMixte.addEventListener('change', function () {
-        if (typeMixte.checked && lignesContainer.children.length === 0) {
-            addLigne({ montant: resteAPayer.toFixed(2) });
-        }
-    });
-
-    updatePanels();
+    updateModeEcheance();
 })();
 </script>
 {% endblock %}

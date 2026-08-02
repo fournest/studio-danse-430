@@ -34,12 +34,16 @@ final class InscriptionConfirmationMailer
 
         $hasHelloAsso = false;
         $hasVirement = false;
+        $hasCheque = false;
         foreach ($inscriptions as $inscription) {
             if ($inscription->utiliseHelloAsso()) {
                 $hasHelloAsso = true;
             }
             if ($inscription->utiliseVirement()) {
                 $hasVirement = true;
+            }
+            if ($inscription->utiliseCheque()) {
+                $hasCheque = true;
             }
         }
 
@@ -54,6 +58,8 @@ final class InscriptionConfirmationMailer
                 'inscriptions' => $inscriptions,
                 'hasHelloAsso' => $hasHelloAsso,
                 'hasVirement' => $hasVirement,
+                'hasCheque' => $hasCheque,
+                'libelleVirement' => $foyer->getReferenceVirement(),
                 'helloAssoUrl' => $this->helloAssoCampaignUrl,
                 'modes' => ModePaiement::cases(),
             ]);

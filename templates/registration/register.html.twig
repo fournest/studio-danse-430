@@ -11,10 +11,18 @@
 			{# En-tête de la carte #}
 			<div class="text-center">
 				<h2 class="text-3xl font-extrabold text-[#FFD700] tracking-tight">
-					Créez votre compte
+					{% if is_coparent_invite|default(false) %}
+						Créer mon compte co-parent
+					{% else %}
+						Créez votre compte
+					{% endif %}
 				</h2>
 				<p class="mt-2 text-sm text-neutral-400">
-					Étape 1 : Vos identifiants de connexion technique
+					{% if is_coparent_invite|default(false) %}
+						Accès en lecture seule pour suivre les cours de votre enfant
+					{% else %}
+						Étape 1 : Vos identifiants de connexion technique
+					{% endif %}
 				</p>
 			</div>
 

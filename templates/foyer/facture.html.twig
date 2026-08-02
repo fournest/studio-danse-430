@@ -353,7 +353,21 @@
             <div class="card">
                 <h2>Mode de paiement</h2>
                 <strong>{{ inscription.modePaiement|default('Non renseigné') }}</strong>
-                <p class="muted">Indépendant du canal (Chèque, Pass Sport, HelloAsso, Espèces…)</p>
+                {% if inscription.paiements is not empty %}
+                    <ul class="muted" style="margin:8px 0 0;padding-left:16px;list-style:disc;">
+                        {% for p in inscription.paiements %}
+                            <li>
+                                {{ p.mode.label }} — {{ p.montant|number_format(2, ',', ' ') }} €
+                                {% if p.dateEncaissementPrevue %}
+                                    · {{ p.dateEncaissementPrevue|date('d/m/Y') }}
+                                {% endif %}
+                                {% if p.reference %}
+                                    · réf. {{ p.reference }}
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
             </div>
             <div class="card">
                 <h2>Statut de paiement</h2>
@@ -365,6 +379,32 @@
                 {% endif %}
             </div>
         </div>
+
+        {% if hasVirement and not isAcquitte %}
+            <div class="instructions" style="margin-top:18px;padding:14px;border:1px solid #d4af37;border-radius:6px;background:#fffdf5;">
+                <h2 style="margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:#8a6d00;">Virement bancaire</h2>
+                <p style="margin:0 0 8px;font-size:12px;line-height:1.5;">
+                    Programmez vos virements avec le libellé exact :
+                    <strong style="font-family:monospace;">{{ libelleVirement|default(foyer.referenceVirement|default(foyer.nom)) }}</strong>
+                </p>
+                {% if club_iban %}
+                    <p style="margin:0;font-size:12px;line-height:1.6;">
+                        Titulaire : <strong>{{ club_titulaire|default(association.nom) }}</strong><br>
+                        IBAN : <strong style="font-family:monospace;">{{ club_iban }}</strong><br>
+                        BIC : <strong style="font-family:monospace;">{{ club_bic }}</strong>
+                    </p>
+                {% endif %}
+            </div>
+        {% elseif hasCheque and not isAcquitte %}
+            <div class="instructions" style="margin-top:18px;padding:14px;border:1px solid #ccc;border-radius:6px;background:#fafafa;">
+                <h2 style="margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;color:#555;">Dépôt des chèques</h2>
+                <p style="margin:0;font-size:12px;line-height:1.5;">
+                    Merci de remettre l’ensemble des chèques au bureau lors des permanences de rentrée
+                    en indiquant au dos le nom du foyer (<strong>{{ foyer.nom }}</strong>).
+                    Adresse : {{ association.adresse }}, {{ association.codePostal }} {{ association.ville }}.
+                </p>
+            </div>
+        {% endif %}
 
         <footer class="footnote">
             <p>

@@ -81,7 +81,7 @@
 										</li>
 										<li class="flex items-center gap-2">
 											<span class="text-[#FFD700]">&#9733;</span>
-											{{ c.professeur }}
+											{{ c.professeurLabel|default(c.professeur) }}
 										</li>
 										<li class="flex items-center gap-2">
 											<span class="text-[#FFD700]">&#9733;</span>
