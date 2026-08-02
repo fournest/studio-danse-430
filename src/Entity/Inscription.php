@@ -27,7 +27,7 @@ class Inscription
     private ?Cours $cours = null;
 
     /** Place non confirmée : hors cotisation tant qu'une place ne se libère pas. */
-    #[ORM\Column(options: ['default' => false])]
+    #[ORM\Column(name: 'est_en_liste_d_attente', options: ['default' => false])]
     private bool $estEnListeDAttente = false;
 
     #[ORM\Column(length: 20)]
