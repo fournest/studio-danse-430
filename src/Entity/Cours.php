@@ -1,6 +1,7 @@
 <?php
 namespace App\Entity;
 
+use App\Enum\StatutInscription;
 use App\Repository\CoursRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -26,8 +27,8 @@ class Cours
     #[ORM\Column(length: 50)]
     private string $professeur;
 
-    #[ORM\Column]
-    private int $capaciteMax;
+    #[ORM\Column(options: ['default' => 25])]
+    private int $capaciteMax = 25;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $whatsappGroupLink = null;
@@ -54,9 +55,16 @@ class Cours
     #[ORM\ManyToMany(targetEntity: Danseur::class, mappedBy: 'cours')]
     private Collection $danseurs;
 
+    /**
+     * @var Collection<int, Inscription>
+     */
+    #[ORM\OneToMany(mappedBy: 'cours', targetEntity: Inscription::class)]
+    private Collection $inscriptions;
+
     public function __construct()
     {
         $this->danseurs = new ArrayCollection();
+        $this->inscriptions = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -234,6 +242,91 @@ class Cours
         }
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, Inscription>
+     */
+    public function getInscriptions(): Collection
+    {
+        return $this->inscriptions;
+    }
+
+    /**
+     * Adhérents occupant une place (hors liste d'attente / annulés).
+     * Compte EN_ATTENTE_VALIDATION et VALIDE ; inclut aussi BROUILLON (place provisoire tunnel).
+     */
+    public function getNombreInscrits(?string $saison = null): int
+    {
+        $n = 0;
+        foreach ($this->inscriptions as $inscription) {
+            if ($saison !== null && $inscription->getSaison() !== $saison) {
+                continue;
+            }
+            if ($inscription->isEstEnListeDAttente()) {
+                continue;
+            }
+            if ($inscription->getStatut() === StatutInscription::ANNULE) {
+                continue;
+            }
+            if (\in_array($inscription->getStatut(), [
+                StatutInscription::BROUILLON,
+                StatutInscription::EN_ATTENTE_VALIDATION,
+                StatutInscription::VALIDE,
+            ], true)) {
+                ++$n;
+            }
+        }
+
+        return $n;
+    }
+
+    public function getPlacesRestantes(?string $saison = null): int
+    {
+        return max(0, $this->capaciteMax - $this->getNombreInscrits($saison));
+    }
+
+    public function estComplet(?string $saison = null): bool
+    {
+        return $this->getPlacesRestantes($saison) <= 0;
+    }
+
+    /**
+     * Libellé jauge admin : « 18 / 25 élèves ».
+     */
+    public function getRemplissageLabel(?string $saison = null): string
+    {
+        return sprintf('%d / %d élèves', $this->getNombreInscrits($saison), $this->capaciteMax);
+    }
+
+    /** Libellé index EasyAdmin (toutes saisons / collection chargée). */
+    public function getListeAttenteResume(): string
+    {
+        $n = \count($this->getInscriptionsListeAttente());
+
+        return $n > 0 ? sprintf('%d élève(s)', $n) : '—';
+    }
+
+    /**
+     * @return list<Inscription>
+     */
+    public function getInscriptionsListeAttente(?string $saison = null): array
+    {
+        $items = [];
+        foreach ($this->inscriptions as $inscription) {
+            if (!$inscription->isEstEnListeDAttente()) {
+                continue;
+            }
+            if ($saison !== null && $inscription->getSaison() !== $saison) {
+                continue;
+            }
+            if ($inscription->getStatut() === StatutInscription::ANNULE) {
+                continue;
+            }
+            $items[] = $inscription;
+        }
+
+        return $items;
     }
 
     public function __toString(): string

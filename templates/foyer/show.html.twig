@@ -65,25 +65,30 @@
 							Cours de Danse Inscrits
 						</h2>
 
-						{% if danseur.cours|length > 0 %}
+						{% if danseur.inscriptions|length > 0 %}
+							<div class="space-y-3">
+								{% for inscription in danseur.inscriptions %}
+									{% set isSolde = inscription.statutPaiement.value == 'Soldé' %}
+									<div class="flex flex-col gap-2 p-3 rounded-lg border border-gray-800 bg-black/30">
+										<span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 w-fit">
+											💃
+											{{ inscription.cours ? inscription.cours.nom : 'Cours' }}
+											<span class="text-yellow-600/80 ml-1">({{ inscription.saison }})</span>
+										</span>
+										<a href="{{ path('app_foyer_inscription_facture', {id: inscription.id}) }}"
+										   class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-3 py-2 rounded-lg text-xs font-bold transition-colors {{ isSolde ? 'border border-emerald-600/50 text-emerald-400 hover:bg-emerald-400 hover:text-gray-950' : 'border border-yellow-500/40 text-yellow-400 hover:bg-yellow-400 hover:text-gray-950' }}">
+											🧾 {{ isSolde ? 'Télécharger la facture acquittée' : 'Télécharger l\'attestation d\'inscription' }}
+										</a>
+									</div>
+								{% endfor %}
+							</div>
+						{% elseif danseur.cours|length > 0 %}
 							<div class="flex flex-wrap gap-2">
 								{% for c in danseur.cours %}
 									<span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
 										💃
 										{{ c.nom }}
 									</span>
-								{% endfor %}
-							</div>
-						{% elseif danseur.inscriptions|length > 0 %}
-							<div class="flex flex-wrap gap-2">
-								{% for inscription in danseur.inscriptions %}
-									{% if inscription.cours %}
-										<span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
-											💃
-											{{ inscription.cours.nom }}
-											<span class="text-yellow-600/80 ml-1">({{ inscription.saison }})</span>
-										</span>
-									{% endif %}
 								{% endfor %}
 							</div>
 						{% else %}

@@ -13,6 +13,7 @@ final class CotisationCoursLine
         public readonly float $tarifBrut,
         public readonly bool $isGratuit2020,
         public readonly float $montantApresGratuit,
+        public readonly bool $isListeAttente = false,
     ) {
     }
 }

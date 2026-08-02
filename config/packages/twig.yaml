@@ -1,5 +1,9 @@
 twig:
     file_name_pattern: '*.twig'
+    globals:
+        club_iban: '%club.iban%'
+        club_bic: '%club.bic%'
+        club_titulaire: '%club.titulaire%'
 
 when@test:
     twig:

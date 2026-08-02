@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ documentTitre }} {{ numeroFacture }} — Studio Danse 430</title>
+    <style>
+        :root {
+            --gold: #b8860b;
+            --ink: #111;
+            --muted: #555;
+            --line: #ddd;
+            --bg: #f7f7f5;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1.25rem;
+            background: #0a0a0a;
+            color: #fff;
+            border-bottom: 2px solid #FFD700;
+        }
+        .toolbar a, .toolbar button {
+            appearance: none;
+            border: 1px solid #FFD700;
+            background: #FFD700;
+            color: #000;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 0.55rem 1rem;
+            border-radius: 0.4rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .toolbar a.secondary {
+            background: transparent;
+            color: #FFD700;
+        }
+        .sheet {
+            width: 210mm;
+            max-width: 100%;
+            margin: 1.5rem auto;
+            background: #fff;
+            padding: 18mm 16mm;
+            box-shadow: 0 8px 30px rgba(0,0,0,.12);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            gap: 1.5rem;
+            border-bottom: 3px solid #FFD700;
+            padding-bottom: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .brand {
+            display: flex;
+            gap: 0.9rem;
+            align-items: flex-start;
+        }
+        .brand img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .brand h1 {
+            margin: 0;
+            font-size: 1.35rem;
+            color: var(--gold);
+            letter-spacing: 0.02em;
+        }
+        .brand p { margin: 0.15rem 0; color: var(--muted); font-size: 0.8rem; }
+        .doc-meta { text-align: right; }
+        .doc-meta .badge {
+            display: inline-block;
+            background: #111;
+            color: #FFD700;
+            font-weight: 800;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.35rem 0.65rem;
+            border-radius: 0.3rem;
+            margin-bottom: 0.5rem;
+        }
+        .doc-meta .badge.pending { background: #444; color: #fff; }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .card {
+            border: 1px solid var(--line);
+            border-radius: 0.5rem;
+            padding: 0.85rem 1rem;
+            background: #fafafa;
+        }
+        .card h2 {
+            margin: 0 0 0.5rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--gold);
+        }
+        .card strong { display: block; font-size: 0.95rem; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.75rem 0 1rem;
+        }
+        th, td {
+            border-bottom: 1px solid var(--line);
+            padding: 0.55rem 0.4rem;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            border-bottom: 2px solid #FFD700;
+        }
+        td.num, th.num { text-align: right; white-space: nowrap; }
+        .totals {
+            margin-left: auto;
+            width: min(320px, 100%);
+            border: 1px solid var(--line);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .totals .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.45rem 0.75rem;
+            border-bottom: 1px solid var(--line);
+        }
+        .totals .row:last-child { border-bottom: 0; }
+        .totals .row.total {
+            background: #111;
+            color: #FFD700;
+            font-weight: 800;
+            font-size: 1.05rem;
+        }
+        .muted { color: var(--muted); }
+        .footnote {
+            margin-top: 1.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px dashed var(--line);
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+        .payment {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        @media print {
+            body { background: #fff; }
+            .no-print { display: none !important; }
+            .sheet {
+                margin: 0;
+                width: 100%;
+                box-shadow: none;
+                padding: 10mm 12mm;
+            }
+            a { color: inherit; text-decoration: none; }
+        }
+        @page { size: A4; margin: 12mm; }
+        @media (max-width: 720px) {
+            .sheet { margin: 0; padding: 1.25rem; }
+            .grid-2, .payment, .header { grid-template-columns: 1fr; display: grid; }
+            .doc-meta { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar no-print">
+        <div>
+            <a href="{{ path('app_foyer_index') }}" class="secondary">← Retour au foyer</a>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button type="button" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button>
+        </div>
+    </div>
+
+    <article class="sheet">
+        <header class="header">
+            <div class="brand">
+                <img src="{{ absolute_url(asset('images/logo.studio-danse-430.jpg')) }}" alt="Logo Studio Danse 430">
+                <div>
+                    <h1>{{ association.nom }}</h1>
+                    <p>{{ association.adresse }}</p>
+                    <p>{{ association.codePostal }} {{ association.ville }}</p>
+                    <p>{{ association.email }}</p>
+                    <p>SIRET : {{ association.siret }} · RNA : {{ association.rna }}</p>
+                </div>
+            </div>
+            <div class="doc-meta">
+                <div class="badge {{ isAcquitte ? '' : 'pending' }}">{{ documentTitre }}</div>
+                <p><strong>N° {{ numeroFacture }}</strong></p>
+                <p class="muted">Émis le {{ "now"|date('d/m/Y') }}</p>
+                <p class="muted">Saison {{ saison }}</p>
+            </div>
+        </header>
+
+        <div class="grid-2">
+            <div class="card">
+                <h2>Client / Foyer</h2>
+                <strong>{{ foyer.nom }}</strong>
+                <p>{{ foyer.adresse }}</p>
+                <p>{{ foyer.codePostal }} {{ foyer.ville }}</p>
+                {% if responsable %}
+                    <p class="muted" style="margin-top:0.5rem;">
+                        Responsable : {{ responsable.email }}
+                        {% if responsable.telephone %}<br>Tél. {{ responsable.telephone }}{% endif %}
+                    </p>
+                {% endif %}
+            </div>
+            <div class="card">
+                <h2>Danseur</h2>
+                <strong>{{ danseur.prenom }} {{ danseur.nom }}</strong>
+                {% if danseur.dateNaissance %}
+                    <p class="muted">Né(e) le {{ danseur.dateNaissance|date('d/m/Y') }}</p>
+                {% endif %}
+                <p class="muted">{{ inscriptionsDanseur|length }} cours — saison {{ saison }}</p>
+            </div>
+        </div>
+
+        {% if inscription.demandeFactureCE %}
+            <div class="card" style="margin-bottom:1.25rem; border-color:#FFD700;">
+                <h2>Facture Comité d’Entreprise</h2>
+                {% if inscription.nomEntrepriseCE %}
+                    <strong>{{ inscription.nomEntrepriseCE }}</strong>
+                {% endif %}
+                {% if inscription.payeurPrenom or inscription.payeurNom or inscription.payeurEmail %}
+                    <p class="muted" style="margin-top:0.35rem;">
+                        Payeur :
+                        {{ inscription.payeurPrenom }} {{ inscription.payeurNom }}
+                        {% if inscription.payeurEmail %} — {{ inscription.payeurEmail }}{% endif %}
+                    </p>
+                {% endif %}
+            </div>
+        {% elseif inscription.payeurPrenom or inscription.payeurNom or inscription.payeurEmail %}
+            <div class="card" style="margin-bottom:1.25rem;">
+                <h2>Payeur</h2>
+                <strong>{{ inscription.payeurPrenom }} {{ inscription.payeurNom }}</strong>
+                {% if inscription.payeurEmail %}<p class="muted">{{ inscription.payeurEmail }}</p>{% endif %}
+            </div>
+        {% endif %}
+
+        <h2 style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--gold); margin:0 0 0.35rem;">
+            Détail des cours — {{ danseur.prenom }} {{ danseur.nom }}
+        </h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Cours</th>
+                    <th>Créneau</th>
+                    <th class="num">Tarif brut</th>
+                    <th class="num">Après gratuité</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if danseurBreakdown %}
+                    {% for line in danseurBreakdown.lines %}
+                        <tr>
+                            <td>
+                                {{ line.coursNom }}
+                                {% if line.isGratuit2020 %}
+                                    <span class="muted">(gratuité enfant 2020)</span>
+                                {% endif %}
+                            </td>
+                            <td class="muted">Saison {{ saison }}</td>
+                            <td class="num">{{ line.tarifBrut|number_format(2, ',', ' ') }} €</td>
+                            <td class="num">{{ line.montantApresGratuit|number_format(2, ',', ' ') }} €</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    {% for ligne in inscriptionsDanseur %}
+                        <tr>
+                            <td>{{ ligne.cours ? ligne.cours.nom : '—' }}</td>
+                            <td class="muted">
+                                {% if ligne.cours %}
+                                    {{ ligne.cours.jour }} {{ ligne.cours.heure|date('H\\hi') }}
+                                {% endif %}
+                            </td>
+                            <td class="num">{{ ligne.cours and ligne.cours.tarif ? ligne.cours.tarif|number_format(2, ',', ' ') : '0,00' }} €</td>
+                            <td class="num">—</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="4" class="muted">Aucun cours pour cette saison.</td></tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+
+        <p class="muted" style="margin-top:-0.5rem; margin-bottom:1rem;">
+            Les remises dégressives et manuelles s’appliquent au
+            <strong>cumul des cours payants du foyer</strong> (saison {{ saison }}).
+        </p>
+
+        <div class="totals">
+            <div class="row">
+                <span>Sous-total brut (foyer)</span>
+                <span>{{ cotisation.subtotal|number_format(2, ',', ' ') }} €</span>
+            </div>
+            {% if cotisation.gratuit2020Amount > 0 %}
+                <div class="row">
+                    <span>Gratuité enfants nés en 2020</span>
+                    <span>− {{ cotisation.gratuit2020Amount|number_format(2, ',', ' ') }} €</span>
+                </div>
+            {% endif %}
+            {% if cotisation.foyerDiscountPercentage > 0 %}
+                <div class="row">
+                    <span>Remise foyer (−{{ cotisation.foyerDiscountPercentage }} %)</span>
+                    <span>− {{ cotisation.foyerDiscountAmount|number_format(2, ',', ' ') }} €</span>
+                </div>
+            {% endif %}
+            {% if cotisation.remiseManuelleAmount > 0 %}
+                <div class="row">
+                    <span>
+                        Remise bureau
+                        {% if cotisation.motifRemise %}<br><span class="muted">{{ cotisation.motifRemise }}</span>{% endif %}
+                    </span>
+                    <span>− {{ cotisation.remiseManuelleAmount|number_format(2, ',', ' ') }} €</span>
+                </div>
+            {% endif %}
+            <div class="row total">
+                <span>Total net foyer</span>
+                <span>{{ cotisation.total|number_format(2, ',', ' ') }} €</span>
+            </div>
+        </div>
+
+        <div class="payment">
+            <div class="card">
+                <h2>Mode de paiement</h2>
+                <strong>{{ inscription.modePaiement|default('Non renseigné') }}</strong>
+                <p class="muted">Indépendant du canal (Chèque, Pass Sport, HelloAsso, Espèces…)</p>
+            </div>
+            <div class="card">
+                <h2>Statut de paiement</h2>
+                <strong>{{ inscription.statutPaiement.value }}</strong>
+                {% if isAcquitte %}
+                    <p class="muted">Document valant facture acquittée.</p>
+                {% else %}
+                    <p class="muted">Document valant attestation d’inscription / facture provisoire.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <footer class="footnote">
+            <p>
+                Association {{ association.nom }} — {{ association.adresse }}, {{ association.codePostal }} {{ association.ville }}.
+                Document généré depuis l’espace adhérent. Conservez-le pour vos dossiers (CE, impôts, Pass Sport…).
+            </p>
+            <p>Référence inscription #{{ inscription.id }} · {{ documentTitre }} · {{ numeroFacture }}</p>
+        </footer>
+    </article>
+</body>
+</html>

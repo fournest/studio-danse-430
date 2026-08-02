@@ -25,9 +25,9 @@ Site vitrine & back-office de gestion pour une association de danse — identit�
 **Studio Danse 430** est l'application web d'une **association de danse fondée en 1976**. Elle couvre :
 
 - 🎭 **Site vitrine** — Accueil, planning des cours (avec tarifs saison), galerie, Gala, costumes, inscription familiale
-- 👨‍👩‍👧 **Espace familles** — Foyer, danseurs, familles recomposées (2ᵉ parent), choix des cours & calculateur de cotisations
+- 👨‍👩‍👧 **Espace familles** — Foyer, danseurs, familles recomposées (2ᵉ parent), tunnel d’inscription (cours → paiement → santé → confirmation)
 - 💃 **Espace professeur** — Cours et élèves du prof (`ROLE_PROF`)
-- 🛠️ **Back-office EasyAdmin** — Adhérents, cours/tarifs, inscriptions, remises bureau, galas, costumes, galerie
+- 🛠️ **Back-office EasyAdmin** — Adhérents, cours/tarifs/capacité, inscriptions, paiements, liste d’attente, remises bureau, galas, costumes, galerie
 
 Identité visuelle : fond **noir**, accents **or (`#FFD700`)**, typographie marquée.
 
@@ -39,18 +39,18 @@ Identité visuelle : fond **noir**, accents **or (`#FFD700`)**, typographie marq
 | :--- | :--- | :--- |
 | 🐘 **Langage** | PHP `8.2+` | Typage strict, enums, attributs |
 | 🎼 **Framework** | Symfony `7.4` | MVC, AssetMapper, Security, Mailer, RateLimiter |
-| 🖋️ **Templating** | Twig `3` | Site public + admin |
+| 🖋️ **Templating** | Twig `3` | Site public + admin · globals `club_iban` / `club_bic` / `club_titulaire` |
 | 🗄️ **ORM** | Doctrine ORM `3` + Migrations | Entités, relations, migrations |
 | 🔐 **Back-office** | EasyAdmin `5` | CRUD, dashboard, menu FR |
 | 🛡️ **Sécurité** | Symfony Security | `UserChecker`, login throttling, verify-email, reset-password, rôles `ROLE_PROF` / `ROLE_TRESORIER` / `ROLE_BUREAU` |
 | 🎨 **CSS public** | Tailwind CSS `v4` | `symfonycasts/tailwind-bundle` |
 | 🎨 **CSS admin** | Tailwind CSS `v3` CDN | `preflight: false` (ne casse pas EasyAdmin) |
-| 📤 **Uploads** | EasyAdmin + VichUploader | Costumes · Galerie |
-| ⚡ **Front** | Symfony UX (Turbo + Stimulus) | |
+| 📤 **Uploads** | EasyAdmin + VichUploader | Costumes · Galerie · certificats médicaux |
+| ⚡ **Front** | Symfony UX (Turbo + Stimulus) | dont contrôleur `clipboard` (copie IBAN) |
 | 🗃️ **BDD** | MySQL / MariaDB / PostgreSQL | Via `DATABASE_URL` ; Postgres optionnel (Docker) |
 | 🎟️ **Billetterie** | Billetweb | Gala via `billetwebEventId` |
 | 🔄 **Automatisation** | n8n | Webhook inscriptions (`N8N_WEBHOOK_URL`) |
-| 💳 **Paiement** *(prévu)* | HelloAsso | Champs & env prêts ; checkout non branché |
+| 💳 **Paiement** | Chèque · ANCV · Pass’Sport · Virement · Espèces · HelloAsso | Plan de règlement (`Paiement`) + échelonnement chèques |
 
 ---
 
@@ -68,16 +68,24 @@ Identité visuelle : fond **noir**, accents **or (`#FFD700`)**, typographie marq
 
 ### 👨‍👩‍👧 Espace familial (`ROLE_USER`)
 
-Parcours guidé :
+Tunnel d’inscription guidé (verrouillé après envoi au bureau) :
 
 1. **Configurer le foyer** — `/mon-foyer/configuration`
 2. **Ajouter des danseurs** — `/mon-foyer/ajouter-un-danseur`
-3. **Choisir les cours** — `/mon-foyer/inscription-cours`  
-   - Cases à cocher **par danseur**  
-   - Filtrage des créneaux par **année de naissance**  
-   - **Récapitulatif cotisation** (sous-total, gratuité 2020, remise foyer, remise bureau, total net)  
-   - Persistance des `Inscription` + sync ManyToMany danseur↔cours  
-4. Suivi dans **Mon Foyer** (`/mon-foyer`) — fiches danseurs, désactivation / suppression de compte
+3. **Choisir les cours** — `/mon-foyer/inscription-cours`
+   - Cases à cocher **par danseur**, filtrage par **année de naissance**
+   - **Places restantes** / badge **COMPLET — Liste d’attente**
+   - **Récapitulatif cotisation** (gratuité 2020, remise foyer, remise bureau ; cours en liste d’attente à 0 €)
+4. **Paiement** — `/mon-foyer/inscription/{id}/paiement`
+   - Modes : chèque(s) échelonnés, ANCV, Pass’Sport, virement, espèces, HelloAsso
+   - Création des lignes `Paiement` (dates d’encaissement, montants)
+5. **Santé** — `/mon-foyer/inscription/{id}/sante` (QS Sport / certificat médical)
+6. **Confirmation** — `/mon-foyer/inscription/confirmation/{id}`
+   - Récapitulatif + consignes de règlement
+   - **Virement** : IBAN / BIC / titulaire + bouton **Copier l’IBAN**
+   - **HelloAsso** : lien campagne + saisie de référence
+   - Validation → statut `EN_ATTENTE_VALIDATION` + e-mail de confirmation
+7. Suivi dans **Mon Foyer** — fiches danseurs, facture / attestation, désactivation de compte
 
 **Familles recomposées :**
 - Parent 2 au niveau **Foyer** et/ou **Danseur** (email, téléphone, nom)
@@ -85,6 +93,16 @@ Parcours guidé :
 - Titulaire seul : inscriptions & modifications
 
 > L’ancienne URL `/inscription` redirige vers `/mon-foyer/inscription-cours`.
+
+### 🎫 Capacité des cours & liste d’attente
+
+| Élément | Détail |
+| :--- | :--- |
+| **Capacité** | `Cours.capaciteMax` (défaut 25) |
+| **Places occupées** | Inscriptions `BROUILLON` / `EN_ATTENTE_VALIDATION` / `VALIDE` hors liste d’attente |
+| **Complet** | `getPlacesRestantes() <= 0` → proposition **liste d’attente** |
+| **Facturation** | `Inscription.estEnListeDAttente = true` → exclu du total cotisation |
+| **Admin** | Jauge d’effectif, filtre « Cours complets », confirmation d’une place (recalcule la cotisation) |
 
 ### 💶 Cotisations — saison 2026/2027
 
@@ -96,6 +114,7 @@ Service métier : `CotisationCalculatorService` (`src/Service/`).
 | **Gratuité 2020** | Enfant né en **2020** avec ≥ 2 cours → le **moins cher** est gratuit |
 | **Remise foyer** | 1 cours payant : 0 % · 2 cours : **−20 %** · 3+ : **−30 %** |
 | **Remise bureau** | `Foyer.remiseManuelle` + `Inscription.remiseManuelle` (motif optionnel) déduites du total |
+| **Liste d’attente** | Tarif non facturé tant qu’une place n’est pas confirmée par le bureau |
 
 Validation CLI des scénarios Excel :
 
@@ -112,9 +131,10 @@ php bin/console app:test-cotisation-calculator
 Accès : **`ROLE_TRESORIER`** ou **`ROLE_BUREAU`**.
 
 - Dashboard KPI (danseurs, cours, inscriptions, dossiers en attente)
-- Users, Foyers (dont **remise manuelle** + motif), Danseurs (parent 2)
-- **Cours** — durée, **tarif (€)**, bornes d’années de naissance, WhatsApp
-- **Inscriptions** — statuts dossier/paiement, remise manuelle, HelloAsso
+- Users, Foyers (dont **remise manuelle** + motif), Danseurs (parent 2, statut santé)
+- **Cours** — durée, tarif (€), capacité, bornes d’âge, **jauge d’effectif**, liste d’attente
+- **Inscriptions** — statut tunnel, liste d’attente, remise manuelle, HelloAsso, validation définitive
+- **Paiements** — modes, statuts, encaissement, validation HelloAsso
 - Galas, Salles, Costumes, Réservations, Sponsors, Albums / Médias
 
 ---
@@ -158,9 +178,15 @@ N8N_WEBHOOK_TOKEN=
 HELLOASSO_CLIENT_ID=
 HELLOASSO_CLIENT_SECRET=
 HELLOASSO_API_URL=https://api.helloasso.com
+HELLOASSO_CAMPAIGN_URL=
+
+# Coordonnées bancaires (affichées si règlement par virement)
+CLUB_IBAN="FR76 1234 5678 9012 3456 7890 123"
+CLUB_BIC="ABCDFR21XXX"
+CLUB_TITULAIRE="Studio Danse 430"
 ```
 
-> Secrets de prod uniquement dans `.env.local` (non versionné).
+> Secrets de prod uniquement dans `.env.local` (non versionné). Remplacer IBAN / BIC par les vrais RIB du club.
 
 ### 3. Base de données
 
@@ -256,21 +282,22 @@ studio-danse-430/
 │   └── uploads/          # costumes/ · galerie/
 ├── src/
 │   ├── Command/          # create-staff, seeds, test-cotisation, test-blended-family
-│   ├── Controller/       # Public + Foyer (inscription-cours)
+│   ├── Controller/       # Public + Foyer (tunnel inscription)
 │   │   └── Admin/        # EasyAdmin CRUD
 │   ├── Dto/              # CotisationDetail, breakdowns
-│   ├── Entity/           # User, Foyer, Danseur, Cours, Inscription…
-│   ├── Enum/
+│   ├── Entity/           # User, Foyer, Danseur, Cours, Inscription, Paiement…
+│   ├── Enum/             # ModePaiement, StatutInscription, StatutPaiement, StatutSante…
 │   ├── Form/
 │   ├── Model/
 │   ├── Repository/
-│   ├── Security/
-│   └── Service/          # CotisationCalculatorService
+│   ├── Security/         # InscriptionTunnelVoter
+│   └── Service/          # CotisationCalculator, Echelonnement, ConfirmationMailer…
 ├── templates/
 │   ├── admin/ · home/ · cours/ · foyer/
-│   ├── galerie/ · costume/ · gala/ · security/ …
+│   ├── emails/ · galerie/ · costume/ · gala/ · security/ …
 │   └── base.html.twig
 └── assets/
+    └── controllers/      # Stimulus (clipboard, csrf…)
 ```
 
 ---
@@ -282,30 +309,37 @@ User ── email · telephone · isVerified · isActif · roles
  └── 1,1 ── Foyer
               · coordonnées · parent2* · remiseManuelle · motifRemise
               └── 1,N ── Danseur
-                           · identité · dateNaissance · parent2* (override)
+                           · identité · dateNaissance · parent2* · statutSante
                            └── N,N ── Cours          (danseur_cours)
                            └── 1,N ── Inscription ── Cours
-                                        · saison · statuts · payeur*
-                                        · remiseManuelle · motifRemise
+                                        · saison · statut (brouillon → validée)
+                                        · estEnListeDAttente · montantTotal
+                                        · remiseManuelle · HelloAsso*
+                                        └── 1,N ── Paiement
+                                                     · mode · montant · statut
+                                                     · dateEncaissementPrevue
 
 Cours ── nom · jour · heure · professeur · capaciteMax
          · dureeMinutes · tarif · anneeNaissanceMin/Max · whatsapp
+         └── 1,N ── Inscription
 
 Album ── 1,N Media     Costume ── ReservationCostume     Gala ── Salle
 Sponsor · Actualite · ResetPasswordRequest
 ```
 
-**Enums :** `StatutDossier` · `StatutPaiement` · `StatutReservation` · `ModeLivraison` · `TypeMedia`
+**Enums :** `StatutInscription` · `StatutDossier` · `StatutPaiement` · `ModePaiement` · `StatutSante` · `StatutReservation` · `ModeLivraison` · `TypeMedia`
 
 **Rôles :** `ROLE_USER` · `ROLE_PROF` · `ROLE_TRESORIER` · `ROLE_BUREAU` (hérite trésorier + prof)
 
 ---
 
-## 📌 Notes métier cotisations
+## 📌 Notes métier
 
 - Pas d’entité `Tarif` séparée : le prix vit sur **`Cours.tarif`** (grille admin).
 - Les tarifs publics (accueil / `/cours`) ne s’affichent que si `tarif > 0`.
 - Après inscription, le bureau peut ajuster via **remise manuelle** foyer ou inscription.
+- Les RIB (`CLUB_IBAN` / `CLUB_BIC` / `CLUB_TITULAIRE`) sont exposés en globals Twig et affichés uniquement si un paiement **virement** est prévu.
+- Un cours complet n’empêche pas l’inscription : l’adhérent peut être placé en **liste d’attente** (non facturée) jusqu’à confirmation bureau.
 
 ---
 

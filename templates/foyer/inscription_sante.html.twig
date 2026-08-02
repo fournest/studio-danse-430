@@ -1,0 +1,198 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Santé — QS-Sport & certificats — Studio Danse 430{% endblock %}
+
+{% block body %}
+<div class="py-12 px-4 sm:px-6 lg:px-8 bg-neutral-950 min-h-[calc(100vh-4rem)] text-white">
+    <div class="max-w-4xl mx-auto space-y-8">
+
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="p-4 rounded-md {{ label == 'success' ? 'bg-green-950/50 border border-green-800 text-green-400' : (label == 'warning' ? 'bg-amber-950/50 border border-amber-800 text-amber-300' : 'bg-red-950/50 border border-red-800 text-red-400') }} text-sm">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+        <div class="border-b border-neutral-800 pb-6">
+            <p class="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">
+                <a href="{{ path('app_foyer_index') }}" class="hover:text-[#FFD700] transition-colors">← Mon foyer</a>
+            </p>
+            <h1 class="text-3xl font-extrabold text-[#FFD700] tracking-tight">Questionnaire de santé</h1>
+            <p class="text-neutral-400 mt-1">
+                Saison {{ saison }} — QS-Sport (mineurs) ou certificat médical (majeurs).
+            </p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-6" id="sante-form" data-turbo="false">
+            <input type="hidden" name="_token" value="{{ csrf_token('inscription_sante' ~ inscription.id) }}">
+
+            <div class="space-y-4">
+                {% for danseur in danseurs %}
+                    {% set isMineur = danseur.mineur %}
+                    {% set did = danseur.id %}
+                    <details class="js-sante-panel bg-neutral-900/60 border border-neutral-800 rounded-xl overflow-hidden group" {{ loop.first ? 'open' : '' }} data-mineur="{{ isMineur ? '1' : '0' }}">
+                        <summary class="cursor-pointer list-none px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-black/20 transition-colors">
+                            <span class="text-lg font-bold text-white">
+                                {{ danseur.prenom }} {{ danseur.nom }}
+                                <span class="ml-2 text-xs font-semibold uppercase tracking-wider {{ isMineur ? 'text-sky-400' : 'text-amber-400' }}">
+                                    {{ isMineur ? 'Mineur' : 'Majeur' }}
+                                </span>
+                            </span>
+                            <span class="text-xs text-neutral-500">
+                                Né(e) le {{ danseur.dateNaissance|date('d/m/Y') }}
+                                · {{ danseur.statutSante.label }}
+                            </span>
+                        </summary>
+
+                        <div class="px-6 pb-6 space-y-5 border-t border-neutral-800 pt-5">
+                            {% if isMineur %}
+                                <div>
+                                    <h3 class="text-sm font-bold uppercase tracking-wider text-[#FFD700] mb-1">Questionnaire QS-Sport</h3>
+                                    <p class="text-xs text-neutral-500 mb-4">
+                                        Questionnaire relatif à l’état de santé du sportif mineur (Annexe II-23 du Code du sport).
+                                        Répondez par OUI ou NON à chaque question.
+                                    </p>
+
+                                    {% set currentSection = null %}
+                                    <div class="space-y-4 js-qs-questions">
+                                        {% for q in questions %}
+                                            {% if q.section != currentSection %}
+                                                {% set currentSection = q.section %}
+                                                <p class="text-xs font-bold uppercase tracking-wider text-neutral-500 pt-2">{{ q.section }}</p>
+                                            {% endif %}
+                                            <div class="p-3 rounded-lg border border-neutral-800 bg-black/30">
+                                                <p class="text-sm text-neutral-200 mb-2">{{ q.label }}</p>
+                                                <div class="flex gap-4">
+                                                    <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                                                        <input type="radio" name="sante[{{ did }}][qs][{{ q.id }}]" value="non"
+                                                               class="accent-[#FFD700] js-qs-answer" required
+                                                               {{ danseur.attestationQsSportValide ? 'checked' : '' }}>
+                                                        <span>NON</span>
+                                                    </label>
+                                                    <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                                                        <input type="radio" name="sante[{{ did }}][qs][{{ q.id }}]" value="oui"
+                                                               class="accent-[#FFD700] js-qs-answer" required>
+                                                        <span>OUI</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <div class="js-attestation-block p-4 rounded-xl border border-emerald-800/50 bg-emerald-950/20">
+                                    <label class="flex items-start gap-3 cursor-pointer">
+                                        <input type="checkbox" name="sante[{{ did }}][attestation]" value="1"
+                                               class="mt-1 accent-[#FFD700] js-attestation"
+                                               {{ danseur.attestationQsSportValide ? 'checked' : '' }}>
+                                        <span class="text-sm text-emerald-100">
+                                            J’atteste sur l’honneur avoir répondu <strong>NON</strong> à toutes les rubriques du QS-Sport
+                                            (questionnaire sportif mineur / Cerfa n°15699*01).
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div class="js-certificat-block p-4 rounded-xl border border-amber-800/50 bg-amber-950/20 hidden">
+                                    <p class="text-sm text-amber-100 mb-3">
+                                        Au moins une réponse <strong>OUI</strong> : un certificat médical est <strong>obligatoire</strong>.
+                                    </p>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Certificat médical (PDF, JPG, PNG — max 5 Mo)</label>
+                                    <input type="file" name="certificat[{{ did }}]" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                           class="w-full text-sm text-neutral-300 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-[#FFD700] file:text-black file:font-bold file:text-xs js-certificat-input">
+                                    {% if danseur.certificatFilename %}
+                                        <p class="text-xs text-neutral-500 mt-2">Fichier déjà déposé : {{ danseur.certificatFilename }}</p>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="p-4 rounded-xl border border-amber-800/50 bg-amber-950/20 space-y-3">
+                                    <p class="text-sm text-amber-100">
+                                        Adhérent majeur : l’upload d’un <strong>certificat médical de moins de 3 ans</strong>
+                                        (ou attestation médicale) est obligatoire.
+                                    </p>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Certificat médical (PDF, JPG, PNG — max 5 Mo)</label>
+                                    <input type="file" name="certificat[{{ did }}]" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                           class="w-full text-sm text-neutral-300 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-[#FFD700] file:text-black file:font-bold file:text-xs"
+                                           {{ danseur.certificatFilename ? '' : 'required' }}>
+                                    {% if danseur.certificatFilename %}
+                                        <p class="text-xs text-neutral-500">Fichier déjà déposé : {{ danseur.certificatFilename }}</p>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">
+                                    Remarques santé (allergies, précisions pour les professeurs)
+                                </label>
+                                <textarea name="sante[{{ did }}][remarque]" rows="2"
+                                          class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                          placeholder="Optionnel">{{ danseur.remarqueSante }}</textarea>
+                            </div>
+                        </div>
+                    </details>
+                {% endfor %}
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 sm:justify-end pt-2">
+                <a href="{{ path('app_foyer_index') }}"
+                   class="inline-flex justify-center px-5 py-2.5 rounded-md border border-neutral-700 text-sm font-semibold text-neutral-300 hover:border-neutral-500 transition-colors">
+                    Plus tard
+                </a>
+                <button type="submit"
+                        class="inline-flex justify-center px-5 py-2.5 rounded-md bg-[#FFD700] text-black text-sm font-bold uppercase tracking-wider hover:bg-amber-300 transition-colors">
+                    Enregistrer la santé
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    function refreshPanel(panel) {
+        if (panel.dataset.mineur !== '1') return;
+
+        const answers = panel.querySelectorAll('.js-qs-answer:checked');
+        let hasOui = false;
+        answers.forEach(function (el) {
+            if (el.value === 'oui') hasOui = true;
+        });
+
+        const attestationBlock = panel.querySelector('.js-attestation-block');
+        const certificatBlock = panel.querySelector('.js-certificat-block');
+        const attestation = panel.querySelector('.js-attestation');
+        const certificatInput = panel.querySelector('.js-certificat-input');
+        const hasExistingFile = certificatBlock && certificatBlock.textContent.indexOf('déjà déposé') !== -1;
+
+        if (hasOui) {
+            attestationBlock.classList.add('hidden');
+            certificatBlock.classList.remove('hidden');
+            if (attestation) {
+                attestation.checked = false;
+                attestation.required = false;
+            }
+            if (certificatInput) {
+                certificatInput.required = !hasExistingFile;
+            }
+        } else {
+            attestationBlock.classList.remove('hidden');
+            certificatBlock.classList.add('hidden');
+            if (attestation) attestation.required = true;
+            if (certificatInput) {
+                certificatInput.required = false;
+                certificatInput.value = '';
+            }
+        }
+    }
+
+    document.querySelectorAll('.js-sante-panel').forEach(function (panel) {
+        panel.querySelectorAll('.js-qs-answer').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                refreshPanel(panel);
+            });
+        });
+        refreshPanel(panel);
+    });
+})();
+</script>
+{% endblock %}

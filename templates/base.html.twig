@@ -52,8 +52,8 @@
 								</a>
 							{% endif %}
 
-							{# 💃 BOUTON ESPACE PROF (Optionnel : si tu as un espace dédié aux profs) #}
-							{% if is_granted('ROLE_PROF') %}
+							{# 💃 BOUTON ESPACE PROF — uniquement les vrais profs (ROLE_BUREAU hérite de ROLE_PROF) #}
+							{% if is_granted('ROLE_PROF') and not is_granted('ROLE_BUREAU') %}
 								<a href="{{ path('app_espace_prof') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-200">
 									💃 Espace Prof
 								</a>

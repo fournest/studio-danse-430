@@ -34,6 +34,7 @@ final class CotisationCalculatorService
             $selection[] = [
                 'danseur' => $danseur,
                 'cours' => $this->resolveCoursForDanseur($danseur, $saison),
+                'attenteIds' => $this->resolveAttenteIdsForDanseur($danseur, $saison),
             ];
         }
 
@@ -43,7 +44,7 @@ final class CotisationCalculatorService
     /**
      * Calcule depuis une sélection libre (ex. formulaire avant persistance).
      *
-     * @param list<array{danseur: Danseur, cours: list<Cours>}> $selection
+     * @param list<array{danseur: Danseur, cours: list<Cours>, attenteIds?: list<int>}> $selection
      */
     public function calculate(
         array $selection,
@@ -61,6 +62,8 @@ final class CotisationCalculatorService
             $danseur = $entry['danseur'];
             /** @var list<Cours> $coursList */
             $coursList = array_values($entry['cours'] ?? []);
+            /** @var list<int> $attenteIds */
+            $attenteIds = array_map('intval', $entry['attenteIds'] ?? []);
 
             if ($coursList === []) {
                 continue;
@@ -68,24 +71,51 @@ final class CotisationCalculatorService
 
             $rawLines = [];
             foreach ($coursList as $cours) {
-                $tarif = $this->resolveTarif($cours);
-                $subtotal += $tarif;
+                $isAttente = \in_array((int) $cours->getId(), $attenteIds, true);
+                $tarif = $isAttente ? 0.0 : $this->resolveTarif($cours);
+                if (!$isAttente) {
+                    $subtotal += $tarif;
+                }
                 $rawLines[] = [
                     'cours' => $cours,
-                    'tarif' => $tarif,
+                    'tarif' => $isAttente ? $this->resolveTarif($cours) : $tarif,
                     'isGratuit2020' => false,
+                    'isListeAttente' => $isAttente,
                 ];
             }
 
+            $payingLines = array_values(array_filter(
+                $rawLines,
+                static fn (array $line): bool => !$line['isListeAttente']
+            ));
+
             $anneeNaissance = $danseur->getAnneeNaissance();
-            if ($anneeNaissance === self::ANNEE_GRATUITE && count($rawLines) >= 2) {
-                $cheapestIndex = $this->findCheapestIndex($rawLines);
-                $gratuit2020Amount += $rawLines[$cheapestIndex]['tarif'];
-                $rawLines[$cheapestIndex]['isGratuit2020'] = true;
+            if ($anneeNaissance === self::ANNEE_GRATUITE && count($payingLines) >= 2) {
+                $cheapestIndex = $this->findCheapestIndex($payingLines);
+                $cheapestCoursId = $payingLines[$cheapestIndex]['cours']->getId();
+                $gratuit2020Amount += $payingLines[$cheapestIndex]['tarif'];
+                foreach ($rawLines as $idx => $raw) {
+                    if (!$raw['isListeAttente'] && $raw['cours']->getId() === $cheapestCoursId) {
+                        $rawLines[$idx]['isGratuit2020'] = true;
+                        break;
+                    }
+                }
             }
 
             $lines = [];
             foreach ($rawLines as $raw) {
+                if ($raw['isListeAttente']) {
+                    $lines[] = new CotisationCoursLine(
+                        coursNom: $raw['cours']->getNom(),
+                        coursId: $raw['cours']->getId(),
+                        tarifBrut: $this->roundMoney($raw['tarif']),
+                        isGratuit2020: false,
+                        montantApresGratuit: 0.0,
+                        isListeAttente: true,
+                    );
+                    continue;
+                }
+
                 $montantApres = $raw['isGratuit2020'] ? 0.0 : $raw['tarif'];
                 if (!$raw['isGratuit2020']) {
                     $payingAmounts[] = $montantApres;
@@ -99,6 +129,7 @@ final class CotisationCalculatorService
                     tarifBrut: $this->roundMoney($raw['tarif']),
                     isGratuit2020: $raw['isGratuit2020'],
                     montantApresGratuit: $this->roundMoney($montantApres),
+                    isListeAttente: false,
                 );
             }
 
@@ -200,6 +231,25 @@ final class CotisationCalculatorService
         }
 
         return array_values($byKey);
+    }
+
+    /**
+     * @return list<int> IDs des cours en liste d'attente pour ce danseur / saison
+     */
+    private function resolveAttenteIdsForDanseur(Danseur $danseur, string $saison): array
+    {
+        $ids = [];
+        foreach ($danseur->getInscriptions() as $inscription) {
+            if ($inscription->getSaison() !== $saison || !$inscription->isEstEnListeDAttente()) {
+                continue;
+            }
+            $coursId = $inscription->getCours()?->getId();
+            if (null !== $coursId) {
+                $ids[] = $coursId;
+            }
+        }
+
+        return $ids;
     }
 
     private function resolveTarif(Cours $cours): float

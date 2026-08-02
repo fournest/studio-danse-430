@@ -1,0 +1,216 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Confirmation d'inscription — Studio Danse 430{% endblock %}
+
+{% block body %}
+<div class="py-12 px-4 sm:px-6 lg:px-8 bg-neutral-950 min-h-[calc(100vh-4rem)] text-white">
+    <div class="max-w-3xl mx-auto space-y-8">
+
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="p-4 rounded-md {{ label == 'success' ? 'bg-green-950/50 border border-green-800 text-green-400' : (label == 'warning' ? 'bg-amber-950/50 border border-amber-800 text-amber-300' : 'bg-red-950/50 border border-red-800 text-red-400') }} text-sm">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+        <div class="border-b border-neutral-800 pb-6">
+            <p class="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">
+                <a href="{{ path('app_foyer_index') }}" class="hover:text-[#FFD700] transition-colors">← Mon foyer</a>
+            </p>
+            {% if isBrouillon %}
+                <h1 class="text-3xl font-extrabold text-[#FFD700] tracking-tight">Finaliser mon inscription</h1>
+                <p class="text-neutral-400 mt-1">Vérifiez le récapitulatif puis validez pour transmettre votre dossier au bureau.</p>
+            {% else %}
+                <h1 class="text-3xl font-extrabold text-[#FFD700] tracking-tight">Demande transmise</h1>
+                <p class="text-emerald-400 mt-2 font-medium">Votre demande d’inscription a bien été transmise au bureau.</p>
+                <p class="text-neutral-500 text-sm mt-1">
+                    Statut : {{ statut.label }}
+                    {% if inscription.dateValidation %}
+                        · le {{ inscription.dateValidation|date('d/m/Y à H:i') }}
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+
+        {# Récapitulatif #}
+        <section class="bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 space-y-5">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-500">Récapitulatif — Saison {{ saison }}</h2>
+
+            <div class="space-y-4">
+                {% for ins in inscriptions %}
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 border-b border-neutral-800/80 pb-3 last:border-0 last:pb-0">
+                        <div>
+                            <p class="font-semibold text-white">{{ ins.danseur.prenom }} {{ ins.danseur.nom }}</p>
+                            <p class="text-sm text-neutral-400">{{ ins.cours.nom }}</p>
+                            <p class="text-xs text-neutral-500 mt-1">
+                                Santé :
+                                <span class="text-neutral-300">{{ ins.danseur.statutSante.label }}</span>
+                            </p>
+                        </div>
+                        <p class="text-[#FFD700] font-bold whitespace-nowrap">
+                            {{ (ins.montantTotal ?? 0)|number_format(2, ',', ' ') }} €
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="flex justify-between items-baseline pt-2 border-t border-[#FFD700]/20">
+                <span class="text-neutral-400 text-sm">Montant total</span>
+                <span class="text-2xl font-extrabold text-[#FFD700]">{{ totalMontant|number_format(2, ',', ' ') }} €</span>
+            </div>
+
+            {% if planReglement is not empty %}
+                <div class="pt-2">
+                    <p class="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Plan de règlement</p>
+                    <ul class="space-y-1.5 text-sm">
+                        {% for p in planReglement %}
+                            <li class="flex justify-between gap-3 text-neutral-300">
+                                <span>
+                                    {{ p.mode.label }}
+                                    {% if p.reference %}<span class="text-neutral-500">· {{ p.reference }}</span>{% endif %}
+                                    {% if p.dateEncaissementPrevue %}
+                                        <span class="text-neutral-500">· {{ p.dateEncaissementPrevue|date('d/m/Y') }}</span>
+                                    {% endif %}
+                                </span>
+                                <span class="text-[#FFD700] font-semibold">{{ p.montant|number_format(2, ',', ' ') }} €</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </section>
+
+        {# Consignes règlement #}
+        <section class="rounded-xl border p-6 space-y-6 {{ hasHelloAsso or hasVirement ? 'border-[#FFD700]/40 bg-[#FFD700]/5' : 'border-neutral-800 bg-neutral-900/60' }}">
+            <h2 class="text-sm font-bold uppercase tracking-wider {{ hasHelloAsso or hasVirement ? 'text-[#FFD700]' : 'text-neutral-500' }}">
+                Consignes de règlement
+            </h2>
+
+            {% if hasHelloAsso %}
+                <div class="space-y-4">
+                    <p class="text-sm text-neutral-200 leading-relaxed">
+                        Afin de finaliser votre règlement par Carte Bancaire via HelloAsso, veuillez cliquer sur le bouton ci-dessous.
+                        Pensez à préciser le <strong class="text-white">nom du foyer</strong> ({{ foyer.nom }}) lors du paiement.
+                    </p>
+                    {% if helloAssoUrl %}
+                        <a href="{{ helloAssoUrl }}" target="_blank" rel="noopener"
+                           class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md bg-[#FFD700] text-black text-sm font-bold uppercase tracking-wider hover:bg-amber-300 transition-colors">
+                            Payer via HelloAsso ↗
+                        </a>
+                    {% else %}
+                        <p class="text-sm text-amber-300">
+                            Le lien HelloAsso n’est pas encore configuré. Contactez le bureau :
+                            <a href="mailto:{{ association.email }}" class="underline">{{ association.email }}</a>
+                        </p>
+                    {% endif %}
+
+                    {% if not isBrouillon and isOwner %}
+                        <form method="post" class="pt-4 border-t border-neutral-800 space-y-3">
+                            <input type="hidden" name="_token" value="{{ csrf_token('inscription_confirmation' ~ inscription.id) }}">
+                            <input type="hidden" name="_action" value="helloasso_ref">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500">
+                                Référence / reçu HelloAsso (facultatif)
+                            </label>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input type="text" name="helloasso_reference"
+                                       value="{{ inscription.helloAssoPaymentId }}"
+                                       placeholder="N° de transaction ou reçu"
+                                       class="flex-1 rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none">
+                                <button type="submit" class="px-4 py-2 rounded-md border border-[#FFD700]/50 text-[#FFD700] text-xs font-bold uppercase tracking-wider hover:bg-[#FFD700] hover:text-black transition-colors">
+                                    Enregistrer
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {% if hasVirement %}
+                <div class="space-y-3 {% if hasHelloAsso %}pt-4 border-t border-neutral-800{% endif %}">
+                    <p class="text-sm text-neutral-200 leading-relaxed">
+                        Pour régler par <strong class="text-white">virement bancaire</strong>, utilisez les coordonnées ci-dessous.
+                        Indiquez le <strong class="text-white">nom du foyer</strong> ({{ foyer.nom }}) en libellé du virement.
+                    </p>
+                    {% if club_iban %}
+                        <dl class="rounded-lg bg-neutral-950/60 border border-neutral-700 p-4 space-y-3 text-sm"
+                            data-controller="clipboard"
+                            data-clipboard-text-value="{{ club_iban }}">
+                            <div class="flex flex-col sm:flex-row sm:gap-3 sm:items-baseline">
+                                <dt class="text-neutral-500 shrink-0 sm:w-28">Titulaire</dt>
+                                <dd class="text-white font-medium">{{ club_titulaire|default(association.nom) }}</dd>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:gap-3 sm:items-center">
+                                <dt class="text-neutral-500 shrink-0 sm:w-28">IBAN</dt>
+                                <dd class="flex flex-wrap items-center gap-2 min-w-0">
+                                    <span class="text-[#FFD700] font-mono font-semibold tracking-wide break-all">{{ club_iban }}</span>
+                                    <button type="button"
+                                            data-action="clipboard#copy"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#FFD700]/50 text-[#FFD700] text-xs font-bold uppercase tracking-wider hover:bg-[#FFD700] hover:text-black transition-colors shrink-0"
+                                            title="Copier l’IBAN (sans espaces)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5" aria-hidden="true">
+                                            <path d="M7 3.5A1.5 1.5 0 0 1 8.5 2h5A1.5 1.5 0 0 1 15 3.5v1A1.5 1.5 0 0 1 13.5 6h-5A1.5 1.5 0 0 1 7 4.5v-1Z"/>
+                                            <path d="M3.5 7A1.5 1.5 0 0 1 5 5.5h5A1.5 1.5 0 0 1 11.5 7v7A1.5 1.5 0 0 1 10 15.5H5A1.5 1.5 0 0 1 3.5 14V7Z"/>
+                                        </svg>
+                                        <span data-clipboard-target="label">Copier</span>
+                                    </button>
+                                </dd>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:gap-3 sm:items-baseline">
+                                <dt class="text-neutral-500 shrink-0 sm:w-28">BIC</dt>
+                                <dd class="text-white font-mono">{{ club_bic }}</dd>
+                            </div>
+                        </dl>
+                    {% else %}
+                        <p class="text-sm text-amber-300">
+                            Les coordonnées bancaires ne sont pas encore configurées. Contactez le bureau :
+                            <a href="mailto:{{ association.email }}" class="underline">{{ association.email }}</a>
+                        </p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {% if hasDepot or (not hasHelloAsso and not hasVirement) %}
+                <div class="space-y-3 {% if hasHelloAsso or hasVirement %}pt-4 border-t border-neutral-800{% endif %}">
+                    <p class="text-sm text-neutral-300 leading-relaxed">
+                        Merci de déposer vos chèques / justificatifs (Pass’Sport, ANCV…) au studio :
+                    </p>
+                    <p class="text-sm text-white font-medium">
+                        {{ association.nom }}<br>
+                        {{ association.adresse }}<br>
+                        {{ association.codePostal }} {{ association.ville }}
+                    </p>
+                    <p class="text-xs text-neutral-500">
+                        Date limite indicative : 10 octobre de la saison en cours. Conservez une copie de votre attestation.
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+
+        <div class="flex flex-col sm:flex-row gap-3 sm:justify-between pt-2">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a href="{{ path('app_foyer_inscription_facture', {id: inscription.id}) }}"
+                   class="inline-flex justify-center px-5 py-2.5 rounded-md border border-[#FFD700]/50 text-sm font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-colors">
+                    🧾 Facture / Attestation
+                </a>
+                <a href="{{ path('app_foyer_index') }}"
+                   class="inline-flex justify-center px-5 py-2.5 rounded-md border border-neutral-700 text-sm font-semibold text-neutral-300 hover:border-neutral-500 transition-colors">
+                    Retour à mon espace Foyer
+                </a>
+            </div>
+
+            {% if isBrouillon and isOwner %}
+                <form method="post">
+                    <input type="hidden" name="_token" value="{{ csrf_token('inscription_confirmation' ~ inscription.id) }}">
+                    <input type="hidden" name="_action" value="valider">
+                    <button type="submit"
+                            class="w-full sm:w-auto inline-flex justify-center px-6 py-2.5 rounded-md bg-[#FFD700] text-black text-sm font-bold uppercase tracking-wider hover:bg-amber-300 transition-colors"
+                            onclick="return confirm('Confirmer l’envoi de votre dossier au bureau ? Les étapes du tunnel seront ensuite verrouillées.');">
+                        Valider mon inscription
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

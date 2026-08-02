@@ -75,6 +75,9 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(CostumeCrudController::class, 'Costumes', 'fa fa-shirt');
         yield MenuItem::linkTo(ReservationCostumeCrudController::class, 'Réservations de costumes', 'fa fa-shopping-cart');
 
+        yield MenuItem::section('Comptabilité / Règlements');
+        yield MenuItem::linkTo(PaiementCrudController::class, 'Règlements', 'fa fa-money-check-dollar');
+
         yield MenuItem::section('Sponsors');
         yield MenuItem::linkTo(SponsorCrudController::class, 'Sponsors', 'fa fa-handshake');
 

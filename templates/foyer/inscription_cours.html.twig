@@ -8,7 +8,7 @@
 
         {% for label, messages in app.flashes %}
             {% for message in messages %}
-                <div class="p-4 rounded-md {{ label == 'success' ? 'bg-green-950/50 border border-green-800 text-green-400' : 'bg-red-950/50 border border-red-800 text-red-400' }} text-sm">
+                <div class="p-4 rounded-md {{ label == 'success' ? 'bg-green-950/50 border border-green-800 text-green-400' : (label == 'warning' ? 'bg-amber-950/50 border border-amber-800 text-amber-300' : 'bg-red-950/50 border border-red-800 text-red-400') }} text-sm">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -20,16 +20,18 @@
             </p>
             <h1 class="text-3xl font-extrabold text-[#FFD700] tracking-tight">Inscription aux cours</h1>
             <p class="text-neutral-400 mt-1">
-                Saison {{ saison }} — Cochez les créneaux pour chaque danseur. Le récapitulatif tarifaire se met à jour au rechargement.
+                Saison {{ saison }} — Cochez les créneaux : le récapitulatif se recalcule automatiquement.
             </p>
         </div>
 
-        <form method="post" class="grid gap-8 lg:grid-cols-3" id="inscription-cours-form">
+        <form method="post" class="grid gap-8 lg:grid-cols-3" id="inscription-cours-form" data-turbo="false">
             <input type="hidden" name="_token" value="{{ csrf_token('inscription_cours') }}">
+            <input type="hidden" name="_action" id="inscription-action" value="preview">
 
             <div class="lg:col-span-2 space-y-6">
                 {% for danseur in danseurs %}
                     {% set selectedIds = selectionByDanseur[danseur.id]|default([]) %}
+                    {% set attenteIds = attenteByDanseur[danseur.id]|default([]) %}
                     {% set packs = coursParDanseur[danseur.id] %}
                     <section class="bg-neutral-900/60 border border-neutral-800 rounded-xl p-6">
                         <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-4">
@@ -49,27 +51,74 @@
                         {% else %}
                             <div class="space-y-2">
                                 {% for cours in packs.eligible %}
-                                    {% set checked = cours.id in selectedIds %}
-                                    <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors {{ checked ? 'border-[#FFD700]/50 bg-[#FFD700]/5' : 'border-neutral-800 bg-black/30 hover:border-neutral-600' }}">
-                                        <input
-                                            type="checkbox"
-                                            name="cours[{{ danseur.id }}][]"
-                                            value="{{ cours.id }}"
-                                            class="mt-1 accent-[#FFD700] w-4 h-4"
-                                            {{ checked ? 'checked' : '' }}
-                                        >
-                                        <span class="flex-1 min-w-0">
-                                            <span class="block text-sm font-semibold text-neutral-100">{{ cours.nom }}</span>
-                                            <span class="block text-xs text-neutral-400 mt-0.5">
-                                                {{ cours.jour }} · {{ cours.heure|date('H\\hi') }}
-                                                · {{ cours.dureeLabel }}
-                                                · {{ cours.professeur }}
+                                    {% set places = placesParCours[cours.id]|default({restantes: 0, complet: true, inscrits: 0, capacite: cours.capaciteMax}) %}
+                                    {% set hasSeat = cours.id in selectedIds %}
+                                    {% set onWaitlist = cours.id in attenteIds %}
+                                    {% set checked = hasSeat or onWaitlist %}
+                                    {% set isComplet = places.complet and not hasSeat %}
+
+                                    {% if isComplet %}
+                                        <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors {{ onWaitlist ? 'border-amber-500/50 bg-amber-500/5' : 'border-neutral-800 bg-black/30 hover:border-neutral-600' }}">
+                                            <input
+                                                type="checkbox"
+                                                name="attente[{{ danseur.id }}][]"
+                                                value="{{ cours.id }}"
+                                                class="mt-1 accent-amber-400 w-4 h-4 js-recalc-tarif"
+                                                {{ onWaitlist ? 'checked' : '' }}
+                                            >
+                                            <span class="flex-1 min-w-0">
+                                                <span class="flex flex-wrap items-center gap-2">
+                                                    <span class="block text-sm font-semibold text-neutral-100">{{ cours.nom }}</span>
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                                        Complet — Liste d’attente
+                                                    </span>
+                                                </span>
+                                                <span class="block text-xs text-neutral-400 mt-0.5">
+                                                    {{ cours.jour }} · {{ cours.heure|date('H\\hi') }}
+                                                    · {{ cours.dureeLabel }}
+                                                    · {{ cours.professeur }}
+                                                </span>
+                                                <span class="block text-xs text-amber-400/90 mt-1">
+                                                    Cochez pour vous positionner en liste d’attente (non facturé tant qu’une place ne se libère pas).
+                                                </span>
                                             </span>
-                                        </span>
-                                        <span class="text-sm font-bold text-[#FFD700] whitespace-nowrap">
-                                            {{ cours.tarif|number_format(2, ',', ' ') }} €
-                                        </span>
-                                    </label>
+                                            <span class="text-sm font-bold text-neutral-500 whitespace-nowrap">
+                                                {{ cours.tarif|number_format(2, ',', ' ') }} €
+                                            </span>
+                                        </label>
+                                    {% else %}
+                                        <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors {{ hasSeat ? 'border-[#FFD700]/50 bg-[#FFD700]/5' : 'border-neutral-800 bg-black/30 hover:border-neutral-600' }}">
+                                            <input
+                                                type="checkbox"
+                                                name="cours[{{ danseur.id }}][]"
+                                                value="{{ cours.id }}"
+                                                class="mt-1 accent-[#FFD700] w-4 h-4 js-recalc-tarif"
+                                                {{ hasSeat ? 'checked' : '' }}
+                                            >
+                                            <span class="flex-1 min-w-0">
+                                                <span class="flex flex-wrap items-center gap-2">
+                                                    <span class="block text-sm font-semibold text-neutral-100">{{ cours.nom }}</span>
+                                                    {% if places.restantes <= 3 %}
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-orange-500/15 text-orange-300 border border-orange-500/30">
+                                                            {{ places.restantes }} place{{ places.restantes > 1 ? 's' : '' }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-[11px] text-neutral-500">
+                                                            {{ places.restantes }} places disponibles
+                                                        </span>
+                                                    {% endif %}
+                                                </span>
+                                                <span class="block text-xs text-neutral-400 mt-0.5">
+                                                    {{ cours.jour }} · {{ cours.heure|date('H\\hi') }}
+                                                    · {{ cours.dureeLabel }}
+                                                    · {{ cours.professeur }}
+                                                </span>
+                                            </span>
+                                            <span class="text-sm font-bold text-[#FFD700] whitespace-nowrap">
+                                                {{ cours.tarif|number_format(2, ',', ' ') }} €
+                                            </span>
+                                        </label>
+                                    {% endif %}
                                 {% else %}
                                     <p class="text-sm text-amber-400/90">Aucun créneau adapté à l’année de naissance de ce danseur.</p>
                                 {% endfor %}
@@ -120,14 +169,16 @@
                                     <ul class="space-y-1 text-xs text-neutral-400">
                                         {% for line in block.lines %}
                                             <li class="flex justify-between gap-2">
-                                                <span class="truncate {{ line.isGratuit2020 ? 'line-through text-neutral-600' : '' }}">
+                                                <span class="truncate {{ line.isGratuit2020 or line.isListeAttente ? 'text-neutral-600' : '' }} {{ line.isGratuit2020 ? 'line-through' : '' }}">
                                                     {{ line.coursNom }}
-                                                    {% if line.isGratuit2020 %}
+                                                    {% if line.isListeAttente %}
+                                                        <span class="no-underline text-amber-400 ml-1">(liste d’attente)</span>
+                                                    {% elseif line.isGratuit2020 %}
                                                         <span class="no-underline text-emerald-400 ml-1">(gratuit 2020)</span>
                                                     {% endif %}
                                                 </span>
-                                                <span class="whitespace-nowrap {{ line.isGratuit2020 ? 'text-emerald-400' : 'text-neutral-300' }}">
-                                                    {% if line.isGratuit2020 %}
+                                                <span class="whitespace-nowrap {{ line.isListeAttente ? 'text-amber-400' : (line.isGratuit2020 ? 'text-emerald-400' : 'text-neutral-300') }}">
+                                                    {% if line.isListeAttente or line.isGratuit2020 %}
                                                         0,00 €
                                                     {% else %}
                                                         {{ line.tarifBrut|number_format(2, ',', ' ') }} €
@@ -186,17 +237,15 @@
                     <div class="pt-2 space-y-2">
                         <button
                             type="submit"
-                            name="_action"
-                            value="preview"
-                            class="w-full py-2.5 px-4 text-sm font-semibold rounded-md border border-neutral-700 text-neutral-200 hover:border-[#FFD700]/50 hover:text-[#FFD700] transition-colors"
+                            class="w-full py-2.5 px-4 text-sm font-bold rounded-md border border-[#FFD700]/60 text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-colors"
+                            data-action-value="preview"
                         >
                             Recalculer le tarif
                         </button>
                         <button
                             type="submit"
-                            name="_action"
-                            value="save"
                             class="w-full py-3 px-4 text-sm font-extrabold rounded-md text-black bg-[#FFD700] hover:bg-[#FFD700]/90 transition-colors uppercase tracking-wider"
+                            data-action-value="save"
                         >
                             Enregistrer les inscriptions
                         </button>
@@ -206,4 +255,28 @@
         </form>
     </div>
 </div>
+<script>
+(() => {
+    const form = document.getElementById('inscription-cours-form');
+    if (!form) return;
+    const actionInput = document.getElementById('inscription-action');
+
+    form.querySelectorAll('[data-action-value]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            if (actionInput) {
+                actionInput.value = btn.getAttribute('data-action-value') || 'preview';
+            }
+        });
+    });
+
+    form.querySelectorAll('.js-recalc-tarif').forEach((checkbox) => {
+        checkbox.addEventListener('change', () => {
+            if (actionInput) {
+                actionInput.value = 'preview';
+            }
+            form.requestSubmit();
+        });
+    });
+})();
+</script>
 {% endblock %}

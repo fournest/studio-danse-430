@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmation d'inscription — Studio Danse 430</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e5e5e5;font-family:Georgia,serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:32px 16px;">
+    <tr>
+        <td align="center">
+            <table width="560" cellpadding="0" cellspacing="0" style="background:#171717;border:1px solid #404040;border-radius:8px;padding:32px;">
+                <tr>
+                    <td>
+                        <h1 style="margin:0 0 8px;color:#FFD700;font-size:22px;">Studio Danse 430</h1>
+                        <p style="margin:0 0 24px;color:#a3a3a3;font-size:14px;">Confirmation de votre demande d’inscription</p>
+
+                        <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">
+                            Bonjour,<br><br>
+                            La demande d’inscription du foyer <strong style="color:#fff;">{{ foyer.nom }}</strong> a bien été transmise au bureau.
+                        </p>
+
+                        <h2 style="margin:24px 0 12px;color:#FFD700;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;">Récapitulatif</h2>
+                        <ul style="margin:0;padding-left:18px;color:#d4d4d4;font-size:14px;line-height:1.6;">
+                            {% for ins in inscriptions %}
+                                <li>
+                                    {{ ins.danseur.prenom }} {{ ins.danseur.nom }} — {{ ins.cours.nom }}
+                                    ({{ (ins.montantTotal ?? 0)|number_format(2, ',', ' ') }} €)
+                                </li>
+                            {% endfor %}
+                        </ul>
+
+                        {% if hasHelloAsso %}
+                            <h2 style="margin:24px 0 12px;color:#FFD700;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;">Paiement HelloAsso</h2>
+                            <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#d4d4d4;">
+                                Pour finaliser votre règlement par carte bancaire, utilisez le formulaire HelloAsso de l’association.
+                                Indiquez le nom du foyer lors du paiement.
+                            </p>
+                            {% if helloAssoUrl %}
+                                <p style="margin:0 0 16px;">
+                                    <a href="{{ helloAssoUrl }}" style="display:inline-block;background:#FFD700;color:#000;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;font-size:13px;">
+                                        Payer via HelloAsso
+                                    </a>
+                                </p>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if hasVirement %}
+                            <h2 style="margin:24px 0 12px;color:#FFD700;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;">Virement bancaire</h2>
+                            <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#d4d4d4;">
+                                Pour régler par virement, utilisez les coordonnées ci-dessous et indiquez le nom du foyer
+                                (<strong style="color:#fff;">{{ foyer.nom }}</strong>) en libellé.
+                            </p>
+                            {% if club_iban %}
+                                <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#d4d4d4;">
+                                    Titulaire : <strong style="color:#fff;">{{ club_titulaire }}</strong><br>
+                                    IBAN : <strong style="color:#FFD700;font-family:monospace;">{{ club_iban }}</strong><br>
+                                    BIC : <strong style="color:#fff;font-family:monospace;">{{ club_bic }}</strong>
+                                </p>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if not hasHelloAsso and not hasVirement %}
+                            <h2 style="margin:24px 0 12px;color:#FFD700;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;">Dépôt des règlements</h2>
+                            <p style="margin:0;font-size:14px;line-height:1.5;color:#d4d4d4;">
+                                Déposez vos chèques / justificatifs au studio :<br>
+                                Studio Danse 430 — Rue Armand Calleau, 85430 Nieul-le-Dolent.
+                            </p>
+                        {% endif %}
+
+                        <p style="margin:28px 0 0;font-size:13px;color:#a3a3a3;">
+                            Retrouvez votre dossier et votre attestation dans
+                            <a href="{{ url('app_foyer_index') }}" style="color:#FFD700;">votre espace foyer</a>.
+                        </p>
+
+                        <p style="margin:24px 0 0;font-size:12px;color:#737373;">
+                            L’équipe du Studio Danse 430
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

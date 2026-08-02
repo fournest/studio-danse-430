@@ -1,0 +1,75 @@
+{% extends '@EasyAdmin/crud/detail.html.twig' %}
+
+{% block main %}
+    {{ parent() }}
+
+    {% set saison = saisonCourante|default('2026/2027') %}
+    {% set eff = effectif|default(null) %}
+    {% set attente = listeAttente|default([]) %}
+
+    {% if eff %}
+        <div class="content-panel mt-4">
+            <div class="content-panel-header">
+                <i class="fa fa-users"></i> Effectif saison {{ saison }}
+            </div>
+            <div class="content-panel-body">
+                <p class="mb-0">
+                    <strong>{{ eff.inscrits }} / {{ eff.capacite }}</strong> élèves
+                    · {{ eff.restantes }} place{{ eff.restantes > 1 ? 's' : '' }} restante{{ eff.restantes > 1 ? 's' : '' }}
+                    {% if eff.complet %}
+                        <span class="badge badge-danger">Complet</span>
+                    {% endif %}
+                </p>
+                {% set pct = eff.capacite > 0 ? ((eff.inscrits / eff.capacite) * 100)|round : 0 %}
+                <div class="progress mt-2" style="height: 10px;">
+                    <div class="progress-bar {{ eff.complet ? 'bg-danger' : (pct >= 80 ? 'bg-warning' : 'bg-success') }}"
+                         role="progressbar" style="width: {{ pct }}%;" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="content-panel mt-4">
+        <div class="content-panel-header">
+            <i class="fa fa-hourglass-half"></i> Liste d’attente ({{ attente|length }})
+        </div>
+        <div class="content-panel-body with-background">
+            {% if attente is empty %}
+                <p class="text-muted mb-0">Aucun élève en liste d’attente pour ce cours.</p>
+            {% else %}
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Danseur</th>
+                            <th>Statut</th>
+                            <th>Saison</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inscription in attente %}
+                            <tr>
+                                <td>{{ inscription.danseur }}</td>
+                                <td>{{ inscription.statut.label }}</td>
+                                <td>{{ inscription.saison }}</td>
+                                <td class="text-right">
+                                    <a class="btn btn-sm btn-success"
+                                       href="{{ ea_url()
+                                            .setController('App\\Controller\\Admin\\CoursCrudController')
+                                            .setAction('confirmerListeAttente')
+                                            .setEntityId(entity.primaryKeyValue)
+                                            .set('routeParams', { inscriptionId: inscription.id })
+                                            .set('inscriptionId', inscription.id)
+                                       }}"
+                                       onclick="return confirm('Confirmer la place pour cet élève ? La cotisation du foyer sera recalculée.');">
+                                        <i class="fa fa-check"></i> Passer en confirmé
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

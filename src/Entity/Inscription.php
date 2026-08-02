@@ -2,7 +2,12 @@
 
 namespace App\Entity;
 
+use App\Enum\StatutInscription;
+use App\Enum\StatutPaiement as StatutLignePaiement;
 use App\Repository\InscriptionRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: InscriptionRepository::class)]
@@ -17,15 +22,25 @@ class Inscription
     #[ORM\JoinColumn(nullable: false)]
     private ?Danseur $danseur = null;
 
-    #[ORM\ManyToOne(targetEntity: Cours::class)]
+    #[ORM\ManyToOne(targetEntity: Cours::class, inversedBy: 'inscriptions')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Cours $cours = null;
+
+    /** Place non confirmée : hors cotisation tant qu'une place ne se libère pas. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $estEnListeDAttente = false;
 
     #[ORM\Column(length: 20)]
     private string $saison;
 
     #[ORM\Column(enumType: StatutDossier::class)]
     private StatutDossier $statutDossier;
+
+    #[ORM\Column(enumType: StatutInscription::class, options: ['default' => 'brouillon'])]
+    private StatutInscription $statut = StatutInscription::BROUILLON;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $dateValidation = null;
 
     #[ORM\Column(nullable: true)]
     private ?string $certificatMedical = null;
@@ -62,6 +77,29 @@ class Inscription
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $motifRemise = null;
 
+    /** Montant net à payer pour cette inscription (après remises foyer). */
+    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
+    private ?string $montantTotal = null;
+
+    /** @var Collection<int, Paiement> */
+    #[ORM\OneToMany(targetEntity: Paiement::class, mappedBy: 'inscription', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['dateEncaissementPrevue' => 'ASC', 'id' => 'ASC'])]
+    private Collection $paiements;
+
+    public function __construct()
+    {
+        $this->paiements = new ArrayCollection();
+        $this->statut = StatutInscription::BROUILLON;
+    }
+
+    public function __toString(): string
+    {
+        $danseur = $this->danseur ? (string) $this->danseur : '?';
+        $cours = $this->cours?->getNom() ?? '?';
+
+        return sprintf('%s — %s (%s)', $danseur, $cours, $this->saison ?? '');
+    }
+
     // Getters/Setters
     public function getId(): ?int
     {
@@ -85,6 +123,29 @@ class Inscription
         $this->cours = $cours;
         return $this;
     }
+
+    public function isEstEnListeDAttente(): bool
+    {
+        return $this->estEnListeDAttente;
+    }
+
+    public function setEstEnListeDAttente(bool $estEnListeDAttente): self
+    {
+        $this->estEnListeDAttente = $estEnListeDAttente;
+
+        return $this;
+    }
+
+    /**
+     * Passe une inscription de la liste d'attente vers une place confirmée.
+     */
+    public function confirmerDepuisListeAttente(): self
+    {
+        $this->estEnListeDAttente = false;
+
+        return $this;
+    }
+
     public function getSaison(): string
     {
         return $this->saison;
@@ -103,6 +164,78 @@ class Inscription
         $this->statutDossier = $statutDossier;
         return $this;
     }
+
+    public function getStatut(): StatutInscription
+    {
+        return $this->statut;
+    }
+
+    public function setStatut(StatutInscription $statut): self
+    {
+        $this->statut = $statut;
+
+        return $this;
+    }
+
+    public function getDateValidation(): ?\DateTimeImmutable
+    {
+        return $this->dateValidation;
+    }
+
+    public function setDateValidation(?\DateTimeImmutable $dateValidation): self
+    {
+        $this->dateValidation = $dateValidation;
+
+        return $this;
+    }
+
+    public function isEditable(): bool
+    {
+        return $this->statut->isEditable();
+    }
+
+    /**
+     * Soumet l'inscription au bureau (fin du tunnel foyer).
+     */
+    public function soumettreAuBureau(): self
+    {
+        $this->statut = StatutInscription::EN_ATTENTE_VALIDATION;
+        $this->dateValidation = new \DateTimeImmutable();
+        $this->statutDossier = StatutDossier::EN_ATTENTE;
+
+        return $this;
+    }
+
+    public function validerDefinitivement(): self
+    {
+        $this->statut = StatutInscription::VALIDE;
+        $this->statutDossier = StatutDossier::VALIDE;
+
+        return $this;
+    }
+
+    public function utiliseHelloAsso(): bool
+    {
+        foreach ($this->paiements as $paiement) {
+            if ($paiement->getMode() === \App\Enum\ModePaiement::HELLOASSO) {
+                return true;
+            }
+        }
+
+        return str_contains(mb_strtolower((string) $this->modePaiement), 'helloasso');
+    }
+
+    public function utiliseVirement(): bool
+    {
+        foreach ($this->paiements as $paiement) {
+            if ($paiement->getMode() === \App\Enum\ModePaiement::VIREMENT) {
+                return true;
+            }
+        }
+
+        return str_contains(mb_strtolower((string) $this->modePaiement), 'virement');
+    }
+
     public function getCertificatMedical(): ?string
     {
         return $this->certificatMedical;
@@ -143,9 +276,54 @@ class Inscription
     {
         return $this->payeurNom;
     }
+
     public function setPayeurNom(?string $payeurNom): self
     {
         $this->payeurNom = $payeurNom;
+        return $this;
+    }
+
+    public function getPayeurPrenom(): ?string
+    {
+        return $this->payeurPrenom;
+    }
+
+    public function setPayeurPrenom(?string $payeurPrenom): self
+    {
+        $this->payeurPrenom = $payeurPrenom;
+        return $this;
+    }
+
+    public function getPayeurEmail(): ?string
+    {
+        return $this->payeurEmail;
+    }
+
+    public function setPayeurEmail(?string $payeurEmail): self
+    {
+        $this->payeurEmail = $payeurEmail;
+        return $this;
+    }
+
+    public function isDemandeFactureCE(): bool
+    {
+        return $this->demandeFactureCE;
+    }
+
+    public function setDemandeFactureCE(bool $demandeFactureCE): self
+    {
+        $this->demandeFactureCE = $demandeFactureCE;
+        return $this;
+    }
+
+    public function getNomEntrepriseCE(): ?string
+    {
+        return $this->nomEntrepriseCE;
+    }
+
+    public function setNomEntrepriseCE(?string $nomEntrepriseCE): self
+    {
+        $this->nomEntrepriseCE = $nomEntrepriseCE;
         return $this;
     }
 
@@ -174,5 +352,128 @@ class Inscription
     {
         $this->motifRemise = $motifRemise;
         return $this;
+    }
+
+    public function getMontantTotal(): ?float
+    {
+        return null === $this->montantTotal ? null : (float) $this->montantTotal;
+    }
+
+    public function setMontantTotal(string|float|int|null $montantTotal): self
+    {
+        if (null === $montantTotal || '' === $montantTotal) {
+            $this->montantTotal = null;
+        } else {
+            $this->montantTotal = number_format((float) $montantTotal, 2, '.', '');
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Paiement>
+     */
+    public function getPaiements(): Collection
+    {
+        return $this->paiements;
+    }
+
+    public function addPaiement(Paiement $paiement): self
+    {
+        if (!$this->paiements->contains($paiement)) {
+            $this->paiements->add($paiement);
+            $paiement->setInscription($this);
+        }
+
+        return $this;
+    }
+
+    public function removePaiement(Paiement $paiement): self
+    {
+        if ($this->paiements->removeElement($paiement)) {
+            if ($paiement->getInscription() === $this) {
+                $paiement->setInscription(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function clearPaiements(): self
+    {
+        foreach ($this->paiements->toArray() as $paiement) {
+            $this->removePaiement($paiement);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Somme des paiements à l'état ENCAISSE ou RECU.
+     */
+    public function getMontantRegle(): float
+    {
+        $total = 0.0;
+        foreach ($this->paiements as $paiement) {
+            if (\in_array($paiement->getStatut(), [StatutLignePaiement::ENCAISSE, StatutLignePaiement::RECU], true)) {
+                $total += $paiement->getMontant();
+            }
+        }
+
+        return round($total, 2);
+    }
+
+    /**
+     * Somme de toutes les lignes de paiement planifiées (hors refusées).
+     */
+    public function getMontantPlanifie(): float
+    {
+        $total = 0.0;
+        foreach ($this->paiements as $paiement) {
+            if ($paiement->getStatut() !== StatutLignePaiement::REFUSE) {
+                $total += $paiement->getMontant();
+            }
+        }
+
+        return round($total, 2);
+    }
+
+    public function getResteAPayer(): float
+    {
+        return round(max(0.0, ($this->getMontantTotal() ?? 0.0) - $this->getMontantRegle()), 2);
+    }
+
+    /**
+     * Met à jour le statut global (Non payé / Partiel / Soldé) selon les encaissements.
+     */
+    public function refreshStatutPaiement(): self
+    {
+        $total = $this->getMontantTotal() ?? 0.0;
+        $regle = $this->getMontantRegle();
+
+        if ($regle <= 0.001) {
+            $this->statutPaiement = StatutPaiement::NON_PAYE;
+        } elseif ($regle + 0.001 >= $total) {
+            $this->statutPaiement = StatutPaiement::SOLDE;
+        } else {
+            $this->statutPaiement = StatutPaiement::PARTIEL;
+        }
+
+        return $this;
+    }
+
+    public function getIndicateurReglement(): string
+    {
+        $total = $this->getMontantTotal() ?? 0.0;
+        $regle = $this->getMontantRegle();
+        $reste = $this->getResteAPayer();
+
+        return sprintf(
+            'Total %s € · Réglé %s € · Reste %s € · %s',
+            number_format($total, 2, ',', ' '),
+            number_format($regle, 2, ',', ' '),
+            number_format($reste, 2, ',', ' '),
+            $this->statutPaiement->value
+        );
     }
 }

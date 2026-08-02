@@ -1,0 +1,342 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Règlement — {{ danseur.prenom }} / {{ inscription.cours.nom }} — Studio Danse 430{% endblock %}
+
+{% block body %}
+<div class="py-12 px-4 sm:px-6 lg:px-8 bg-neutral-950 min-h-[calc(100vh-4rem)] text-white">
+    <div class="max-w-3xl mx-auto space-y-8" id="paiement-app"
+         data-montant-total="{{ montantTotal }}"
+         data-reste-a-payer="{{ resteAPayer }}"
+         data-dates-par-option="{{ datesParOption|json_encode|e('html_attr') }}"
+         data-turbo="false">
+
+        {% for label, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="p-4 rounded-md {{ label == 'success' ? 'bg-green-950/50 border border-green-800 text-green-400' : (label == 'warning' ? 'bg-amber-950/50 border border-amber-800 text-amber-300' : 'bg-red-950/50 border border-red-800 text-red-400') }} text-sm">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+        <div class="border-b border-neutral-800 pb-6">
+            <p class="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">
+                <a href="{{ path('app_foyer_index') }}" class="hover:text-[#FFD700] transition-colors">← Mon foyer</a>
+            </p>
+            <h1 class="text-3xl font-extrabold text-[#FFD700] tracking-tight">Modes de paiement</h1>
+            <p class="text-neutral-400 mt-1">
+                {{ danseur.prenom }} {{ danseur.nom }} — {{ inscription.cours.nom }}
+                <span class="text-neutral-600">·</span> Saison {{ inscription.saison }}
+            </p>
+        </div>
+
+        <div class="bg-neutral-900/60 border border-[#FFD700]/30 rounded-xl p-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-neutral-500">Montant total</p>
+                <p class="text-4xl font-extrabold text-[#FFD700] mt-1" id="recap-total">
+                    {{ montantTotal|number_format(2, ',', ' ') }} €
+                </p>
+                <p class="text-sm text-neutral-400 mt-1">
+                    Reste à payer :
+                    <span class="text-white font-semibold">{{ resteAPayer|number_format(2, ',', ' ') }} €</span>
+                </p>
+            </div>
+            <div class="text-sm text-neutral-400 space-y-1 sm:text-right">
+                <p>Total saisi : <span class="text-white font-semibold" id="recap-saisi">0,00 €</span></p>
+                <p>Différence : <span class="font-semibold" id="recap-diff">0,00 €</span></p>
+            </div>
+        </div>
+
+        {% if paiementsExistants is not empty %}
+            <div class="bg-amber-950/20 border border-amber-800/40 rounded-xl p-4 text-sm text-amber-200">
+                <p class="font-semibold mb-2">Des moyens de paiement sont déjà enregistrés ({{ paiementsExistants|length }} ligne(s)).</p>
+                <p class="text-amber-200/70">Les remplacer en validant à nouveau le formulaire ci-dessous.</p>
+            </div>
+        {% endif %}
+
+        <form method="post" id="paiement-form" class="space-y-6">
+            <input type="hidden" name="_token" value="{{ csrf_token('inscription_paiement' ~ inscription.id) }}">
+
+            <fieldset class="space-y-3">
+                <legend class="text-sm font-bold uppercase tracking-wider text-neutral-500 mb-2">Choisissez un mode de règlement</legend>
+
+                <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors border-[#FFD700]/40 bg-[#FFD700]/5 has-checked:border-[#FFD700] has-checked:bg-[#FFD700]/10">
+                    <input type="radio" name="type_reglement" value="cheques" class="mt-1 accent-[#FFD700]" checked id="type-cheques">
+                    <span>
+                        <span class="block font-semibold text-white">A. Paiement par chèque(s) échelonné(s)</span>
+                        <span class="block text-sm text-neutral-400 mt-0.5">Échelonnement 1×, 3× ou 10× — dates d’encaissement automatiques</span>
+                    </span>
+                </label>
+
+                <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors border-neutral-800 bg-black/30 has-checked:border-[#FFD700] has-checked:bg-[#FFD700]/10">
+                    <input type="radio" name="type_reglement" value="mixte" class="mt-1 accent-[#FFD700]" id="type-mixte">
+                    <span>
+                        <span class="block font-semibold text-white">B. Règlement mixte / autre</span>
+                        <span class="block text-sm text-neutral-400 mt-0.5">Pass’Sport, ANCV, virement, espèces — une ou plusieurs lignes</span>
+                    </span>
+                </label>
+            </fieldset>
+
+            {# --- Option A : chèques --- #}
+            <div id="panel-cheques" class="bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 space-y-5">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Nombre d’échéances</label>
+                    <div class="flex flex-wrap gap-3">
+                        {% for n in [1, 3, 10] %}
+                            <label class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-neutral-700 cursor-pointer has-checked:border-[#FFD700] has-checked:bg-[#FFD700]/10">
+                                <input type="radio" name="nombre_echeances" value="{{ n }}" class="accent-[#FFD700] js-echeances" {{ n == 1 ? 'checked' : '' }}>
+                                <span class="text-sm font-semibold">{{ n }}×</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <p class="text-xs text-neutral-500 mt-2" id="echeances-hint">1 chèque encaissé le 10 octobre.</p>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="montant_echelonne" class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Montant à échelonner (€)</label>
+                        <input type="number" step="0.01" min="0.01" max="{{ resteAPayer }}"
+                               name="montant_echelonne" id="montant_echelonne"
+                               class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                               value="{{ resteAPayer|number_format(2, '.', '') }}">
+                        <p class="text-xs text-neutral-500 mt-1">Par défaut : reste à payer</p>
+                    </div>
+                    <div>
+                        <label for="emetteur" class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Nom de l’émetteur</label>
+                        <input type="text" name="emetteur" id="emetteur" required
+                               class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                               placeholder="Ex. Nom du parent qui signe le(s) chèque(s)"
+                               value="">
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Aperçu des échéances</h3>
+                    <div class="overflow-x-auto rounded-lg border border-neutral-800">
+                        <table class="w-full text-sm">
+                            <thead class="bg-black/40 text-neutral-400 text-left">
+                                <tr>
+                                    <th class="px-3 py-2 font-semibold">#</th>
+                                    <th class="px-3 py-2 font-semibold">Date prévue d’encaissement</th>
+                                    <th class="px-3 py-2 font-semibold text-right">Montant du chèque</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-echeances" class="divide-y divide-neutral-800 text-neutral-200"></tbody>
+                            <tfoot class="border-t border-neutral-700 bg-black/30">
+                                <tr>
+                                    <td colspan="2" class="px-3 py-2 text-neutral-400 font-semibold">Total</td>
+                                    <td class="px-3 py-2 text-right font-bold text-[#FFD700]" id="preview-total">0,00 €</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {# --- Option B : mixte --- #}
+            <div id="panel-mixte" class="bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 space-y-4 hidden">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-500">Lignes de paiement</h2>
+                    <button type="button" id="btn-add-ligne"
+                            class="text-xs font-bold uppercase tracking-wider text-[#FFD700] hover:underline">
+                        + Ajouter une ligne
+                    </button>
+                </div>
+                <div id="lignes-container" class="space-y-3"></div>
+                <template id="ligne-template">
+                    <div class="grid gap-3 sm:grid-cols-12 items-end p-3 rounded-lg border border-neutral-800 bg-black/30 js-ligne">
+                        <div class="sm:col-span-4">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Mode</label>
+                            <select name="lignes[__INDEX__][mode]" class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2">
+                                {% for mode in modesAll %}
+                                    <option value="{{ mode.value }}">{{ mode.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="sm:col-span-3">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Montant (€)</label>
+                            <input type="number" step="0.01" min="0.01" name="lignes[__INDEX__][montant]"
+                                   class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 js-paiement-montant"
+                                   value="">
+                        </div>
+                        <div class="sm:col-span-4">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Référence</label>
+                            <input type="text" name="lignes[__INDEX__][reference]"
+                                   class="w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2"
+                                   placeholder="Code Pass'Sport, n°…">
+                        </div>
+                        <div class="sm:col-span-1 flex justify-end pb-1">
+                            <button type="button" class="js-remove-ligne text-red-400 hover:text-red-300 text-lg leading-none" title="Supprimer">×</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 sm:justify-end pt-2">
+                <a href="{{ path('app_foyer_index') }}"
+                   class="inline-flex justify-center px-5 py-2.5 rounded-md border border-neutral-700 text-sm font-semibold text-neutral-300 hover:border-neutral-500 transition-colors">
+                    Plus tard
+                </a>
+                <button type="submit" id="btn-submit"
+                        class="inline-flex justify-center px-5 py-2.5 rounded-md bg-[#FFD700] text-black text-sm font-bold uppercase tracking-wider hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                    Valider le règlement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    const root = document.getElementById('paiement-app');
+    if (!root) return;
+
+    const montantTotal = parseFloat(root.dataset.montantTotal) || 0;
+    const resteAPayer = parseFloat(root.dataset.resteAPayer) || montantTotal;
+    let datesParOption = {};
+    try {
+        datesParOption = JSON.parse(root.dataset.datesParOption || '{}');
+    } catch (e) {
+        datesParOption = {};
+    }
+
+    const typeCheques = document.getElementById('type-cheques');
+    const typeMixte = document.getElementById('type-mixte');
+    const panelCheques = document.getElementById('panel-cheques');
+    const panelMixte = document.getElementById('panel-mixte');
+    const hint = document.getElementById('echeances-hint');
+    const preview = document.getElementById('preview-echeances');
+    const previewTotal = document.getElementById('preview-total');
+    const montantInput = document.getElementById('montant_echelonne');
+    const recapSaisi = document.getElementById('recap-saisi');
+    const recapDiff = document.getElementById('recap-diff');
+    const btnSubmit = document.getElementById('btn-submit');
+    const emetteur = document.getElementById('emetteur');
+    const lignesContainer = document.getElementById('lignes-container');
+    const tpl = document.getElementById('ligne-template');
+    let ligneIndex = 0;
+
+    const hints = {
+        1: '1 chèque encaissé le 10 octobre.',
+        3: '3 chèques : 10 octobre, 10 janvier, 10 avril.',
+        10: '10 chèques : le 10 de chaque mois d’octobre à juillet.'
+    };
+
+    function fmt(n) {
+        return n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €';
+    }
+
+    function repartir(total, n) {
+        const base = Math.round((total / n) * 100) / 100;
+        const arr = Array(n).fill(base);
+        const somme = Math.round(base * n * 100) / 100;
+        const reste = Math.round((total - somme) * 100) / 100;
+        arr[0] = Math.round((arr[0] + reste) * 100) / 100;
+        return arr;
+    }
+
+    function getMontantEchelonne() {
+        const v = parseFloat(String(montantInput.value).replace(',', '.'));
+        return (!isNaN(v) && v > 0) ? Math.round(v * 100) / 100 : 0;
+    }
+
+    function updatePanels() {
+        const isCheques = typeCheques.checked;
+        panelCheques.classList.toggle('hidden', !isCheques);
+        panelMixte.classList.toggle('hidden', isCheques);
+        emetteur.required = isCheques;
+        updateRecap();
+        updateEcheancesPreview();
+    }
+
+    function updateEcheancesPreview() {
+        if (!typeCheques.checked) return;
+        const n = parseInt(document.querySelector('input[name="nombre_echeances"]:checked')?.value || '1', 10);
+        hint.textContent = hints[n] || '';
+        const montant = getMontantEchelonne();
+        const parts = montant > 0 ? repartir(montant, n) : [];
+        const dates = datesParOption[String(n)] || datesParOption[n] || [];
+
+        preview.innerHTML = parts.map(function (m, i) {
+            return '<tr>'
+                + '<td class="px-3 py-2 text-neutral-500">' + (i + 1) + '/' + n + '</td>'
+                + '<td class="px-3 py-2">' + (dates[i] || '—') + '</td>'
+                + '<td class="px-3 py-2 text-right font-semibold text-[#FFD700]">' + fmt(m) + '</td>'
+                + '</tr>';
+        }).join('');
+        previewTotal.textContent = fmt(montant);
+    }
+
+    function getSaisi() {
+        if (typeCheques.checked) {
+            return getMontantEchelonne();
+        }
+        let sum = 0;
+        lignesContainer.querySelectorAll('.js-paiement-montant').forEach(function (input) {
+            const v = parseFloat(String(input.value).replace(',', '.'));
+            if (!isNaN(v) && v > 0) sum += v;
+        });
+        return Math.round(sum * 100) / 100;
+    }
+
+    function updateRecap() {
+        const cible = typeCheques.checked ? resteAPayer : resteAPayer;
+        const saisi = getSaisi();
+        const diff = Math.round((saisi - cible) * 100) / 100;
+        recapSaisi.textContent = fmt(saisi);
+        recapDiff.textContent = fmt(diff);
+        // Chèques : on accepte un montant ≤ reste (partiel OK) ; mixte : somme = reste
+        let ok;
+        if (typeCheques.checked) {
+            ok = saisi > 0 && saisi - resteAPayer < 0.009;
+        } else {
+            ok = Math.abs(diff) < 0.009 && saisi > 0;
+        }
+        recapDiff.className = 'font-semibold ' + (ok ? 'text-emerald-400' : 'text-red-400');
+        btnSubmit.disabled = !ok;
+        updateEcheancesPreview();
+    }
+
+    function addLigne(prefill) {
+        const html = tpl.innerHTML.replaceAll('__INDEX__', String(ligneIndex++));
+        const wrap = document.createElement('div');
+        wrap.innerHTML = html.trim();
+        const row = wrap.firstElementChild;
+        if (prefill && prefill.montant) {
+            row.querySelector('.js-paiement-montant').value = prefill.montant;
+        }
+        if (prefill && prefill.mode) {
+            row.querySelector('select').value = prefill.mode;
+        }
+        row.querySelector('.js-remove-ligne').addEventListener('click', function () {
+            row.remove();
+            updateRecap();
+        });
+        row.querySelector('.js-paiement-montant').addEventListener('input', updateRecap);
+        lignesContainer.appendChild(row);
+        updateRecap();
+    }
+
+    document.getElementById('btn-add-ligne').addEventListener('click', function () {
+        addLigne(null);
+    });
+
+    typeCheques.addEventListener('change', updatePanels);
+    typeMixte.addEventListener('change', updatePanels);
+    montantInput.addEventListener('input', updateRecap);
+    document.querySelectorAll('.js-echeances').forEach(function (el) {
+        el.addEventListener('change', function () {
+            updateEcheancesPreview();
+            updateRecap();
+        });
+    });
+
+    typeMixte.addEventListener('change', function () {
+        if (typeMixte.checked && lignesContainer.children.length === 0) {
+            addLigne({ montant: resteAPayer.toFixed(2) });
+        }
+    });
+
+    updatePanels();
+})();
+</script>
+{% endblock %}
