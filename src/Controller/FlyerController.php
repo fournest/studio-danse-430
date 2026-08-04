@@ -63,7 +63,10 @@ final class FlyerController extends AbstractController
         $coursParJour = [];
         $photos = [];
         if ($mode === 'planning') {
-            $coursParJour = $coursRepository->findGroupedByJour();
+            $coursParJour = array_filter(
+                $coursRepository->findGroupedByJour(),
+                static fn (array $items): bool => $items !== []
+            );
             $photos = $this->resolvePhotos($mediaRepository);
         }
 

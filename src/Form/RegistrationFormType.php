@@ -25,7 +25,12 @@ class RegistrationFormType extends AbstractType
             ->add('email', EmailType::class, [
                 'label' => 'Adresse Email',
                 'label_attr' => ['class' => $labelClass],
-                'attr' => ['class' => $inputClass, 'placeholder' => 'exemple@mail.com'],
+                'attr' => [
+                    'class' => $inputClass,
+                    'placeholder' => 'exemple@mail.com',
+                    'readonly' => $options['lock_email'] ? true : false,
+                ],
+                'disabled' => $options['lock_email'],
             ])
             ->add('telephone', TelType::class, [
                 'label' => 'Numéro de téléphone',
@@ -65,6 +70,8 @@ class RegistrationFormType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => User::class,
+            'lock_email' => false,
         ]);
+        $resolver->setAllowedTypes('lock_email', 'bool');
     }
 }

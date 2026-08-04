@@ -2,6 +2,8 @@
 
 namespace App\Security;
 
+use App\Entity\User;
+use App\Service\CoParentInvitationService;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,6 +17,7 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\PasswordC
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
 use Symfony\Component\Security\Http\Util\TargetPathTrait;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 {
@@ -22,8 +25,11 @@ class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 
     public const LOGIN_ROUTE = 'app_login';
 
-    public function __construct(private readonly UrlGeneratorInterface $urlGenerator)
-    {
+    public function __construct(
+        private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly CoParentInvitationService $coParentInvitation,
+        private readonly RequestStack $requestStack,
+    ) {
     }
 
     public function authenticate(Request $request): Passport
@@ -44,17 +50,31 @@ class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
-        // Si l'utilisateur tentait d'accéder à une page protégée, on l'y renvoie.
+        $user = $token->getUser();
+        if ($user instanceof User) {
+            $result = $this->coParentInvitation->acceptPendingFromSession($user);
+            if (null !== $result) {
+                $session = $this->requestStack->getSession();
+                $session->getFlashBag()->add(
+                    $result['ok'] ? 'success' : 'danger',
+                    $result['message']
+                );
+
+                if ($result['ok']) {
+                    return new RedirectResponse($this->urlGenerator->generate('app_foyer_index'));
+                }
+            }
+        }
+
         if ($targetPath = $this->getTargetPath($request->getSession(), $firewallName)) {
             return new RedirectResponse($targetPath);
         }
 
-        // Un administrateur est dirigé vers le back-office, sinon vers l'accueil.
-        if (in_array('ROLE_ADMIN', $token->getRoleNames(), true)) {
+        if (\in_array('ROLE_ADMIN', $token->getRoleNames(), true) || \in_array('ROLE_BUREAU', $token->getRoleNames(), true)) {
             return new RedirectResponse($this->urlGenerator->generate('admin'));
         }
 
-        return new RedirectResponse($this->urlGenerator->generate('app_home'));
+        return new RedirectResponse($this->urlGenerator->generate('app_foyer_index'));
     }
 
     protected function getLoginUrl(Request $request): string

@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Commande #{{ commande.id }} confirmée — Studio Danse 430{% endblock %}
+
+{% block body %}
+<section class="bg-black py-16 min-h-[60vh]">
+	<div class="max-w-2xl mx-auto px-4 sm:px-6 space-y-8">
+		{% for label, messages in app.flashes %}
+			{% for message in messages %}
+				<div class="p-4 rounded-md text-sm {{ label == 'success' ? 'bg-green-950/50 border border-green-800 text-green-400' : 'bg-red-950/50 border border-red-800 text-red-400' }}">
+					{{ message }}
+				</div>
+			{% endfor %}
+		{% endfor %}
+
+		<div class="text-center space-y-3">
+			<p class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+				Commande enregistrée
+			</p>
+			<h1 class="text-3xl font-extrabold text-[#FFD700]">Commande #{{ commande.id }}</h1>
+			<p class="text-white/70">
+				Statut : <strong class="text-white">{{ commande.statut.label }}</strong>
+				· {{ commande.modePaiement.label }}
+			</p>
+		</div>
+
+		<article class="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 space-y-3 text-sm">
+			{% for ligne in commande.lignes %}
+				<div class="flex justify-between gap-3">
+					<span class="text-neutral-300">
+						{{ ligne.goodie.nom }}
+						{% if ligne.taille %}<span class="text-neutral-500">({{ ligne.taille }})</span>{% endif %}
+						× {{ ligne.quantite }}
+					</span>
+					<span class="text-white font-semibold">{{ ligne.prixTotal|number_format(2, ',', ' ') }} €</span>
+				</div>
+			{% endfor %}
+			<div class="flex justify-between pt-3 border-t border-neutral-800">
+				<span class="font-bold text-white">Total</span>
+				<span class="text-2xl font-extrabold text-[#FFD700]">{{ commande.total|number_format(2, ',', ' ') }} €</span>
+			</div>
+			<p class="text-xs text-neutral-500 pt-2">
+				{{ commande.modeRetrait.label }}
+				{% if commande.modeRetrait.value == 'livraison' and commande.adresse %}
+					— {{ commande.adresse }}, {{ commande.codePostal }} {{ commande.ville }}
+				{% endif %}
+			</p>
+		</article>
+
+		<div class="flex flex-col sm:flex-row gap-3">
+			<a href="{{ path('app_boutique_index') }}" class="flex-1 text-center py-3 rounded-full border border-[#FFD700] text-[#FFD700] font-bold hover:bg-[#FFD700] hover:text-black transition-colors">
+				Retour à la boutique
+			</a>
+			{% if app.user and app.user.foyer %}
+				<a href="{{ path('app_foyer_index') }}" class="flex-1 text-center py-3 rounded-full bg-neutral-800 text-white font-bold hover:bg-neutral-700 transition-colors">
+					Mon foyer
+				</a>
+			{% endif %}
+		</div>
+	</div>
+</section>
+{% endblock %}

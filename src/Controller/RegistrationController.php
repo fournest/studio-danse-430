@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\RegistrationFormType;
+use App\Repository\InvitationCoparentRepository;
 use App\Repository\UserRepository;
 use App\Security\EmailVerifier;
 use App\Service\CoParentInvitationService;
@@ -30,39 +31,55 @@ class RegistrationController extends AbstractController
         UserPasswordHasherInterface $userPasswordHasher,
         EntityManagerInterface $entityManager,
         CoParentInvitationService $coParentInvitation,
+        InvitationCoparentRepository $invitationRepository,
     ): Response {
         $user = new User();
 
         $inviteEmail = trim((string) $request->query->get('email', ''));
-        $danseurId = (int) $request->query->get('danseur', 0);
-        $foyerId = (int) $request->query->get('foyer', 0);
-        $expires = (int) $request->query->get('expires', 0);
-        $token = (string) $request->query->get('token', '');
+        $coparentToken = trim((string) $request->query->get('coparent_token', ''));
         $isCoParentInvite = false;
 
-        if (
-            $inviteEmail !== ''
-            && $danseurId > 0
-            && $foyerId > 0
-            && $expires > 0
-            && $token !== ''
-            && $coParentInvitation->isValidInvitation($danseurId, $foyerId, $inviteEmail, $expires, $token)
-        ) {
-            $user->setEmail($inviteEmail);
+        if ($coparentToken === '') {
+            $coparentToken = (string) ($coParentInvitation->peekTokenFromSession() ?? '');
+        }
+
+        if ($coparentToken !== '') {
+            $invitation = $invitationRepository->findOneValidByToken($coparentToken);
+            if (null !== $invitation) {
+                $inviteEmail = $invitation->getEmail();
+                $user->setEmail($inviteEmail);
+                $isCoParentInvite = true;
+                $coParentInvitation->storeTokenInSession($coparentToken);
+            }
+        } elseif ($inviteEmail !== '') {
+            // Pré-remplissage simple (lien manuel ou ancien format)
+            $user->setEmail(mb_strtolower($inviteEmail));
             $isCoParentInvite = true;
         }
 
-        $form = $this->createForm(RegistrationFormType::class, $user);
+        $form = $this->createForm(RegistrationFormType::class, $user, [
+            'lock_email' => $isCoParentInvite && $inviteEmail !== '',
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             /** @var string $plainPassword */
             $plainPassword = $form->get('plainPassword')->getData();
 
+            // Email verrouillé : réimpose l’email d’invitation (champ disabled non soumis).
+            if ($isCoParentInvite && $inviteEmail !== '') {
+                $user->setEmail(mb_strtolower($inviteEmail));
+            }
+
             $user->setPassword($userPasswordHasher->hashPassword($user, $plainPassword));
 
             $entityManager->persist($user);
             $entityManager->flush();
+
+            // Conserve le token pour finaliser le rattachement après connexion.
+            if ($coparentToken !== '') {
+                $coParentInvitation->storeTokenInSession($coparentToken);
+            }
 
             $this->emailVerifier->sendEmailConfirmation('app_verify_email', $user,
                 (new TemplatedEmail())
@@ -75,11 +92,13 @@ class RegistrationController extends AbstractController
             $this->addFlash(
                 'success',
                 $isCoParentInvite
-                    ? 'Votre compte co-parent a été créé. Vérifiez vos e-mails pour l’activer, puis connectez-vous pour consulter la fiche de votre enfant.'
+                    ? 'Votre compte co-parent a été créé. Vérifiez vos e-mails pour l’activer, puis connectez-vous : le rattachement de l’enfant sera finalisé automatiquement.'
                     : 'Votre compte a été créé. Veuillez vérifier vos e-mails pour activer votre compte avant de vous connecter.'
             );
 
-            return $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_login', [
+                'email' => $user->getEmail(),
+            ]);
         }
 
         return $this->render('registration/register.html.twig', [
@@ -115,6 +134,8 @@ class RegistrationController extends AbstractController
 
         $this->addFlash('success', 'Votre adresse e-mail est confirmée. Vous pouvez maintenant vous connecter.');
 
-        return $this->redirectToRoute('app_login');
+        return $this->redirectToRoute('app_login', [
+            'email' => $user->getEmail(),
+        ]);
     }
 }

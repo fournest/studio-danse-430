@@ -1,0 +1,117 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Commande boutique — Studio Danse 430{% endblock %}
+
+{% block body %}
+<section class="bg-black py-12 border-b border-[#FFD700]/20">
+	<div class="max-w-4xl mx-auto px-4 sm:px-6">
+		<p class="text-xs font-bold uppercase tracking-wider text-[#FFD700]/80 mb-2">Étapes 2 &amp; 3 / 3</p>
+		<h1 class="text-3xl sm:text-4xl font-extrabold text-[#FFD700]">Coordonnées &amp; règlement</h1>
+		<p class="text-white/70 mt-2">Paiement comptant (1×) — HelloAsso / CB, chèque ou espèces au club.</p>
+	</div>
+</section>
+
+<section class="bg-black py-10">
+	<div class="max-w-4xl mx-auto px-4 sm:px-6 grid gap-8 lg:grid-cols-5">
+		{% if errors is not empty %}
+			<div class="lg:col-span-5 space-y-2">
+				{% for error in errors %}
+					<div class="p-3 rounded-md text-sm bg-red-950/50 border border-red-800 text-red-400">{{ error }}</div>
+				{% endfor %}
+			</div>
+		{% endif %}
+
+		<form method="post" class="lg:col-span-3 space-y-5" data-turbo="false">
+			<input type="hidden" name="_token" value="{{ csrf_token('boutique_commande') }}">
+
+			<div class="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 space-y-4">
+				<h2 class="text-sm font-bold uppercase tracking-wider text-[#FFD700]">Coordonnées</h2>
+				{% if isLoggedIn %}
+					<p class="text-xs text-neutral-500">Pré-remplies depuis votre compte — modifiables si besoin.</p>
+				{% endif %}
+
+				<div>
+					<label class="block text-xs text-neutral-400 mb-1">Nom complet *</label>
+					<input type="text" name="nomComplet" value="{{ defaults.nomComplet }}" required
+						   class="w-full rounded-lg bg-neutral-900 border border-neutral-700 text-white px-3 py-2">
+				</div>
+				<div class="grid sm:grid-cols-2 gap-4">
+					<div>
+						<label class="block text-xs text-neutral-400 mb-1">E-mail *</label>
+						<input type="email" name="email" value="{{ defaults.email }}" required
+							   class="w-full rounded-lg bg-neutral-900 border border-neutral-700 text-white px-3 py-2">
+					</div>
+					<div>
+						<label class="block text-xs text-neutral-400 mb-1">Téléphone</label>
+						<input type="tel" name="telephone" value="{{ defaults.telephone }}"
+							   class="w-full rounded-lg bg-neutral-900 border border-neutral-700 text-white px-3 py-2">
+					</div>
+				</div>
+
+				<fieldset class="space-y-2 pt-2">
+					<legend class="text-xs text-neutral-400 mb-1">Mode de retrait *</legend>
+					{% for mode in modesRetrait %}
+						<label class="flex items-center gap-2 text-sm text-neutral-200 cursor-pointer">
+							<input type="radio" name="modeRetrait" value="{{ mode.value }}" class="accent-[#FFD700]"
+								{{ defaults.modeRetrait == mode.value ? 'checked' : '' }} required>
+							{{ mode.label }}
+						</label>
+					{% endfor %}
+				</fieldset>
+
+				<div>
+					<label class="block text-xs text-neutral-400 mb-1">Adresse</label>
+					<input type="text" name="adresse" value="{{ defaults.adresse }}"
+						   class="w-full rounded-lg bg-neutral-900 border border-neutral-700 text-white px-3 py-2">
+				</div>
+				<div class="grid sm:grid-cols-3 gap-4">
+					<div>
+						<label class="block text-xs text-neutral-400 mb-1">Code postal</label>
+						<input type="text" name="codePostal" value="{{ defaults.codePostal }}"
+							   class="w-full rounded-lg bg-neutral-900 border border-neutral-700 text-white px-3 py-2">
+					</div>
+					<div class="sm:col-span-2">
+						<label class="block text-xs text-neutral-400 mb-1">Ville</label>
+						<input type="text" name="ville" value="{{ defaults.ville }}"
+							   class="w-full rounded-lg bg-neutral-900 border border-neutral-700 text-white px-3 py-2">
+					</div>
+				</div>
+			</div>
+
+			<div class="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 space-y-3">
+				<h2 class="text-sm font-bold uppercase tracking-wider text-[#FFD700]">Règlement (1×)</h2>
+				{% for mode in modesPaiement %}
+					<label class="flex items-center gap-3 p-3 rounded-xl border border-neutral-800 hover:border-[#FFD700]/40 cursor-pointer transition-colors">
+						<input type="radio" name="modePaiement" value="{{ mode.value }}" class="accent-[#FFD700]"
+							{{ defaults.modePaiement == mode.value ? 'checked' : '' }} required>
+						<span class="text-sm text-neutral-200">{{ mode.label }}</span>
+					</label>
+				{% endfor %}
+			</div>
+
+			<button type="submit" class="w-full py-3.5 rounded-xl bg-[#FFD700] text-black font-extrabold hover:bg-yellow-400 transition-colors">
+				Valider la commande — {{ total|number_format(2, ',', ' ') }} €
+			</button>
+		</form>
+
+		<aside class="lg:col-span-2">
+			<div class="sticky top-24 bg-neutral-950 border border-[#FFD700]/25 rounded-2xl p-5 space-y-3">
+				<h2 class="text-sm font-bold text-[#FFD700]">Récapitulatif</h2>
+				<ul class="space-y-2 text-sm text-neutral-400">
+					{% for item in items %}
+						<li class="flex justify-between gap-2">
+							<span class="truncate">{{ item.goodie.nom }}{% if item.taille %} ({{ item.taille }}){% endif %} × {{ item.quantite }}</span>
+							<span class="text-neutral-200 whitespace-nowrap">{{ item.prixTotal|number_format(2, ',', ' ') }} €</span>
+						</li>
+					{% endfor %}
+				</ul>
+				<div class="flex justify-between pt-3 border-t border-neutral-800 font-bold">
+					<span class="text-white">Total</span>
+					<span class="text-[#FFD700] text-xl">{{ total|number_format(2, ',', ' ') }} €</span>
+				</div>
+				<a href="{{ path('app_boutique_panier') }}" class="block text-center text-xs text-neutral-500 hover:text-[#FFD700] pt-2">← Retour au panier</a>
+			</div>
+		</aside>
+	</div>
+</section>
+{% endblock %}

@@ -30,7 +30,7 @@
 	<body class="bg-black text-white min-h-screen flex flex-col antialiased overflow-x-hidden">
 		<header class="bg-black border-b border-[#FFD700]/30 sticky top-0 z-40">
 			<div class="max-w-6xl mx-auto px-4 sm:px-6">
-				<div class="flex items-center justify-between h-16">
+				<div class="flex items-center justify-between h-16 gap-3">
 
 					<a href="{{ path('app_home') }}" class="flex items-center gap-3 shrink-0">
 						<img src="{{ asset('images/logo.studio-danse-430.jpg') }}" alt="Logo Studio Danse 430" class="h-12 w-auto object-contain rounded shadow-sm">
@@ -39,67 +39,103 @@
 						</span>
 					</a>
 
-					<nav class="flex items-center gap-2 sm:gap-4">
+					{# Liens publics — desktop #}
+					<nav class="hidden lg:flex items-center gap-1 xl:gap-2" aria-label="Navigation principale">
+						<a href="{{ path('app_cours_index') }}" class="px-2 xl:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200 whitespace-nowrap">
+							Cours
+						</a>
+						<a href="{{ path('app_costumes_index') }}" class="px-2 xl:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200 whitespace-nowrap">
+							🎭 Location Costumes
+						</a>
+						<a href="{{ path('app_boutique_index') }}" class="px-2 xl:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200 whitespace-nowrap">
+							👕 Boutique
+						</a>
+					</nav>
 
-						{# ========================================================================== #}
-						{# 1. SI L'UTILISATEUR EST CONNECTÉ                                           #}
-						{# ========================================================================== #}
-							{% if app.user %}
-
-							{# 🛡️ BOUTON ADMINISTRATION (Réservé au Bureau et au Trésorier) #}
-								{% if is_granted('ROLE_BUREAU') or is_granted('ROLE_TRESORIER') %}
-									<a href="{{ path('admin') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors duration-200"> 🛡️ Administration
-								</a>
+					<nav class="flex items-center gap-1 sm:gap-3">
+						{% if app.user %}
+							{% if is_granted('ROLE_BUREAU') or is_granted('ROLE_TRESORIER') %}
+								<a href="{{ path('admin') }}" class="hidden md:inline px-2 sm:px-3 py-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors duration-200">🛡️ Admin</a>
 							{% endif %}
-
-							{# 💃 BOUTON ESPACE PROF — uniquement les vrais profs (ROLE_BUREAU hérite de ROLE_PROF) #}
 							{% if is_granted('ROLE_PROF') and not is_granted('ROLE_BUREAU') %}
-								<a href="{{ path('app_espace_prof') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-200">
-									💃 Espace Prof
-								</a>
+								<a href="{{ path('app_espace_prof') }}" class="hidden md:inline px-2 sm:px-3 py-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-200">💃 Espace Prof</a>
 							{% endif %}
-
-							{# 🏠 GESTION DYNAMIQUE DU FOYER
-							   - Titulaire / 2ᵉ parent : mon foyer
-							   - Prof (ROLE_PROF) : aussi, s’il a (ou crée) un foyer familial
-							   - Bureau / Trésorier sans foyer : pas de lien #}
 							{% if app.user.foyer or not is_granted('ROLE_TRESORIER') %}
-								<a href="{{ path('app_foyer_index') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">
-									🏠 Mon Foyer
-								</a>
+								<a href="{{ path('app_foyer_index') }}" class="hidden sm:inline px-2 sm:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">🏠 Mon Foyer</a>
 							{% endif %}
-
-							{# 📝 LIEN INSCRIPTIONS (Accessible pour tout le monde connecté) #}
-							<a href="{{ path('app_foyer_inscription_cours') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">
-								Inscriptions
-							</a>
-
-							{# 🚪 BOUTON DÉCONNEXION #}
-							<a href="{{ path('app_logout') }}" class="ml-1 sm:ml-2 inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold text-[#FFD700] border border-[#FFD700] rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
-								<i class="fa fa-right-from-bracket"></i>
+							{% if app.user.foyer %}
+								<a href="{{ path('app_foyer_inscription_cours') }}" class="hidden sm:inline px-2 sm:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">Inscriptions</a>
+							{% endif %}
+							<a href="{{ path('app_logout') }}" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold text-[#FFD700] border border-[#FFD700] rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
 								<span class="hidden sm:inline">Déconnexion</span>
+								<span class="sm:hidden">⎋</span>
 							</a>
-
-							{# ========================================================================== #}
-							{# 2. SI L'UTILISATEUR EST UN VISITEUR ANONYME                                #}
-							{# ========================================================================== #}
 						{% else %}
-
-							<a href="{{ path('app_login') }}" class="px-2 sm:px-4 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">
-								Connexion
-							</a>
-
-							<a href="{{ path('app_register') }}" class="ml-1 sm:ml-2 inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-[#FFD700] text-black border border-[#FFD700] rounded-full hover:bg-black hover:text-[#FFD700] transition-colors duration-200 uppercase tracking-wider whitespace-nowrap">
+							<a href="{{ path('app_login') }}" class="hidden sm:inline px-2 sm:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">Connexion</a>
+							<a href="{{ path('app_register') }}" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-[#FFD700] text-black border border-[#FFD700] rounded-full hover:bg-black hover:text-[#FFD700] transition-colors duration-200 uppercase tracking-wider whitespace-nowrap">
 								<span class="hidden sm:inline">Créez votre compte</span>
 								<span class="sm:hidden">S'inscrire</span>
 							</a>
-
 						{% endif %}
 
+						<button type="button"
+								id="nav-burger"
+								class="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-neutral-700 text-white hover:border-[#FFD700] hover:text-[#FFD700] transition-colors"
+								aria-expanded="false"
+								aria-controls="mobile-nav"
+								aria-label="Ouvrir le menu">
+							<svg id="nav-burger-open" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+							</svg>
+							<svg id="nav-burger-close" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+							</svg>
+						</button>
 					</nav>
-
 				</div>
+
+				<nav id="mobile-nav"
+					 class="lg:hidden hidden pb-4 border-t border-neutral-900"
+					 aria-label="Navigation mobile">
+					<div class="flex flex-col gap-1 pt-3">
+						<a href="{{ path('app_cours_index') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">Cours</a>
+						<a href="{{ path('app_costumes_index') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">🎭 Location Costumes</a>
+						<a href="{{ path('app_boutique_index') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">👕 Boutique</a>
+						{% if app.user %}
+							{% if is_granted('ROLE_BUREAU') or is_granted('ROLE_TRESORIER') %}
+								<a href="{{ path('admin') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-amber-400 hover:bg-neutral-900 transition-colors">🛡️ Administration</a>
+							{% endif %}
+							{% if is_granted('ROLE_PROF') and not is_granted('ROLE_BUREAU') %}
+								<a href="{{ path('app_espace_prof') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-400 hover:bg-neutral-900 transition-colors">💃 Espace Prof</a>
+							{% endif %}
+							{% if app.user.foyer or not is_granted('ROLE_TRESORIER') %}
+								<a href="{{ path('app_foyer_index') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">🏠 Mon Foyer</a>
+							{% endif %}
+							{% if app.user.foyer %}
+								<a href="{{ path('app_foyer_inscription_cours') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">Inscriptions</a>
+							{% endif %}
+						{% else %}
+							<a href="{{ path('app_login') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">Connexion</a>
+						{% endif %}
+					</div>
+				</nav>
 			</div>
+			<script>
+				(function () {
+					var btn = document.getElementById('nav-burger');
+					var panel = document.getElementById('mobile-nav');
+					var iconOpen = document.getElementById('nav-burger-open');
+					var iconClose = document.getElementById('nav-burger-close');
+					if (!btn || !panel) return;
+					btn.addEventListener('click', function () {
+						var open = panel.classList.toggle('hidden') === false;
+						btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+						btn.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
+						if (iconOpen) iconOpen.classList.toggle('hidden', open);
+						if (iconClose) iconClose.classList.toggle('hidden', !open);
+					});
+				})();
+			</script>
 		</header>
 
 		<main class="flex-1"> {% block body %}{% endblock %}
@@ -128,7 +164,10 @@
 									<a href="{{ path('app_cours_index') }}" class="hover:underline">Les cours</a>
 								</li>
 								<li>
-									<a href="{{ path('app_costume_index') }}" class="hover:underline">Costumes</a>
+									<a href="{{ path('app_costumes_index') }}" class="hover:underline">Location Costumes</a>
+								</li>
+								<li>
+									<a href="{{ path('app_boutique_index') }}" class="hover:underline">Boutique</a>
 								</li>
 								<li>
 									<a href="{{ path('app_gala_reservation') }}" class="hover:underline">Réserver le Gala</a>

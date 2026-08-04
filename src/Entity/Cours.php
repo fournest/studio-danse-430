@@ -18,6 +18,10 @@ class Cours
     #[ORM\Column(length: 50)]
     private string $nom;
 
+    /** Numéro / libellé de groupe pour différencier les cours de même discipline (ex. « 1 », « Ado 1 »). */
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $numeroGroupe = null;
+
     #[ORM\Column(length: 10)]
     private string $jour;
 
@@ -41,11 +45,19 @@ class Cours
     #[ORM\Column(type: 'decimal', precision: 8, scale: 2)]
     private string $tarif = '0.00';
 
-    /** Année de naissance minimale éligible (null = pas de borne basse). */
+    /** Âge minimal éligible en années révolues (null = pas de borne basse). */
+    #[ORM\Column(nullable: true)]
+    private ?int $ageMin = null;
+
+    /** Âge maximal éligible en années révolues (null = pas de borne haute). */
+    #[ORM\Column(nullable: true)]
+    private ?int $ageMax = null;
+
+    /** Année de naissance minimale éligible (null = pas de borne basse) — legacy / complément. */
     #[ORM\Column(nullable: true)]
     private ?int $anneeNaissanceMin = null;
 
-    /** Année de naissance maximale éligible (null = pas de borne haute). */
+    /** Année de naissance maximale éligible (null = pas de borne haute) — legacy / complément. */
     #[ORM\Column(nullable: true)]
     private ?int $anneeNaissanceMax = null;
 
@@ -81,6 +93,36 @@ class Cours
     {
         $this->nom = $nom;
         return $this;
+    }
+
+    public function getNumeroGroupe(): ?string
+    {
+        return $this->numeroGroupe;
+    }
+
+    public function setNumeroGroupe(?string $numeroGroupe): self
+    {
+        $trimmed = null !== $numeroGroupe ? trim($numeroGroupe) : null;
+        $this->numeroGroupe = ($trimmed === '') ? null : $trimmed;
+
+        return $this;
+    }
+
+    /**
+     * Nom d’affichage avec numéro / groupe : « Modern Jazz #1 » ou « Éveil Danse - Groupe 2 ».
+     */
+    public function getNomComplet(): string
+    {
+        $groupe = $this->numeroGroupe;
+        if (null === $groupe || $groupe === '') {
+            return $this->nom;
+        }
+
+        if (preg_match('/^\d+[A-Za-z]?$/u', $groupe)) {
+            return sprintf('%s #%s', $this->nom, $groupe);
+        }
+
+        return sprintf('%s - %s', $this->nom, $groupe);
     }
 
     public function getJour(): string
@@ -157,6 +199,23 @@ class Cours
         return implode(' · ', $this->getProfesseursNoms());
     }
 
+    /**
+     * Prénom(s) des professeurs pour l’affichage public (ex. « Élodie » ou « Élodie · Marie »).
+     */
+    public function getProfesseurPrenom(): string
+    {
+        $prenoms = [];
+        foreach ($this->getProfesseursNoms() as $nomComplet) {
+            $parts = preg_split('/\s+/u', $nomComplet, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $prenom = $parts[0] ?? $nomComplet;
+            if ($prenom !== '') {
+                $prenoms[] = $prenom;
+            }
+        }
+
+        return $prenoms !== [] ? implode(' · ', $prenoms) : 'la professeure';
+    }
+
     public function getCapaciteMax(): int
     {
         return $this->capaciteMax;
@@ -201,6 +260,28 @@ class Cours
         return $this;
     }
 
+    public function getAgeMin(): ?int
+    {
+        return $this->ageMin;
+    }
+
+    public function setAgeMin(?int $ageMin): self
+    {
+        $this->ageMin = $ageMin;
+        return $this;
+    }
+
+    public function getAgeMax(): ?int
+    {
+        return $this->ageMax;
+    }
+
+    public function setAgeMax(?int $ageMax): self
+    {
+        $this->ageMax = $ageMax;
+        return $this;
+    }
+
     public function getAnneeNaissanceMin(): ?int
     {
         return $this->anneeNaissanceMin;
@@ -233,6 +314,68 @@ class Cours
         };
     }
 
+    public function getHeureFin(): \DateTimeInterface
+    {
+        $debut = \DateTimeImmutable::createFromInterface($this->heure);
+
+        return $debut->modify(sprintf('+%d minutes', $this->dureeMinutes));
+    }
+
+    /** Libellé « 18h30 - 20h00 ». */
+    public function getHoraireLabel(): string
+    {
+        return sprintf(
+            '%s - %s',
+            $this->heure->format('G\\hi'),
+            $this->getHeureFin()->format('G\\hi')
+        );
+    }
+
+    /**
+     * Libellé de tranche d’âge (ex. « 8-12 ans ») ou null si aucune borne.
+     */
+    public function getTrancheAgeLabel(): ?string
+    {
+        if (null === $this->ageMin && null === $this->ageMax) {
+            return null;
+        }
+
+        if (null !== $this->ageMin && null !== $this->ageMax) {
+            return sprintf('%d-%d ans', $this->ageMin, $this->ageMax);
+        }
+
+        if (null !== $this->ageMin) {
+            return sprintf('à partir de %d ans', $this->ageMin);
+        }
+
+        return sprintf('jusqu’à %d ans', $this->ageMax);
+    }
+
+    public function hasAgeBounds(): bool
+    {
+        return null !== $this->ageMin || null !== $this->ageMax;
+    }
+
+    /**
+     * Indique si l’âge (années révolues) est dans la tranche [ageMin, ageMax].
+     */
+    public function isEligibleForAge(?int $age): bool
+    {
+        if (null === $age || !$this->hasAgeBounds()) {
+            return true;
+        }
+
+        if (null !== $this->ageMin && $age < $this->ageMin) {
+            return false;
+        }
+
+        if (null !== $this->ageMax && $age > $this->ageMax) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Indique si le danseur (année de naissance) est éligible à ce créneau.
      */
@@ -255,6 +398,13 @@ class Cours
 
     public function isEligibleForDanseur(Danseur $danseur): bool
     {
+        if ($this->hasAgeBounds()) {
+            $age = $danseur->getAge();
+            if (null !== $age) {
+                return $this->isEligibleForAge($age);
+            }
+        }
+
         return $this->isEligibleForBirthYear($danseur->getAnneeNaissance());
     }
 
@@ -372,6 +522,8 @@ class Cours
 
     public function __toString(): string
     {
-        return $this->nom ?? 'Cours';
+        $label = $this->getNomComplet();
+
+        return $label !== '' ? $label : ('Cours #' . ($this->id ?? '?'));
     }
 }

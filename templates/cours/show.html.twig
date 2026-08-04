@@ -1,49 +1,58 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ cours.nom }} - Studio Danse 430{% endblock %}
+{% block title %}{{ cours.nomComplet }} - Studio Danse 430{% endblock %}
 
 {% block body %}
     <section class="bg-black py-16">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
             <a href="{{ path('app_cours_index') }}"
                class="inline-flex items-center gap-2 text-sm font-semibold text-[#FFD700] hover:underline mb-6">
-                &larr; Retour aux cours
+                &larr; Retour au planning
             </a>
 
             <article class="bg-black border border-[#FFD700] rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.15)]">
                 <div class="p-8 border-b border-[#FFD700]/20">
-                    <h1 class="text-3xl font-extrabold text-[#FFD700]">{{ cours.nom }}</h1>
-                    <p class="mt-2 text-white/80">Animé par {{ cours.professeurLabel|default(cours.professeur) }}</p>
+                    <h1 class="text-3xl font-extrabold text-[#FFD700]">{{ cours.nomComplet }}</h1>
+                    <p class="mt-3 text-base text-white/85">
+                        📅 {{ cours.jour }} · {{ cours.heure|date('G\\hi') }} ({{ cours.dureeLabel }})
+                    </p>
+                    <p class="mt-2 text-white/80">Professeur : {{ cours.professeurPrenom }}</p>
                 </div>
 
                 <div class="p-8 grid gap-6 sm:grid-cols-2">
                     <div>
-                        <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Jour</p>
-                        <p class="text-lg text-white mt-1">{{ cours.jour }}</p>
-                    </div>
-                    <div>
                         <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Horaire</p>
-                        <p class="text-lg text-white mt-1">
-                            {{ cours.heure|date('H\\hi') }}
-                            {% if cours.dureeMinutes is defined %}
-                                <span class="text-white/50 text-base">({{ cours.dureeLabel }})</span>
-                            {% endif %}
-                        </p>
+                        <p class="text-lg text-white mt-1">{{ cours.horaireLabel }}</p>
                     </div>
                     <div>
                         <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Professeur</p>
-                        <p class="text-lg text-white mt-1">{{ cours.professeurLabel|default(cours.professeur) }}</p>
+                        <p class="text-lg text-white mt-1">{{ cours.professeurPrenom }}</p>
                     </div>
                     <div>
                         <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Capacité</p>
-                        <p class="text-lg text-white mt-1">{{ cours.capaciteMax }} danseurs</p>
+                        <p class="text-lg text-white mt-1">
+                            {{ cours.capaciteMax }} danseurs
+                            <span class="text-sm text-white/50">
+                                ({{ cours.placesRestantes(saison) }} place{{ cours.placesRestantes(saison) > 1 ? 's' : '' }} restante{{ cours.placesRestantes(saison) > 1 ? 's' : '' }})
+                            </span>
+                        </p>
                     </div>
+                    {% if cours.trancheAgeLabel %}
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Tranche d’âge</p>
+                            <p class="text-lg text-white mt-1">{{ cours.trancheAgeLabel }}</p>
+                        </div>
+                    {% endif %}
                     {% if cours.tarif is defined and cours.tarif > 0 %}
                         <div>
                             <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Tarif saison</p>
                             <p class="text-lg text-[#FFD700] font-bold mt-1">{{ cours.tarif|number_format(2, ',', ' ') }} €</p>
                         </div>
                     {% endif %}
+                </div>
+
+                <div class="mx-8 mb-6">
+                    {% include 'partials/_remarque_pedagogique.html.twig' %}
                 </div>
 
                 <div class="px-8 pb-8 flex flex-wrap items-center gap-3">

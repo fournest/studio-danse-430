@@ -75,10 +75,18 @@
 											{{ inscription.cours ? inscription.cours.nom : 'Cours' }}
 											<span class="text-yellow-600/80 ml-1">({{ inscription.saison }})</span>
 										</span>
-										<a href="{{ path('app_foyer_inscription_facture', {id: inscription.id}) }}"
-										   class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-3 py-2 rounded-lg text-xs font-bold transition-colors {{ isSolde ? 'border border-emerald-600/50 text-emerald-400 hover:bg-emerald-400 hover:text-gray-950' : 'border border-yellow-500/40 text-yellow-400 hover:bg-yellow-400 hover:text-gray-950' }}">
-											🧾 {{ isSolde ? 'Télécharger la facture acquittée' : 'Télécharger l\'attestation d\'inscription' }}
-										</a>
+										{% if inscription.cours %}
+											<p class="text-xs text-gray-400">
+												📅 {{ inscription.cours.jour }} · {{ inscription.cours.heure|date('H\\hi') }}
+												· {{ inscription.cours.professeur }}
+											</p>
+										{% endif %}
+										{% if isReadOnly is not defined or not isReadOnly %}
+											<a href="{{ path('app_foyer_inscription_facture', {id: inscription.id}) }}"
+											   class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-3 py-2 rounded-lg text-xs font-bold transition-colors {{ isSolde ? 'border border-emerald-600/50 text-emerald-400 hover:bg-emerald-400 hover:text-gray-950' : 'border border-yellow-500/40 text-yellow-400 hover:bg-yellow-400 hover:text-gray-950' }}">
+												🧾 {{ isSolde ? 'Télécharger la facture acquittée' : 'Télécharger l\'attestation d\'inscription' }}
+											</a>
+										{% endif %}
 									</div>
 								{% endfor %}
 							</div>

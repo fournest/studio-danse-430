@@ -16,28 +16,67 @@ class CostumeRepository extends ServiceEntityRepository
         parent::__construct($registry, Costume::class);
     }
 
-    //    /**
-    //     * @return Costume[] Returns an array of Costume objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('c.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Catalogue public hors gala, avec filtres optionnels.
+     *
+     * @return list<Costume>
+     */
+    public function findDisponiblesHorsGala(?string $theme = null, ?string $taille = null, ?string $genre = null): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->andWhere('c.disponibleHorsGala = true')
+            ->andWhere('c.quantite > 0')
+            ->orderBy('c.nom', 'ASC');
 
-    //    public function findOneBySomeField($value): ?Costume
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        if ($theme) {
+            $qb->andWhere('c.theme = :theme')
+                ->setParameter('theme', $theme);
+        }
+
+        if ($taille) {
+            $qb->andWhere('c.taille = :taille')
+                ->setParameter('taille', $taille);
+        }
+
+        if ($genre) {
+            $qb->andWhere('c.genre = :genre')
+                ->setParameter('genre', $genre);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function findDistinctThemesHorsGala(): array
+    {
+        $rows = $this->createQueryBuilder('c')
+            ->select('DISTINCT c.theme')
+            ->andWhere('c.disponibleHorsGala = true')
+            ->andWhere('c.theme IS NOT NULL')
+            ->andWhere("c.theme != ''")
+            ->orderBy('c.theme', 'ASC')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_values(array_filter($rows));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function findDistinctTaillesHorsGala(): array
+    {
+        $rows = $this->createQueryBuilder('c')
+            ->select('DISTINCT c.taille')
+            ->andWhere('c.disponibleHorsGala = true')
+            ->andWhere('c.taille IS NOT NULL')
+            ->andWhere("c.taille != ''")
+            ->orderBy('c.taille', 'ASC')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_values(array_filter($rows));
+    }
 }

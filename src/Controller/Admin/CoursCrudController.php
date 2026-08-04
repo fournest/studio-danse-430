@@ -49,7 +49,7 @@ class CoursCrudController extends AbstractCrudController
             ->setEntityLabelInSingular('Cours')
             ->setEntityLabelInPlural('Cours')
             ->setDefaultSort(['jour' => 'ASC', 'heure' => 'ASC'])
-            ->setPageTitle(Crud::PAGE_DETAIL, static fn (Cours $c) => $c->getNom())
+            ->setPageTitle(Crud::PAGE_DETAIL, static fn (Cours $c) => $c->getNomComplet())
             ->overrideTemplate('crud/detail', 'admin/cours/detail.html.twig');
     }
 
@@ -76,10 +76,31 @@ class CoursCrudController extends AbstractCrudController
             )
             ->createAsGlobalAction();
 
+        $voirEleves = Action::new('voirEleves', 'Voir les élèves', 'fa fa-users text-primary')
+            ->linkToUrl(function (Cours $cours) {
+                return $this->adminUrlGenerator
+                    ->setController(DanseurCrudController::class)
+                    ->setAction(Action::INDEX)
+                    ->unset('filtreComplets')
+                    ->set('filtreCours', $cours->getId())
+                    ->generateUrl();
+            })
+            ->setCssClass('action-voirEleves dropdown-item d-flex align-items-center gap-2');
+
+        $exporterListe = Action::new('exporterListe', 'Exporter la liste', 'fa fa-file-excel text-success')
+            ->linkToRoute('app_admin_export_cours', static fn (Cours $c) => [
+                'id' => $c->getId(),
+            ])
+            ->setCssClass('action-exportListe dropdown-item d-flex align-items-center gap-2');
+
         return $actions
             ->add(Crud::PAGE_INDEX, $filtreComplets)
             ->add(Crud::PAGE_INDEX, $tous)
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, $voirEleves)
+            ->add(Crud::PAGE_INDEX, $exporterListe)
+            ->add(Crud::PAGE_DETAIL, $voirEleves)
+            ->add(Crud::PAGE_DETAIL, $exporterListe)
             ->add(Crud::PAGE_EDIT, Action::DETAIL);
     }
 
@@ -114,7 +135,14 @@ class CoursCrudController extends AbstractCrudController
         $saison = CotisationCalculatorService::SAISON_COURANTE;
 
         yield IdField::new('id')->hideOnForm();
-        yield TextField::new('nom');
+        yield TextField::new('nom')
+            ->hideOnIndex();
+        yield TextField::new('numeroGroupe', 'N° / Groupe')
+            ->setHelp('Permet de différencier les cours de même discipline (ex. « 1 », « 2 », « Ado 1 », « Adultes 2 »).')
+            ->setRequired(false)
+            ->hideOnIndex();
+        yield TextField::new('nomComplet', 'Cours')
+            ->onlyOnIndex();
         yield TextField::new('jour');
         yield TimeField::new('heure');
         yield TextField::new('professeur', 'Professeur(s)')
@@ -128,11 +156,17 @@ class CoursCrudController extends AbstractCrudController
         yield NumberField::new('tarif', 'Tarif (€)')
             ->setNumDecimals(2)
             ->setHelp('Grille tarifaire saison — utilisée par le calculateur de cotisations.');
+        yield IntegerField::new('ageMin', 'Âge min')
+            ->setHelp('Âge minimal en années révolues. Laisser vide = pas de borne basse. Le front-office refuse les inscriptions hors tranche.')
+            ->hideOnIndex();
+        yield IntegerField::new('ageMax', 'Âge max')
+            ->setHelp('Âge maximal en années révolues. Laisser vide = pas de borne haute. Le bureau peut outrepasser via EasyAdmin.')
+            ->hideOnIndex();
         yield IntegerField::new('anneeNaissanceMin', 'Année naissance min')
-            ->setHelp('Ex. 2008 pour Enfants/Ados. Laisser vide = pas de borne.')
+            ->setHelp('Complément legacy (ex. 2008). Préférez Âge min / Âge max. Laisser vide = ignoré.')
             ->hideOnIndex();
         yield IntegerField::new('anneeNaissanceMax', 'Année naissance max')
-            ->setHelp('Ex. 2022 pour Enfants/Ados ; 2007 pour Adultes.')
+            ->setHelp('Complément legacy. Préférez Âge min / Âge max.')
             ->hideOnIndex();
         yield IntegerField::new('capaciteMax')->setLabel('Capacité max');
 

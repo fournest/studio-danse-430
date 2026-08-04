@@ -6,9 +6,9 @@ use App\Entity\Inscription;
 use App\Entity\StatutDossier;
 use App\Entity\StatutPaiement;
 use App\Enum\StatutInscription;
-use App\Enum\StatutSante;
 use App\Form\PaiementType;
 use App\Service\CotisationCalculatorService;
+use App\Service\InscriptionAutofillService;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -28,12 +28,15 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class InscriptionCrudController extends AbstractCrudController
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly AdminUrlGenerator $adminUrlGenerator,
+        private readonly InscriptionAutofillService $autofill,
+        private readonly UrlGeneratorInterface $urlGenerator,
     ) {
     }
 
@@ -106,7 +109,9 @@ class InscriptionCrudController extends AbstractCrudController
         yield MoneyField::new('montantTotal', 'Total (€)')
             ->setCurrency('EUR')
             ->setStoredAsCents(false)
-            ->setNumDecimals(2);
+            ->setNumDecimals(2)
+            ->setDisabled()
+            ->setHelp('Recalculé automatiquement via CotisationCalculatorService (cours, remises, boutique).');
 
         yield NumberField::new('montantRegle', 'Réglé (€)')
             ->setNumDecimals(2)
@@ -135,36 +140,46 @@ class InscriptionCrudController extends AbstractCrudController
                 StatutPaiement::SOLDE->value => 'success',
             ]);
 
-        yield TextField::new('danseur.statutSante', 'Santé')
-            ->formatValue(static function ($value, ?Inscription $entity) {
-                return $entity?->getDanseur()?->getStatutSante()?->getLabel() ?? '—';
-            })
+        yield TextField::new('danseur.statutSanteLabel', 'Santé')
             ->onlyOnIndex();
 
-        yield ChoiceField::new('danseur.statutSante', 'Statut santé')
-            ->setChoices($this->enumChoices(StatutSante::cases()))
-            ->formatValue(static function ($value, ?Inscription $entity) {
-                return $entity?->getDanseur()?->getStatutSante()?->getLabel() ?? '—';
-            })
-            ->renderAsBadges([
-                StatutSante::EN_ATTENTE->value => 'warning',
-                StatutSante::QS_SPORT_VALIDE->value => 'info',
-                StatutSante::CERTIFICAT_FOURNI->value => 'primary',
-                StatutSante::VALIDE_BUREAU->value => 'success',
-            ])
+        yield TextField::new('danseur.statutSanteLabel', 'Statut santé')
             ->onlyOnDetail();
 
         yield TextField::new('modePaiement')->hideOnIndex();
-        yield TextField::new('certificatMedical')->hideOnIndex();
-        yield TextField::new('danseur.certificatFilename', 'Fichier certificat (danseur)')
-            ->onlyOnDetail();
+
+        yield TextField::new('certificatMedical', 'Certificat médical')
+            ->formatValue(function ($value, ?Inscription $entity) {
+                $danseur = $entity?->getDanseur();
+                $filename = $danseur?->getCertificatFilename();
+                if (null === $danseur || null === $filename) {
+                    $label = \is_string($value) && $value !== ''
+                        ? $value
+                        : ($danseur?->getStatutSanteLabel() ?? 'Aucun justificatif');
+
+                    return sprintf('<span class="text-muted">%s</span>', htmlspecialchars($label, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8'));
+                }
+
+                $url = $this->urlGenerator->generate('app_admin_danseur_certificat_download', [
+                    'id' => $danseur->getId(),
+                ]);
+
+                return sprintf(
+                    '<a class="btn btn-sm btn-info" href="%s"><i class="fa fa-file-medical"></i> Télécharger le certificat</a>',
+                    htmlspecialchars($url, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8')
+                );
+            })
+            ->renderAsHtml()
+            ->setDisabled()
+            ->setHelp('Synchronisé depuis le dossier santé du danseur.');
+
         yield TextField::new('helloAssoPaymentId')
             ->setLabel('Réf. HelloAsso')
             ->setHelp('Référence / reçu saisi par le foyer ou le bureau.');
 
         yield NumberField::new('remiseManuelle', 'Remise manuelle (€)')
             ->setNumDecimals(2)
-            ->setHelp('Remise bureau spécifique à cette inscription.')
+            ->setHelp('Remise bureau spécifique à cette inscription. Le total est recalculé à l’enregistrement.')
             ->hideOnIndex();
         yield TextField::new('motifRemise', 'Motif de la remise')
             ->hideOnIndex();
@@ -178,6 +193,59 @@ class InscriptionCrudController extends AbstractCrudController
             ->allowDelete()
             ->setEntryIsComplex()
             ->hideOnIndex();
+    }
+
+    public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        if (!$entityInstance instanceof Inscription) {
+            parent::persistEntity($entityManager, $entityInstance);
+
+            return;
+        }
+
+        $this->autofillBeforeFlush($entityInstance);
+        $entityManager->persist($entityInstance);
+        $entityManager->flush();
+        $this->recalculateAfterFlush($entityInstance);
+        $entityManager->flush();
+    }
+
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
+    {
+        if (!$entityInstance instanceof Inscription) {
+            parent::updateEntity($entityManager, $entityInstance);
+
+            return;
+        }
+
+        $this->autofillBeforeFlush($entityInstance);
+        $entityManager->persist($entityInstance);
+        $entityManager->flush();
+        $this->recalculateAfterFlush($entityInstance);
+        $entityManager->flush();
+    }
+
+    private function autofillBeforeFlush(Inscription $inscription): void
+    {
+        $this->autofill->syncSante($inscription);
+    }
+
+    private function recalculateAfterFlush(Inscription $inscription): void
+    {
+        $foyer = $inscription->getDanseur()?->getFoyer();
+        if (null === $foyer) {
+            return;
+        }
+
+        $saison = $inscription->getSaison() ?: CotisationCalculatorService::SAISON_COURANTE;
+        $detail = $this->autofill->recalculateMontantsForFoyer($foyer, $saison);
+
+        $this->addFlash('info', sprintf(
+            'Total foyer recalculé : %s € (cours %s € + extras %s €).',
+            number_format($detail->grandTotal, 2, ',', ' '),
+            number_format($detail->total, 2, ',', ' '),
+            number_format($detail->getExtrasAmount(), 2, ',', ' ')
+        ));
     }
 
     #[AdminRoute('/{entityId}/valider-definitivement', name: 'valider_definitivement')]
@@ -199,10 +267,8 @@ class InscriptionCrudController extends AbstractCrudController
     }
 
     #[AdminRoute('/{entityId}/confirmer-liste-attente', name: 'confirmer_liste_attente')]
-    public function confirmerDepuisListeAttente(
-        AdminContext $context,
-        CotisationCalculatorService $calculator,
-    ): Response {
+    public function confirmerDepuisListeAttente(AdminContext $context): Response
+    {
         /** @var Inscription $inscription */
         $inscription = $context->getEntity()->getInstance();
         $saison = CotisationCalculatorService::SAISON_COURANTE;
@@ -222,40 +288,7 @@ class InscriptionCrudController extends AbstractCrudController
 
             $foyer = $inscription->getDanseur()?->getFoyer();
             if ($foyer) {
-                $detail = $calculator->calculateForFoyer($foyer, $saison);
-                $entries = [];
-                $poidsTotal = 0.0;
-                foreach ($detail->breakdownByDanseur as $block) {
-                    foreach ($foyer->getDanseurs() as $danseur) {
-                        if ($danseur->getId() !== $block->danseurId) {
-                            continue;
-                        }
-                        foreach ($block->lines as $line) {
-                            foreach ($danseur->getInscriptions() as $ins) {
-                                if ($ins->getSaison() !== $saison || $ins->getCours()?->getId() !== $line->coursId) {
-                                    continue;
-                                }
-                                $poids = $line->isListeAttente ? 0.0 : $line->montantApresGratuit;
-                                $entries[] = ['inscription' => $ins, 'poids' => $poids];
-                                $poidsTotal += $poids;
-                            }
-                        }
-                    }
-                }
-                $reste = $detail->total;
-                $last = \count($entries) - 1;
-                foreach ($entries as $i => $entry) {
-                    if ($poidsTotal <= 0) {
-                        $montant = 0.0;
-                    } elseif ($i === $last) {
-                        $montant = round(max(0.0, $reste), 2);
-                    } else {
-                        $montant = round($detail->total * ($entry['poids'] / $poidsTotal), 2);
-                        $reste = round($reste - $montant, 2);
-                    }
-                    $entry['inscription']->setMontantTotal($montant);
-                    $entry['inscription']->refreshStatutPaiement();
-                }
+                $this->autofill->recalculateMontantsForFoyer($foyer, $saison);
                 $this->entityManager->flush();
             }
 

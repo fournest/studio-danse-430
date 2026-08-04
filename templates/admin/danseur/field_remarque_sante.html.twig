@@ -1,0 +1,7 @@
+{# Affiche la remarque santé, ou masque toute la ligne si vide. #}
+{% set remarque = entity.instance.remarqueSante|default('')|trim %}
+{% if remarque is not empty %}
+    <span>{{ remarque|e|nl2br }}</span>
+{% else %}
+    <style>.field-group.field-remarque-sante { display: none !important; }</style>
+{% endif %}

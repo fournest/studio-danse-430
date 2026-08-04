@@ -24,6 +24,13 @@ class ReservationCostume
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?User $user = null;
 
+    #[ORM\ManyToOne(targetEntity: Foyer::class, inversedBy: 'reservationsCostumes')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Foyer $foyer = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $saison = null;
+
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $dateEvenement = null;
 
@@ -50,6 +57,10 @@ class ReservationCostume
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $remarques = null;
+
+    /** Mode de règlement souhaité pour la location (1× HelloAsso / chèque / espèces). */
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $modePaiementSouhaite = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
@@ -85,6 +96,30 @@ class ReservationCostume
     public function setUser(?User $user): static
     {
         $this->user = $user;
+        return $this;
+    }
+
+    public function getFoyer(): ?Foyer
+    {
+        return $this->foyer;
+    }
+
+    public function setFoyer(?Foyer $foyer): static
+    {
+        $this->foyer = $foyer;
+
+        return $this;
+    }
+
+    public function getSaison(): ?string
+    {
+        return $this->saison;
+    }
+
+    public function setSaison(?string $saison): static
+    {
+        $this->saison = $saison;
+
         return $this;
     }
 
@@ -184,6 +219,18 @@ class ReservationCostume
     public function setRemarques(?string $remarques): static
     {
         $this->remarques = $remarques;
+        return $this;
+    }
+
+    public function getModePaiementSouhaite(): ?string
+    {
+        return $this->modePaiementSouhaite;
+    }
+
+    public function setModePaiementSouhaite(?string $modePaiementSouhaite): static
+    {
+        $this->modePaiementSouhaite = $modePaiementSouhaite ?: null;
+
         return $this;
     }
 

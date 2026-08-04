@@ -11,17 +11,16 @@ use App\Entity\Foyer;
 
 /**
  * Calcule les cotisations saison 2026-2027 selon les règles tarifaires du Studio Danse 430.
- *
- * Ordre de calcul :
- * 1. Tarifs bruts des cours sélectionnés (champ Cours::$tarif)
- * 2. Gratuité du 2ᵉ cours (le moins cher) pour les enfants nés en 2020
- * 3. Remise dégressive foyer sur les cours restants payants (−20 % / −30 %)
- * 4. Remise manuelle bureau (Foyer + Inscriptions)
+ * Boutique et locations costumes sont facturées dans leurs tunnels dédiés.
  */
 final class CotisationCalculatorService
 {
     public const SAISON_COURANTE = '2026/2027';
     public const ANNEE_GRATUITE = 2020;
+
+    public function __construct()
+    {
+    }
 
     /**
      * Calcule la cotisation à partir des inscriptions (ou des cours ManyToMany) du foyer.
@@ -43,7 +42,7 @@ final class CotisationCalculatorService
     }
 
     /**
-     * Alias métier : montant total dû par le foyer pour la saison (dégressivité incluse).
+     * Alias métier : montant total dû par le foyer pour la saison (dégressivité + extras).
      */
     public function calculerTotalFoyer(Foyer $foyer, string $saison = self::SAISON_COURANTE): CotisationDetail
     {
@@ -115,7 +114,7 @@ final class CotisationCalculatorService
             foreach ($rawLines as $raw) {
                 if ($raw['isListeAttente']) {
                     $lines[] = new CotisationCoursLine(
-                        coursNom: $raw['cours']->getNom(),
+                        coursNom: $raw['cours']->getNomComplet(),
                         coursId: $raw['cours']->getId(),
                         tarifBrut: $this->roundMoney($raw['tarif']),
                         isGratuit2020: false,
@@ -133,7 +132,7 @@ final class CotisationCalculatorService
                 /** @var Cours $coursEntity */
                 $coursEntity = $raw['cours'];
                 $lines[] = new CotisationCoursLine(
-                    coursNom: $coursEntity->getNom(),
+                    coursNom: $coursEntity->getNomComplet(),
                     coursId: $coursEntity->getId(),
                     tarifBrut: $this->roundMoney($raw['tarif']),
                     isGratuit2020: $raw['isGratuit2020'],
@@ -157,7 +156,10 @@ final class CotisationCalculatorService
         $totalAvantRemiseManuelle = $this->roundMoney($payingSubtotal - $foyerDiscountAmount);
 
         [$remiseManuelleAmount, $motifRemise] = $this->resolveRemiseManuelle($foyer, $saison);
-        $total = $this->roundMoney(max(0.0, $totalAvantRemiseManuelle - $remiseManuelleAmount));
+        $totalCotisation = $this->roundMoney(max(0.0, $totalAvantRemiseManuelle - $remiseManuelleAmount));
+
+        [$goodiesAmount, $goodiesLines, $costumesAmount, $costumesLines] = $this->resolveExtras($foyer, $saison);
+        $grandTotal = $this->roundMoney($totalCotisation + $goodiesAmount + $costumesAmount);
 
         return new CotisationDetail(
             subtotal: $this->roundMoney($subtotal),
@@ -166,10 +168,27 @@ final class CotisationCalculatorService
             foyerDiscountAmount: $foyerDiscountAmount,
             remiseManuelleAmount: $this->roundMoney($remiseManuelleAmount),
             motifRemise: $motifRemise,
-            total: $total,
+            total: $totalCotisation,
             payingCoursesCount: $payingCoursesCount,
             breakdownByDanseur: $breakdownByDanseur,
+            goodiesAmount: $goodiesAmount,
+            costumesAmount: $costumesAmount,
+            goodiesLines: $goodiesLines,
+            costumesLines: $costumesLines,
+            grandTotal: $grandTotal,
         );
+    }
+
+    /**
+     * @return array{0: float, 1: list<CotisationExtraLine>, 2: float, 3: list<CotisationExtraLine>}
+     */
+    private function resolveExtras(?Foyer $foyer, string $saison): array
+    {
+        // Boutique & costumes ont leurs propres tunnels de paiement :
+        // ils ne sont plus inclus dans le règlement foyer.
+        unset($foyer, $saison);
+
+        return [0.0, [], 0.0, []];
     }
 
     /**
@@ -231,7 +250,6 @@ final class CotisationCalculatorService
             $byKey[$key] = $cours;
         }
 
-        // Repli : sélection ManyToMany (tunnel / admin) si aucune inscription saison
         if ($byKey === []) {
             foreach ($danseur->getCours() as $cours) {
                 $key = $cours->getId() ?? spl_object_id($cours);
@@ -243,7 +261,7 @@ final class CotisationCalculatorService
     }
 
     /**
-     * @return list<int> IDs des cours en liste d'attente pour ce danseur / saison
+     * @return list<int>
      */
     private function resolveAttenteIdsForDanseur(Danseur $danseur, string $saison): array
     {

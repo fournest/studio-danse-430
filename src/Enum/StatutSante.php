@@ -23,8 +23,8 @@ enum StatutSante: string
     {
         return match ($this) {
             self::EN_ATTENTE => 'warning',
-            self::QS_SPORT_VALIDE => 'info',
-            self::CERTIFICAT_FOURNI => 'primary',
+            self::QS_SPORT_VALIDE => 'success',
+            self::CERTIFICAT_FOURNI => 'info',
             self::VALIDE_BUREAU => 'success',
         };
     }

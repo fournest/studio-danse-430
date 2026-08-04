@@ -67,9 +67,23 @@ class Foyer
     #[ORM\OneToMany(targetEntity: Danseur::class, mappedBy: 'foyer', orphanRemoval: true)]
     private Collection $danseurs;
 
+    /**
+     * @var Collection<int, AchatGoodie>
+     */
+    #[ORM\OneToMany(targetEntity: AchatGoodie::class, mappedBy: 'foyer', orphanRemoval: true, cascade: ['persist'])]
+    private Collection $achatsGoodies;
+
+    /**
+     * @var Collection<int, ReservationCostume>
+     */
+    #[ORM\OneToMany(targetEntity: ReservationCostume::class, mappedBy: 'foyer', cascade: ['persist'])]
+    private Collection $reservationsCostumes;
+
     public function __construct()
     {
         $this->danseurs = new ArrayCollection();
+        $this->achatsGoodies = new ArrayCollection();
+        $this->reservationsCostumes = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -271,6 +285,64 @@ class Foyer
             return trim(($this->parent2Prenom ?? '') . ' ' . ($this->parent2Nom ?? ''));
         }
         return null;
+    }
+
+    /**
+     * @return Collection<int, AchatGoodie>
+     */
+    public function getAchatsGoodies(): Collection
+    {
+        return $this->achatsGoodies;
+    }
+
+    public function addAchatGoodie(AchatGoodie $achatGoodie): static
+    {
+        if (!$this->achatsGoodies->contains($achatGoodie)) {
+            $this->achatsGoodies->add($achatGoodie);
+            $achatGoodie->setFoyer($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAchatGoodie(AchatGoodie $achatGoodie): static
+    {
+        if ($this->achatsGoodies->removeElement($achatGoodie)) {
+            if ($achatGoodie->getFoyer() === $this) {
+                $achatGoodie->setFoyer(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ReservationCostume>
+     */
+    public function getReservationsCostumes(): Collection
+    {
+        return $this->reservationsCostumes;
+    }
+
+    public function addReservationCostume(ReservationCostume $reservationCostume): static
+    {
+        if (!$this->reservationsCostumes->contains($reservationCostume)) {
+            $this->reservationsCostumes->add($reservationCostume);
+            $reservationCostume->setFoyer($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReservationCostume(ReservationCostume $reservationCostume): static
+    {
+        if ($this->reservationsCostumes->removeElement($reservationCostume)) {
+            if ($reservationCostume->getFoyer() === $this) {
+                $reservationCostume->setFoyer(null);
+            }
+        }
+
+        return $this;
     }
 
     public function __toString(): string

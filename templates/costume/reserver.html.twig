@@ -20,7 +20,7 @@
 
 			{# Bouton Retour #}
 			<div>
-				<a href="{{ path('app_costume_index') }}" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-400 transition-colors">
+				<a href="{{ path('app_costumes_index') }}" class="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-400 transition-colors">
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
 					</svg>
@@ -65,8 +65,11 @@
 
 							<div class="pt-4 border-t border-zinc-800/80 flex items-center justify-between text-sm">
 								<span class="text-zinc-400">Tarif location / week-end</span>
-								<span class="text-lg font-bold text-amber-400">{{ costume.prix|number_format(2, ',', ' ') }}
-									€</span>
+								<span class="text-lg font-bold text-amber-400">
+									{% set tarif = costume.tarifLocationEffectif %}
+									{{ tarif is not null ? tarif|number_format(2, ',', ' ') : '—' }}
+									€
+								</span>
 							</div>
 						</div>
 					</div>
@@ -104,9 +107,11 @@
 						{# Taille & Quantité #}
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div>
-								{{ form_label(form.taille, null, {'label_attr': {'class': 'block text-xs font-medium text-zinc-300 mb-1'}}) }}
-								{{ form_widget(form.taille) }}
-								{{ form_errors(form.taille, {'attr': {'class': 'text-red-400 text-xs mt-1'}}) }}
+								{{ form_row(form.taille, {
+									'label': 'Taille souhaitée *',
+									'label_attr': {'class': 'block text-xs font-medium text-zinc-300 mb-1'},
+									'row_attr': {'class': ''}
+								}) }}
 							</div>
 							<div>
 								{{ form_label(form.quantite, null, {'label_attr': {'class': 'block text-xs font-medium text-zinc-300 mb-1'}}) }}
@@ -161,7 +166,7 @@
 						{# Bouton de soumission #}
 						<div class="pt-4">
 							<button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold shadow-lg shadow-amber-400/10 transition-all text-center">
-								Valider la demande de réservation
+								Continuer — confirmer le montant
 							</button>
 						</div>
 

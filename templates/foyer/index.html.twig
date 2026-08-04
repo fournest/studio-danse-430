@@ -89,34 +89,45 @@
 				<div>
 					<h1 class="text-3xl font-extrabold text-[#FFD700] tracking-tight">Mon Espace Familial</h1>
 					<p class="text-neutral-400 mt-1">
-						{% if isFoyerOwner %}
+						{% if isParentPrincipal|default(isFoyerOwner) %}
 							Gérez votre foyer et les danseurs de votre famille.
 						{% else %}
-							Consultation en lecture seule des danseurs qui vous sont rattachés (2ᵉ parent).
+							Espace co-parent — consultation en lecture seule des enfants qui vous sont rattachés.
 						{% endif %}
 					</p>
 				</div>
-				{% if isFoyerOwner %}
+				{% if isParentPrincipal|default(isFoyerOwner) %}
 					<div>
 						<a href="{{ path('app_foyer_add') }}" class="inline-flex items-center px-4 py-2.5 border border-[#FFD700] rounded-md text-sm font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-colors uppercase tracking-wider">
 							+ Ajouter un danseur
 						</a>
 					</div>
+				{% elseif isCoparent|default(false) %}
+					<div>
+						<a href="{{ path('app_foyer_coparent_contact') }}" class="inline-flex items-center px-4 py-2.5 border border-[#FFD700] rounded-md text-sm font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-colors uppercase tracking-wider">
+							✏️ Mes coordonnées
+						</a>
+					</div>
 				{% endif %}
 			</div>
 
-			{% if isFoyerOwner and cotisation is defined and cotisation and cotisation.total > 0 and not reglement_soumis|default(false) %}
+			{% if isFoyerOwner and cotisation is defined and cotisation and cotisation.grandTotal > 0 and not reglement_soumis|default(false) %}
 				<div class="rounded-xl border border-[#FFD700]/40 bg-[#FFD700]/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 					<div>
-						<p class="text-xs font-bold uppercase tracking-wider text-[#FFD700]/80">Cotisation foyer · Saison en cours</p>
+						<p class="text-xs font-bold uppercase tracking-wider text-[#FFD700]/80">Total foyer · Saison en cours</p>
 						<p class="text-lg sm:text-xl font-extrabold text-[#FFD700] mt-1">
-							Montant total de votre cotisation foyer :
-							{{ cotisation.total|number_format(2, ',', ' ') }} €
+							Grand total à régler :
+							{{ cotisation.grandTotal|number_format(2, ',', ' ') }} €
 							{% if cotisation.foyerDiscountPercentage > 0 %}
-								<span class="text-sm font-semibold text-neutral-300">(Dégressivité incluse)</span>
+								<span class="text-sm font-semibold text-neutral-300">(Dégressivité cours incluse)</span>
 							{% endif %}
 						</p>
-						{% if cotisation.foyerDiscountAmount > 0 %}
+						{% if cotisation.extrasAmount > 0 %}
+							<p class="text-sm text-neutral-400 mt-1">
+								Cours {{ cotisation.total|number_format(2, ',', ' ') }} €
+								+ boutique/costumes {{ cotisation.extrasAmount|number_format(2, ',', ' ') }} €
+							</p>
+						{% elseif cotisation.foyerDiscountAmount > 0 %}
 							<p class="text-sm text-neutral-400 mt-1">
 								Remise foyer −{{ cotisation.foyerDiscountPercentage }} % :
 								−{{ cotisation.foyerDiscountAmount|number_format(2, ',', ' ') }} €
@@ -130,12 +141,12 @@
 						</a>
 					{% endif %}
 				</div>
-			{% elseif isFoyerOwner and cotisation is defined and cotisation and cotisation.total > 0 and reglement_soumis|default(false) %}
+			{% elseif isFoyerOwner and cotisation is defined and cotisation and cotisation.grandTotal > 0 and reglement_soumis|default(false) %}
 				<div class="rounded-xl border {{ reglement_solde|default(false) ? 'border-emerald-700/50 bg-emerald-950/20' : 'border-sky-700/50 bg-sky-950/20' }} px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 					<div>
-						<p class="text-xs font-bold uppercase tracking-wider {{ reglement_solde|default(false) ? 'text-emerald-400/80' : 'text-sky-300/80' }}">Cotisation foyer · Saison en cours</p>
+						<p class="text-xs font-bold uppercase tracking-wider {{ reglement_solde|default(false) ? 'text-emerald-400/80' : 'text-sky-300/80' }}">Total foyer · Saison en cours</p>
 						<p class="text-lg sm:text-xl font-extrabold text-white mt-1">
-							{{ cotisation.total|number_format(2, ',', ' ') }} €
+							{{ cotisation.grandTotal|number_format(2, ',', ' ') }} €
 						</p>
 						<p class="mt-2">
 							{% if reglement_solde|default(false) %}
@@ -157,10 +168,14 @@
 				<div class="md:col-span-1 bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 h-fit backdrop-blur-sm">
 					<h2 class="text-lg font-bold text-neutral-200 mb-4 flex items-center gap-2">
 						<span>📋</span>
-						Dossier Familial
+						{% if isParentPrincipal|default(isFoyerOwner) %}
+							Dossier Familial
+						{% else %}
+							Mon profil co-parent
+						{% endif %}
 					</h2>
 					<div class="space-y-4 text-sm">
-						{% if foyer %}
+						{% if isParentPrincipal|default(isFoyerOwner) and foyer %}
 							<div>
 								<span class="text-neutral-500 block text-xs uppercase font-bold tracking-wider">Nom du Foyer</span>
 								<span class="font-semibold text-neutral-200 text-base">{{ foyer.nom }}</span>
@@ -181,14 +196,12 @@
 									<span class="text-neutral-200 block mt-0.5 font-medium">{{ foyer.contactUrgence }}</span>
 								</div>
 							{% endif %}
-							{% if isFoyerOwner %}
-								<div class="pt-2">
-									<a href="{{ path('app_foyer_edit_dossier') }}"
-									   class="inline-flex items-center justify-center w-full px-4 py-2.5 border border-[#FFD700] rounded-md text-sm font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-colors uppercase tracking-wider">
-										✏️ Modifier le dossier
-									</a>
-								</div>
-							{% endif %}
+							<div class="pt-2">
+								<a href="{{ path('app_foyer_edit_dossier') }}"
+								   class="inline-flex items-center justify-center w-full px-4 py-2.5 border border-[#FFD700] rounded-md text-sm font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-colors uppercase tracking-wider">
+									✏️ Modifier le dossier
+								</a>
+							</div>
 							<div class="mt-8 p-6 border border-red-900/50 rounded-xl bg-red-950/10">
 								<h3 class="text-red-500 font-bold mb-4">Zone de danger</h3>
 
@@ -204,15 +217,22 @@
 							</div>
 						{% else %}
 							<p class="text-neutral-400 text-sm leading-relaxed">
-								Vous n’avez pas de foyer titulaire. Les fiches ci-contre sont accessibles en
-								<strong class="text-neutral-200">lecture seule</strong>
-								via votre e-mail de 2ᵉ parent.
+								Vous êtes connecté en tant que
+								<strong class="text-[#FFD700]">co-parent rattaché</strong>.
+								La facturation et le règlement restent gérés par le parent titulaire.
 							</p>
 							<div>
-								<span class="text-neutral-500 block text-xs uppercase font-bold tracking-wider">Votre compte</span>
+								<span class="text-neutral-500 block text-xs uppercase font-bold tracking-wider">Email 2</span>
 								<span class="text-neutral-300 block mt-0.5">{{ app.user.email }}</span>
-								<span class="text-neutral-300 block">{{ app.user.telephone }}</span>
 							</div>
+							<div>
+								<span class="text-neutral-500 block text-xs uppercase font-bold tracking-wider">Téléphone 2</span>
+								<span class="text-neutral-300 block mt-0.5">{{ app.user.telephone|default('—') }}</span>
+							</div>
+							<a href="{{ path('app_foyer_coparent_contact') }}"
+							   class="inline-flex items-center justify-center w-full px-4 py-2.5 border border-[#FFD700] rounded-md text-sm font-bold text-[#FFD700] hover:bg-[#FFD700] hover:text-black transition-colors uppercase tracking-wider">
+								✏️ Modifier mes coordonnées
+							</a>
 						{% endif %}
 					</div>
 				</div>
@@ -220,13 +240,17 @@
 				<div class="md:col-span-2 bg-neutral-900/60 border border-neutral-800 rounded-xl p-6 backdrop-blur-sm">
 					<h2 class="text-lg font-bold text-neutral-200 mb-4 flex items-center gap-2">
 						<span>🩰</span>
-						Membres de la famille (Danseurs)
+						{% if isParentPrincipal|default(isFoyerOwner) %}
+							Membres de la famille (Danseurs)
+						{% else %}
+							Enfant(s) rattaché(s)
+						{% endif %}
 					</h2>
 
 					{% if danseurs is empty %}
 						<div class="text-center py-12 border-2 border-dashed border-neutral-800 rounded-lg">
 							<p class="text-neutral-500">Aucun danseur n'est enregistré pour le moment dans votre foyer.</p>
-							{% if isFoyerOwner %}
+							{% if isParentPrincipal|default(isFoyerOwner) %}
 								<a href="{{ path('app_foyer_add') }}" class="text-sm text-[#FFD700] hover:underline mt-2 inline-block font-semibold">
 									Ajouter votre premier danseur maintenant
 								</a>
@@ -235,7 +259,7 @@
 					{% else %}
 						<div class="space-y-3">
 							{% for danseur in danseurs %}
-								{% set canEdit = isFoyerOwner and ownedFoyerId and danseur.foyer.id == ownedFoyerId %}
+								{% set canEdit = canEditByDanseurId[danseur.id]|default(isFoyerOwner and ownedFoyerId and danseur.foyer.id == ownedFoyerId) %}
 								<div class="p-4 bg-black/40 border border-neutral-800/80 rounded-lg hover:border-neutral-700 transition-colors space-y-3">
 									<div class="flex items-center justify-between gap-3">
 										<div>
@@ -251,22 +275,28 @@
 													{{ danseur.dateNaissance|date('d/m/Y') }}{% else %}Non renseignée
 												{% endif %}
 											</p>
-											{% set p2Email = danseur.parent2EmailEffectif %}
-											{% if p2Email %}
-												{% set compteCree = parent2_compte_cree[danseur.id]|default(false) %}
-												{% if compteCree %}
-													<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950/50 border border-emerald-800/60 text-emerald-300">
-														✅ Co-parent rattaché
-													</p>
-												{% elseif danseur.parent2InvitedAt %}
-													<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-950/40 border border-sky-800/50 text-sky-300">
-														📩 Invitation envoyée à {{ p2Email }}
-													</p>
-												{% else %}
-													<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-neutral-900 border border-neutral-700 text-neutral-400">
-														📩 Co-parent : {{ p2Email }}
-													</p>
+											{% if canEdit %}
+												{% set p2Email = danseur.parent2EmailEffectif %}
+												{% if p2Email %}
+													{% set compteCree = parent2_compte_cree[danseur.id]|default(false) %}
+													{% if compteCree %}
+														<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950/50 border border-emerald-800/60 text-emerald-300">
+															✅ Co-parent rattaché
+														</p>
+													{% elseif danseur.parent2InvitedAt %}
+														<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-950/40 border border-sky-800/50 text-sky-300">
+															📩 Invitation envoyée à {{ p2Email }}
+														</p>
+													{% else %}
+														<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-neutral-900 border border-neutral-700 text-neutral-400">
+															📩 Co-parent : {{ p2Email }}
+														</p>
+													{% endif %}
 												{% endif %}
+											{% else %}
+												<p class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-950/40 border border-sky-800/50 text-sky-300">
+													👁️ Lecture seule — co-parent
+												</p>
 											{% endif %}
 										</div>
 										<div class="flex gap-2 items-center shrink-0">
@@ -282,56 +312,97 @@
 										</div>
 									</div>
 
+									{# Santé (toujours visible, lecture seule pour le coparent) #}
+									<div class="flex flex-wrap gap-2 text-xs">
+										{% if danseur.hasJustificatifSanteComplet %}
+											<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-semibold bg-emerald-950/50 border border-emerald-800/60 text-emerald-300">
+												✅ Santé : Validé
+											</span>
+										{% else %}
+											<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-semibold bg-amber-950/40 border border-amber-800/50 text-amber-200">
+												⏳ Santé : En attente
+											</span>
+										{% endif %}
+										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded font-semibold border border-neutral-700 text-neutral-400">
+											{{ danseur.statutSante.label }}
+										</span>
+									</div>
+
 									{% if danseur.inscriptions|length > 0 %}
 										<ul class="space-y-2 border-t border-neutral-800/80 pt-3">
 											{% for inscription in danseur.inscriptions %}
-												{% set isSolde = inscription.statutPaiement.value == 'Soldé' %}
-												{% set enAttente = inscription.enAttenteEncaissement %}
-												<li class="flex flex-col gap-2 text-sm">
-													<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-														<div class="min-w-0">
-															<span class="text-neutral-200 font-medium">
-																{{ inscription.cours ? inscription.cours.nom : 'Cours' }}
-															</span>
-															<span class="text-neutral-500 text-xs ml-1">({{ inscription.saison }})</span>
-															{% if inscription.montantTotal is not null or inscription.planReglement %}
-																<span class="block text-xs mt-0.5">
-																	{% if (inscription.montantTotal ?? 0) > 0 %}
-																		<span class="text-neutral-500">{{ inscription.montantTotal|number_format(2, ',', ' ') }} €</span>
-																		<span class="text-neutral-600">·</span>
-																	{% endif %}
-																	{% if isSolde %}
-																		<span class="text-emerald-400 font-semibold">{{ inscription.libelleStatutPaiement }}</span>
-																	{% elseif enAttente %}
-																		<span class="inline-flex items-center gap-1 text-amber-300 font-semibold">⏳ {{ inscription.libelleStatutPaiement }}</span>
-																	{% else %}
-																		<span class="text-neutral-400">{{ inscription.libelleStatutPaiement }}</span>
-																	{% endif %}
+												{% set cours = inscription.cours %}
+												{% set dossierValide = inscription.statutDossier.value == 'Validé' or inscription.statut.value == 'valide' %}
+												<li class="flex flex-col gap-2 text-sm p-3 rounded-lg border border-neutral-800/60 bg-neutral-950/40">
+													<div class="min-w-0">
+														<span class="text-neutral-200 font-medium">
+															{{ cours ? cours.nomComplet : 'Cours' }}
+														</span>
+														<span class="text-neutral-500 text-xs ml-1">({{ inscription.saison }})</span>
+														{% if cours %}
+															<p class="text-xs text-neutral-400 mt-1">
+																📅 {{ cours.jour }}
+																· {{ cours.heure|date('H\\hi') }}
+																{% if cours.dureeLabel is defined %}
+																	<span class="text-neutral-600">({{ cours.dureeLabel }})</span>
+																{% endif %}
+																· Prof. {{ cours.professeurPrenom|default(cours.professeurLabel|default(cours.professeur)) }}
+															</p>
+														{% endif %}
+														<div class="mt-2 flex flex-wrap gap-2">
+															{% if dossierValide %}
+																<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-950/50 border border-emerald-800/60 text-emerald-300">
+																	✅ Dossier validé
+																</span>
+															{% else %}
+																<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-950/40 border border-amber-800/50 text-amber-200">
+																	⏳ Dossier en attente
 																</span>
 															{% endif %}
 														</div>
+														{% if canEdit and (inscription.montantTotal is not null or inscription.planReglement) %}
+															{% set isSolde = inscription.statutPaiement.value == 'Soldé' %}
+															{% set enAttente = inscription.enAttenteEncaissement %}
+															<span class="block text-xs mt-1.5">
+																{% if (inscription.montantTotal ?? 0) > 0 %}
+																	<span class="text-neutral-500">{{ inscription.montantTotal|number_format(2, ',', ' ') }} €</span>
+																	<span class="text-neutral-600">·</span>
+																{% endif %}
+																{% if isSolde %}
+																	<span class="text-emerald-400 font-semibold">{{ inscription.libelleStatutPaiement }}</span>
+																{% elseif enAttente %}
+																	<span class="inline-flex items-center gap-1 text-amber-300 font-semibold">⏳ {{ inscription.libelleStatutPaiement }}</span>
+																{% else %}
+																	<span class="text-neutral-400">{{ inscription.libelleStatutPaiement }}</span>
+																{% endif %}
+															</span>
+														{% endif %}
+													</div>
+													{% if canEdit %}
 														<div class="flex flex-wrap gap-2">
-															{% if canEdit %}
-																<a href="{{ path('app_foyer_inscription_sante', {id: inscription.id}) }}"
-																   class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors whitespace-nowrap border border-sky-700/60 text-sky-300 hover:bg-sky-500 hover:text-black">
-																	Santé / QS-Sport
-																</a>
-															{% endif %}
+															<a href="{{ path('app_foyer_inscription_sante', {id: inscription.id}) }}"
+															   class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors whitespace-nowrap border border-sky-700/60 text-sky-300 hover:bg-sky-500 hover:text-black">
+																Santé / QS-Sport
+															</a>
 															<a href="{{ path('app_foyer_inscription_facture', {id: inscription.id}) }}"
-															   class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors whitespace-nowrap {{ isSolde ? 'border border-emerald-700/60 text-emerald-400 hover:bg-emerald-500 hover:text-black' : 'border border-[#FFD700]/50 text-[#FFD700] hover:bg-[#FFD700] hover:text-black' }}">
-																🧾 {{ isSolde ? 'Facture acquittée' : 'Attestation' }}
+															   class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors whitespace-nowrap border border-[#FFD700]/50 text-[#FFD700] hover:bg-[#FFD700] hover:text-black">
+																🧾 Attestation / Facture
 															</a>
 														</div>
-													</div>
+													{% endif %}
 												</li>
 											{% endfor %}
 										</ul>
+									{% else %}
+										<p class="text-xs text-neutral-500 border-t border-neutral-800/80 pt-3">Aucun cours inscrit pour le moment.</p>
 									{% endif %}
 								</div>
 							{% endfor %}
 						</div>
 
-						{% if isFoyerOwner %}
+						{% include 'partials/_remarque_pedagogique.html.twig' %}
+
+						{% if isParentPrincipal|default(isFoyerOwner) %}
 							<div class="mt-8 pt-6 border-t border-neutral-800 flex flex-col items-stretch sm:items-end gap-3">
 								{% if not step2_done %}
 									<a href="{{ path('app_foyer_inscription_cours') }}"
@@ -348,6 +419,14 @@
 										✏️ Modifier le choix des cours
 									</a>
 								{% elseif not step4_done %}
+									<a href="{{ path('app_boutique_index') }}"
+									   class="inline-flex justify-center py-3 px-6 text-sm font-bold rounded-md border border-neutral-600 text-neutral-300 hover:border-[#FFD700] hover:text-[#FFD700] transition-colors duration-200 uppercase tracking-wider">
+										Boutique
+									</a>
+									<a href="{{ path('app_costumes_index') }}"
+									   class="inline-flex justify-center py-3 px-6 text-sm font-bold rounded-md border border-neutral-600 text-neutral-300 hover:border-[#FFD700] hover:text-[#FFD700] transition-colors duration-200 uppercase tracking-wider">
+										Location costumes
+									</a>
 									<a href="{{ path('app_foyer_inscription_paiement', {id: paiement_inscription_id|default(premiere_inscription_id)}) }}"
 									   class="inline-flex justify-center py-3 px-6 text-sm font-bold rounded-md text-black bg-[#FFD700] hover:bg-[#FFD700]/90 transition-colors duration-200 uppercase tracking-wider shadow-lg">
 										Étape suivante : Règlement &amp; Paiement →

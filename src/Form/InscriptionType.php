@@ -49,7 +49,7 @@ class InscriptionType extends AbstractType
                 'class' => Cours::class,
                 'choice_label' => fn (Cours $cours): string => sprintf(
                     '%s — %s %s',
-                    $cours->getNom(),
+                    $cours->getNomComplet(),
                     $cours->getJour(),
                     $cours->getHeure()->format('H\hi')
                 ),

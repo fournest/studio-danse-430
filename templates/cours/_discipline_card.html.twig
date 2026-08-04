@@ -1,0 +1,55 @@
+{#
+  Carte discipline regroupée (accueil).
+  Variables :
+    - discipline : {
+        nom: string,
+        creaneaux: list<Cours>,
+        professeurs: list<string>,
+        tarif: float|null,
+        capaciteMax: int,
+        showId: int (premier cours pour le lien détail)
+      }
+#}
+<article class="flex flex-col bg-neutral-950 border border-neutral-800 hover:border-[#FFD700] rounded-2xl p-6 hover:shadow-[0_0_20px_rgba(255,215,0,0.15)] hover:-translate-y-1 transition duration-200">
+	<h4 class="text-xl font-bold text-white mb-4">{{ discipline.nom }}</h4>
+
+	<ul class="space-y-2 text-sm text-white/80 flex-1">
+		{% for c in discipline.creaneaux %}
+			<li class="flex items-center gap-2 flex-wrap">
+				<span class="text-[#FFD700]" aria-hidden="true">&#9733;</span>
+				<span>{{ c.jour }} à {{ c.heure|date('G\\hi') }} ({{ c.dureeLabel }})</span>
+			</li>
+		{% endfor %}
+
+		{% if discipline.professeurs is not empty %}
+			<li class="flex items-center gap-2">
+				<span class="text-[#FFD700]" aria-hidden="true">&#9733;</span>
+				Professeur{{ discipline.professeurs|length > 1 ? 's' : '' }} :
+				{{ discipline.professeurs|join(' · ') }}
+			</li>
+		{% endif %}
+
+		<li class="flex items-center gap-2">
+			<span class="text-[#FFD700]" aria-hidden="true">&#9733;</span>
+			{{ discipline.capaciteMax }} places max
+			{% if discipline.creaneaux|length > 1 %}
+				<span class="text-white/45">/ groupe</span>
+			{% endif %}
+		</li>
+
+		{% if discipline.tarif is not null and discipline.tarif > 0 %}
+			<li class="flex items-center gap-2">
+				<span class="text-[#FFD700]" aria-hidden="true">&#9733;</span>
+				Tarif :
+				<span class="font-semibold text-[#FFD700]">{{ discipline.tarif|number_format(2, ',', ' ') }} €</span>
+				<span class="text-white/50">/ saison</span>
+			</li>
+		{% endif %}
+	</ul>
+
+	{% if discipline.creaneaux|length > 1 %}
+		<p class="mt-4 text-xs text-white/55 leading-relaxed border-t border-neutral-800/80 pt-3">
+			ℹ️ Plusieurs groupes, horaires et jours disponibles pour cette discipline.
+		</p>
+	{% endif %}
+</article>

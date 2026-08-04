@@ -2,9 +2,11 @@
 
 namespace App\Form;
 
+use App\Entity\Costume;
 use App\Entity\ReservationCostume;
 use App\Enum\ModeLivraison;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -18,23 +20,44 @@ class CostumeReservationType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder
-            ->add('taille', TextType::class, [
-                'label' => 'Taille souhaitée',
-                'required' => false,
-                'attr' => [
-                    'placeholder' => 'Ex: S, M, 10 ans...',
-                    'class' => 'w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400',
+        /** @var Costume|null $costume */
+        $costume = $options['costume'];
+        $tailles = $costume instanceof Costume ? $costume->getTaillesAsArray() : [];
+
+        $inputClass = 'w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400';
+
+        if ($tailles !== []) {
+            $builder->add('taille', ChoiceType::class, [
+                'label' => 'Taille souhaitée *',
+                'choices' => $tailles,
+                'placeholder' => 'Choisir une taille',
+                'required' => true,
+                'constraints' => [
+                    new Assert\NotBlank(['message' => 'Veuillez choisir une taille.']),
                 ],
-            ])
+                'attr' => ['class' => $inputClass],
+            ]);
+        } else {
+            $builder->add('taille', TextType::class, [
+                'label' => 'Taille souhaitée *',
+                'required' => true,
+                'constraints' => [
+                    new Assert\NotBlank(['message' => 'Veuillez indiquer une taille.']),
+                ],
+                'attr' => [
+                    'placeholder' => 'Ex: S, M, 10 ans…',
+                    'class' => $inputClass,
+                ],
+            ]);
+        }
+
+        $builder
             ->add('dateEvenement', DateType::class, [
                 'label' => 'Date de l\'événement',
                 'widget' => 'single_text',
                 'html5' => true,
                 'required' => false,
-                'attr' => [
-                    'class' => 'w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400',
-                ],
+                'attr' => ['class' => $inputClass],
             ])
             ->add('dateDebut', DateType::class, [
                 'label' => 'Date de début de location',
@@ -43,9 +66,7 @@ class CostumeReservationType extends AbstractType
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'Veuillez indiquer une date de début.']),
                 ],
-                'attr' => [
-                    'class' => 'w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400',
-                ],
+                'attr' => ['class' => $inputClass],
             ])
             ->add('dateFin', DateType::class, [
                 'label' => 'Date de fin de location',
@@ -54,19 +75,15 @@ class CostumeReservationType extends AbstractType
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'Veuillez indiquer une date de fin.']),
                 ],
-                'attr' => [
-                    'class' => 'w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400',
-                ],
+                'attr' => ['class' => $inputClass],
             ])
             ->add('modeLivraison', EnumType::class, [
                 'class' => ModeLivraison::class,
-                'label' => 'Option de livraison',
-                'expanded' => true, // Affiche des boutons radio
+                'label' => 'Option de retrait / livraison',
+                'expanded' => true,
                 'multiple' => false,
                 'choice_label' => fn (ModeLivraison $choice) => $choice->getLabel(),
-                'attr' => [
-                    'class' => 'space-y-2 text-white',
-                ],
+                'attr' => ['class' => 'space-y-2 text-white'],
             ])
             ->add('quantite', IntegerType::class, [
                 'label' => 'Quantité',
@@ -77,7 +94,7 @@ class CostumeReservationType extends AbstractType
                 ],
                 'attr' => [
                     'min' => 1,
-                    'class' => 'w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400',
+                    'class' => $inputClass,
                 ],
             ])
             ->add('remarques', TextareaType::class, [
@@ -86,7 +103,7 @@ class CostumeReservationType extends AbstractType
                 'attr' => [
                     'rows' => 3,
                     'placeholder' => 'Précisions sur les accessoires ou le contexte...',
-                    'class' => 'w-full rounded-lg bg-zinc-900 border border-zinc-700 text-white px-3 py-2 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400',
+                    'class' => $inputClass,
                 ],
             ])
         ;
@@ -96,6 +113,8 @@ class CostumeReservationType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => ReservationCostume::class,
+            'costume' => null,
         ]);
+        $resolver->setAllowedTypes('costume', ['null', Costume::class]);
     }
 }

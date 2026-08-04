@@ -10,6 +10,11 @@ vich_uploader:
             namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
 
         certificats_medicaux:
-            uri_prefix: /uploads/certificats
-            upload_destination: '%kernel.project_dir%/public/uploads/certificats'
+            uri_prefix: /private/certificats
+            upload_destination: '%kernel.project_dir%/var/uploads/certificats'
+            namer: Vich\UploaderBundle\Naming\SmartUniqueNamer
+
+        goodies_images:
+            uri_prefix: /uploads/goodies
+            upload_destination: '%kernel.project_dir%/public/uploads/goodies'
             namer: Vich\UploaderBundle\Naming\SmartUniqueNamer

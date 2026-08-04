@@ -1,72 +1,130 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Nos cours - Studio Danse 430{% endblock %}
+{% block title %}Planning des cours - Studio Danse 430{% endblock %}
 
 {% block body %}
     <section class="bg-black py-16 border-b border-[#FFD700]/20">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <h1 class="text-4xl sm:text-5xl font-extrabold text-[#FFD700] mb-4">Tous nos cours</h1>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+            <a href="{{ path('app_home') }}"
+               class="inline-flex items-center gap-2 text-sm font-semibold text-[#FFD700] hover:underline mb-6">
+                ← Retour à l'accueil
+            </a>
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-[#FFD700] mb-4">Planning de la semaine</h1>
             <p class="text-lg text-white/80 max-w-2xl mx-auto">
-                Découvrez l'ensemble de notre planning hebdomadaire et trouvez le cours qui vous correspond.
+                Emploi du temps hebdomadaire — du lundi au dimanche. Sur mobile, ouvrez le jour qui vous intéresse.
             </p>
         </div>
     </section>
 
-    <section class="bg-black py-16">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            {% if cours is empty %}
+    <section class="bg-black py-12 sm:py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
+            {% if totalCours == 0 %}
                 <div class="text-center py-20 border border-[#FFD700]/30 rounded-2xl">
                     <p class="text-xl text-white/70">Aucun cours n'est disponible pour le moment.</p>
                     <p class="text-white/50 mt-2">Revenez bientôt, le planning sera mis à jour.</p>
                 </div>
             {% else %}
-                <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                    {% for c in cours %}
-                        <article class="flex flex-col bg-black border border-[#FFD700] rounded-2xl p-6 hover:shadow-[0_0_25px_rgba(255,215,0,0.25)] hover:-translate-y-1 transition duration-200">
-                            <div class="flex items-start justify-between gap-3 mb-4">
-                                <h2 class="text-xl font-bold text-white">{{ c.nom }}</h2>
-                                <span class="shrink-0 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#FFD700] text-black">
-                                    {{ c.jour }}
-                                </span>
+                {# ——— Desktop : grille 7 colonnes fixes (1 en-tête / jour, cours empilés) ——— #}
+                <div
+                    class="hidden lg:grid gap-3 items-start"
+                    style="grid-template-columns: repeat(7, minmax(0, 1fr));"
+                    role="list"
+                    aria-label="Agenda hebdomadaire"
+                >
+                    {% for jour, coursDuJour in coursParJour %}
+                        <div class="min-w-0 flex flex-col gap-2.5" role="listitem">
+                            {# Un seul en-tête par jour — jamais répété dans les cartes #}
+                            <div class="rounded-xl border border-[#FFD700]/40 bg-[#FFD700] px-2 py-2.5 text-center">
+                                <p class="text-[11px] font-extrabold uppercase tracking-wider text-black leading-tight">
+                                    {{ jour }}
+                                    <span class="font-semibold text-black/70">— {{ coursDuJour|length }} cours</span>
+                                </p>
                             </div>
 
-                            <ul class="space-y-2 text-sm text-white/80 flex-1">
-                                <li class="flex items-center gap-2">
-                                    <span class="text-[#FFD700]">&#9733;</span> Horaire : {{ c.heure|date('H\\hi') }}
-                                    {% if c.dureeMinutes is defined %}
-                                        <span class="text-white/50">({{ c.dureeLabel }})</span>
-                                    {% endif %}
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span class="text-[#FFD700]">&#9733;</span> Professeur : {{ c.professeurLabel|default(c.professeur) }}
-                                </li>
-                                <li class="flex items-center gap-2">
-                                    <span class="text-[#FFD700]">&#9733;</span> Capacité : {{ c.capaciteMax }} danseurs
-                                </li>
-                                {% if c.tarif is defined and c.tarif > 0 %}
-                                    <li class="flex items-center gap-2">
-                                        <span class="text-[#FFD700]">&#9733;</span>
-                                        Tarif : <span class="font-semibold text-[#FFD700]">{{ c.tarif|number_format(2, ',', ' ') }} €</span>
-                                        <span class="text-white/50">/ saison</span>
-                                    </li>
-                                {% endif %}
-                            </ul>
-
-                            <div class="mt-6 flex items-center gap-3">
-                                <a href="{{ path('app_cours_show', { id: c.id }) }}"
-                                   class="flex-1 text-center px-4 py-2 bg-[#FFD700] text-black font-semibold rounded-full hover:bg-yellow-400 transition-colors duration-200">
-                                    En savoir plus
-                                </a>
-                                {% if c.whatsAppGroupLink %}
-                                    <a href="{{ c.whatsAppGroupLink }}" target="_blank" rel="noopener"
-                                       class="px-4 py-2 border border-[#FFD700] text-[#FFD700] font-semibold rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
-                                        WhatsApp
+                            {% if coursDuJour is empty %}
+                                <p class="text-center text-xs text-white/30 py-6 italic">—</p>
+                            {% else %}
+                                {% for c in coursDuJour %}
+                                    {% set restantes = c.placesRestantes(saison) %}
+                                    <a href="{{ path('app_cours_show', { id: c.id }) }}"
+                                       class="block rounded-xl border border-[#FFD700]/35 bg-neutral-950/80 p-3 hover:border-[#FFD700] hover:shadow-[0_0_18px_rgba(255,215,0,0.18)] transition duration-200">
+                                        <p class="text-[11px] font-bold text-[#FFD700] tabular-nums">
+                                            {{ c.horaireLabel }}
+                                        </p>
+                                        <p class="mt-1 text-sm font-bold text-white leading-snug">
+                                            {{ c.nomComplet }}
+                                        </p>
+                                        <p class="mt-1 text-[11px] text-white/65">
+                                            Prof. {{ c.professeurPrenom }}
+                                        </p>
+                                        <div class="mt-2 flex flex-wrap items-center gap-1.5 text-[10px]">
+                                            {% if c.tarif > 0 %}
+                                                <span class="inline-flex items-center rounded-full bg-[#FFD700]/15 px-2 py-0.5 font-semibold text-[#FFD700]">
+                                                    {{ c.tarif|number_format(0, ',', ' ') }} €
+                                                </span>
+                                            {% endif %}
+                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 font-semibold {{ restantes <= 0 ? 'bg-red-500/15 text-red-300' : (restantes <= 3 ? 'bg-orange-500/15 text-orange-300' : 'bg-white/10 text-white/70') }}">
+                                                {% if restantes <= 0 %}Complet{% else %}{{ restantes }} place{{ restantes > 1 ? 's' : '' }}{% endif %}
+                                            </span>
+                                        </div>
                                     </a>
-                                {% endif %}
-                            </div>
-                        </article>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
                     {% endfor %}
                 </div>
+
+                {# ——— Mobile : accordéon par jour (jour une seule fois dans le résumé) ——— #}
+                <div class="lg:hidden space-y-3" id="agenda-mobile">
+                    <p class="text-sm text-white/55 text-center mb-2">
+                        Touchez un jour pour afficher les cours.
+                    </p>
+                    {% for jour, coursDuJour in coursParJour %}
+                        <details class="group rounded-2xl border border-[#FFD700]/30 bg-neutral-950/60 open:border-[#FFD700]/60" {% if loop.first and coursDuJour is not empty %}open{% endif %}>
+                            <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 select-none">
+                                <span class="flex items-center gap-3">
+                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#FFD700] text-xs font-extrabold text-black">
+                                        {{ jour|slice(0, 2) }}
+                                    </span>
+                                    <span>
+                                        <span class="block text-base font-bold text-white uppercase tracking-wide">{{ jour }}</span>
+                                        <span class="block text-xs text-white/50">{{ coursDuJour|length }} cours</span>
+                                    </span>
+                                </span>
+                                <span class="text-[#FFD700] transition group-open:rotate-180" aria-hidden="true">▾</span>
+                            </summary>
+                            <div class="space-y-2 border-t border-[#FFD700]/15 px-3 pb-3 pt-3">
+                                {% if coursDuJour is empty %}
+                                    <p class="px-1 py-4 text-center text-sm text-white/40 italic">Aucun cours ce jour-là.</p>
+                                {% else %}
+                                    {% for c in coursDuJour %}
+                                        {% set restantes = c.placesRestantes(saison) %}
+                                        <a href="{{ path('app_cours_show', { id: c.id }) }}"
+                                           class="block rounded-xl border border-[#FFD700]/25 bg-black/40 p-4 hover:border-[#FFD700]/70 transition">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="min-w-0">
+                                                    <p class="text-xs font-bold text-[#FFD700]">{{ c.horaireLabel }} ({{ c.dureeLabel }})</p>
+                                                    <p class="mt-1 text-base font-bold text-white">{{ c.nomComplet }}</p>
+                                                    <p class="mt-1 text-sm text-white/70">Professeur : {{ c.professeurPrenom }}</p>
+                                                </div>
+                                                <div class="shrink-0 text-right space-y-1">
+                                                    {% if c.tarif > 0 %}
+                                                        <p class="text-sm font-bold text-[#FFD700]">{{ c.tarif|number_format(0, ',', ' ') }} €</p>
+                                                    {% endif %}
+                                                    <p class="text-[11px] {{ restantes <= 0 ? 'text-red-300' : 'text-white/55' }}">
+                                                        {% if restantes <= 0 %}Complet{% else %}{{ restantes }} place{{ restantes > 1 ? 's' : '' }}{% endif %}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+
+                {% include 'partials/_remarque_pedagogique.html.twig' %}
             {% endif %}
         </div>
     </section>

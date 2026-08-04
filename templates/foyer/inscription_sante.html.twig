@@ -51,7 +51,8 @@
                                     <h3 class="text-sm font-bold uppercase tracking-wider text-[#FFD700] mb-1">Questionnaire QS-Sport</h3>
                                     <p class="text-xs text-neutral-500 mb-4">
                                         Questionnaire relatif à l’état de santé du sportif mineur (Annexe II-23 du Code du sport).
-                                        Répondez par OUI ou NON à chaque question.
+                                        Merci de répondre pour vous-même ou pour votre enfant : OUI ou NON à chaque question.
+                                        Il est de votre responsabilité de vous assurer que le questionnaire est correctement complété.
                                     </p>
 
                                     {% set currentSection = null %}
@@ -87,8 +88,8 @@
                                                class="mt-1 accent-[#FFD700] js-attestation"
                                                {{ danseur.attestationQsSportValide ? 'checked' : '' }}>
                                         <span class="text-sm text-emerald-100">
-                                            J’atteste sur l’honneur avoir répondu <strong>NON</strong> à toutes les rubriques du QS-Sport
-                                            (questionnaire sportif mineur / Cerfa n°15699*01).
+                                            J’atteste sur l’honneur, en tant que responsable légal, avoir répondu <strong>NON</strong>
+                                            à toutes les rubriques du QS-Sport (questionnaire sportif mineur / Cerfa n°15699*01).
                                         </span>
                                     </label>
                                 </div>
@@ -96,6 +97,7 @@
                                 <div class="js-certificat-block p-4 rounded-xl border border-amber-800/50 bg-amber-950/20 hidden">
                                     <p class="text-sm text-amber-100 mb-3">
                                         Au moins une réponse <strong>OUI</strong> : un certificat médical est <strong>obligatoire</strong>.
+                                        Veuillez consulter un médecin et déposer le certificat ci-dessous.
                                     </p>
                                     <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Certificat médical (PDF, JPG, PNG — max 5 Mo)</label>
                                     <input type="file" name="certificat[{{ did }}]" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
@@ -107,7 +109,7 @@
                             {% else %}
                                 <div class="p-4 rounded-xl border border-amber-800/50 bg-amber-950/20 space-y-3">
                                     <p class="text-sm text-amber-100">
-                                        Adhérent majeur : l’upload d’un <strong>certificat médical de moins de 3 ans</strong>
+                                        Adhérent majeur : le dépôt d’un <strong>certificat médical de moins de 3 ans</strong>
                                         (ou attestation médicale) est obligatoire.
                                     </p>
                                     <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Certificat médical (PDF, JPG, PNG — max 5 Mo)</label>

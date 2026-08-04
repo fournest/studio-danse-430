@@ -257,6 +257,37 @@ class Inscription
         $this->certificatMedical = $certificatMedical;
         return $this;
     }
+
+    /**
+     * Synchronise le champ legacy certificatMedical depuis l'état santé du danseur.
+     */
+    public function syncCertificatMedicalFromDanseur(): self
+    {
+        $danseur = $this->danseur;
+        if (null === $danseur) {
+            return $this;
+        }
+
+        if ($danseur->getCertificatFilename()) {
+            $this->certificatMedical = $danseur->getCertificatFilename();
+
+            return $this;
+        }
+
+        if ($danseur->isAttestationQsSportValide()) {
+            $date = $danseur->getDateSignatureQsSport();
+            $this->certificatMedical = $date
+                ? sprintf('QS-Sport validé le %s', $date->format('d/m/Y'))
+                : 'QS-Sport validé';
+
+            return $this;
+        }
+
+        $this->certificatMedical = $danseur->getStatutSante()?->getLabel();
+
+        return $this;
+    }
+
     public function getStatutPaiement(): StatutPaiement
     {
         return $this->statutPaiement;

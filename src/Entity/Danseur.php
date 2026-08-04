@@ -9,7 +9,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\HttpFoundation\File\File;
-use Vich\UploaderBundle\Mapping\Annotation as Vich;
+use Vich\UploaderBundle\Mapping\Attribute as Vich;
 
 #[ORM\Entity(repositoryClass: DanseurRepository::class)]
 #[Vich\Uploadable]
@@ -152,11 +152,11 @@ class Danseur
         return (int) $this->dateNaissance->format('Y');
     }
 
-    /** Mineur si âge exact < 18 ans à la date de référence (défaut : aujourd'hui). */
-    public function isMineur(?\DateTimeInterface $reference = null): bool
+    /** Âge en années révolues à la date de référence (défaut : aujourd’hui). */
+    public function getAge(?\DateTimeInterface $reference = null): ?int
     {
         if (null === $this->dateNaissance) {
-            return true;
+            return null;
         }
 
         $ref = $reference instanceof \DateTimeInterface
@@ -165,7 +165,19 @@ class Danseur
 
         $naissance = \DateTimeImmutable::createFromInterface($this->dateNaissance);
 
-        return $naissance->diff($ref)->y < 18;
+        return $naissance->diff($ref)->y;
+    }
+
+    /** Mineur si âge exact < 18 ans à la date de référence (défaut : aujourd'hui). */
+    public function isMineur(?\DateTimeInterface $reference = null): bool
+    {
+        if (null === $this->dateNaissance) {
+            return true;
+        }
+
+        $age = $this->getAge($reference);
+
+        return null === $age || $age < 18;
     }
 
     public function isMajeur(?\DateTimeInterface $reference = null): bool
@@ -383,6 +395,12 @@ class Danseur
             StatutSante::CERTIFICAT_FOURNI,
             StatutSante::VALIDE_BUREAU,
         ], true);
+    }
+
+    /** Libellé affichable (EasyAdmin / Twig) — les enums PHP n’ont pas __toString(). */
+    public function getStatutSanteLabel(): string
+    {
+        return $this->statutSante->getLabel();
     }
 
     public function __toString(): string

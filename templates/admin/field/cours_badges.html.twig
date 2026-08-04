@@ -1,0 +1,10 @@
+{# Affiche les cours sous forme de badges (utilise Cours::__toString). #}
+{% if field.value is empty %}
+    <span class="text-muted">—</span>
+{% else %}
+    <span class="d-inline-flex flex-wrap gap-1">
+        {% for cours in field.value %}
+            <span class="badge badge-secondary">{{ cours }}</span>
+        {% endfor %}
+    </span>
+{% endif %}

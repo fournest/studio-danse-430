@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Demande de location reçue #{{ reservation.id }} | Studio Danse 430{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-zinc-950 text-zinc-100 py-12 px-4 sm:px-6 lg:px-8">
+	<div class="max-w-2xl mx-auto space-y-8">
+		{% for label, messages in app.flashes %}
+			{% for message in messages %}
+				<div class="p-4 rounded-md text-sm {{ label == 'success' ? 'bg-green-950/50 border border-green-800 text-green-400' : 'bg-red-950/50 border border-red-800 text-red-400' }}">
+					{{ message }}
+				</div>
+			{% endfor %}
+		{% endfor %}
+
+		<div class="text-center space-y-3">
+			<p class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+				Demande reçue
+			</p>
+			<h1 class="text-3xl font-extrabold text-white">Location costume #{{ reservation.id }}</h1>
+			<p class="text-zinc-400">
+				Votre demande a été transmise au bureau. Statut actuel :
+				<strong class="text-amber-400">{{ reservation.statut.label }}</strong>
+			</p>
+		</div>
+
+		<article class="bg-zinc-900/80 rounded-2xl border border-zinc-800 p-6 space-y-4 text-sm">
+			<div class="flex justify-between gap-4">
+				<span class="text-zinc-400">Costume</span>
+				<span class="text-white font-semibold text-right">{{ reservation.costume.nom }}</span>
+			</div>
+			<div class="flex justify-between gap-4">
+				<span class="text-zinc-400">Taille</span>
+				<span class="text-white">{{ reservation.taille|default('—') }}</span>
+			</div>
+			<div class="flex justify-between gap-4">
+				<span class="text-zinc-400">Période</span>
+				<span class="text-white">{{ reservation.dateDebut|date('d/m/Y') }} → {{ reservation.dateFin|date('d/m/Y') }}</span>
+			</div>
+			<div class="flex justify-between gap-4">
+				<span class="text-zinc-400">Retrait</span>
+				<span class="text-white">{{ reservation.modeLivraison.label }}</span>
+			</div>
+			<div class="flex justify-between gap-4 border-t border-zinc-800 pt-4">
+				<span class="text-zinc-400">Montant location</span>
+				<span class="text-xl font-extrabold text-amber-400">{{ reservation.prixTotal|number_format(2, ',', ' ') }} €</span>
+			</div>
+			<div class="flex justify-between gap-4">
+				<span class="text-zinc-400">Caution au retrait</span>
+				<span class="text-white font-semibold">{{ caution|number_format(2, ',', ' ') }} €</span>
+			</div>
+			{% if reservation.modePaiementSouhaite %}
+				<div class="flex justify-between gap-4">
+					<span class="text-zinc-400">Règlement souhaité</span>
+					<span class="text-white">{{ modePaiementLabel|default(reservation.modePaiementSouhaite) }}</span>
+				</div>
+			{% endif %}
+		</article>
+
+		<div class="flex flex-col sm:flex-row gap-3">
+			<a href="{{ path('app_costumes_index') }}" class="flex-1 text-center py-3 rounded-xl border border-amber-400 text-amber-400 font-bold hover:bg-amber-400 hover:text-black transition-colors">
+				Retour au catalogue
+			</a>
+			{% if app.user and app.user.foyer %}
+				<a href="{{ path('app_foyer_index') }}" class="flex-1 text-center py-3 rounded-xl bg-zinc-800 text-white font-bold hover:bg-zinc-700 transition-colors">
+					Mon foyer
+				</a>
+			{% endif %}
+		</div>
+	</div>
+</div>
+{% endblock %}

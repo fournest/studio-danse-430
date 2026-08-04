@@ -63,28 +63,44 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToDashboard('Tableau de bord', 'fa fa-home');
 
         yield MenuItem::section('Adhérents');
-        yield MenuItem::linkTo(UserCrudController::class, 'Utilisateurs', 'fa fa-users');
-        yield MenuItem::linkTo(FoyerCrudController::class, 'Foyers / Familles', 'fa fa-house-user');
+        yield MenuItem::linkTo(UserCrudController::class, 'Utilisateurs', 'fa fa-users')
+            ->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(FoyerCrudController::class, 'Foyers / Familles', 'fa fa-house-user')
+            ->setPermission('ROLE_BUREAU');
         yield MenuItem::linkTo(DanseurCrudController::class, 'Danseurs', 'fa fa-person-walking');
 
         yield MenuItem::section('Activités');
         yield MenuItem::linkTo(CoursCrudController::class, 'Cours', 'fa fa-music');
-        yield MenuItem::linkTo(InscriptionCrudController::class, 'Inscriptions', 'fa fa-file-signature');
-        yield MenuItem::linkTo(GalaCrudController::class, 'Galas', 'fa fa-star');
-        yield MenuItem::linkTo(SalleCrudController::class, 'Salles', 'fa fa-location-dot');
-        yield MenuItem::linkTo(CostumeCrudController::class, 'Costumes', 'fa fa-shirt');
-        yield MenuItem::linkTo(ReservationCostumeCrudController::class, 'Réservations de costumes', 'fa fa-shopping-cart');
+        yield MenuItem::linkTo(InscriptionCrudController::class, 'Inscriptions', 'fa fa-file-signature')
+            ->setPermission('ROLE_TRESORIER');
+        yield MenuItem::linkTo(GalaCrudController::class, 'Galas', 'fa fa-star')
+            ->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(SalleCrudController::class, 'Salles', 'fa fa-location-dot')
+            ->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(CostumeCrudController::class, 'Costumes', 'fa fa-shirt')
+            ->setPermission('ROLE_TRESORIER');
+        yield MenuItem::linkTo(ReservationCostumeCrudController::class, 'Réservations de costumes', 'fa fa-shopping-cart')
+            ->setPermission('ROLE_TRESORIER');
+        yield MenuItem::linkTo(GoodieCrudController::class, 'Boutique (Goodies)', 'fa fa-bag-shopping')
+            ->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(AchatGoodieCrudController::class, 'Achats boutique', 'fa fa-receipt')
+            ->setPermission('ROLE_BUREAU');
 
-        yield MenuItem::section('Comptabilité / Règlements');
-        yield MenuItem::linkTo(PaiementCrudController::class, 'Règlements', 'fa fa-money-check-dollar');
+        yield MenuItem::section('Comptabilité / Règlements')->setPermission('ROLE_TRESORIER');
+        yield MenuItem::linkTo(PaiementCrudController::class, 'Règlements', 'fa fa-money-check-dollar')
+            ->setPermission('ROLE_TRESORIER');
 
-        yield MenuItem::section('Sponsors');
-        yield MenuItem::linkTo(SponsorCrudController::class, 'Sponsors', 'fa fa-handshake');
+        yield MenuItem::section('Sponsors')->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(SponsorCrudController::class, 'Sponsors', 'fa fa-handshake')
+            ->setPermission('ROLE_BUREAU');
 
-        yield MenuItem::section('Galerie & Communication');
-        yield MenuItem::linkTo(AlbumCrudController::class, 'Albums Photos', 'fas fa-images');
-        yield MenuItem::linkTo(MediaCrudController::class, 'Tous les Médias', 'fas fa-photo-video');
+        yield MenuItem::section('Galerie & Communication')->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(AlbumCrudController::class, 'Albums Photos', 'fas fa-images')
+            ->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(MediaCrudController::class, 'Tous les Médias', 'fas fa-photo-video')
+            ->setPermission('ROLE_BUREAU');
         yield MenuItem::linkTo(FlyerAdminController::class, 'Créer un Flyer', 'fas fa-qrcode')
-            ->setAction('index');
+            ->setAction('index')
+            ->setPermission('ROLE_TRESORIER');
     }
 }

@@ -344,8 +344,24 @@
                 </div>
             {% endif %}
             <div class="row total">
-                <span>Total net foyer</span>
+                <span>Total cotisation cours</span>
                 <span>{{ cotisation.total|number_format(2, ',', ' ') }} €</span>
+            </div>
+            {% if cotisation.goodiesAmount > 0 %}
+                <div class="row">
+                    <span>Boutique (goodies / vêtements)</span>
+                    <span>{{ cotisation.goodiesAmount|number_format(2, ',', ' ') }} €</span>
+                </div>
+            {% endif %}
+            {% if cotisation.costumesAmount > 0 %}
+                <div class="row">
+                    <span>Locations de costumes</span>
+                    <span>{{ cotisation.costumesAmount|number_format(2, ',', ' ') }} €</span>
+                </div>
+            {% endif %}
+            <div class="row total">
+                <span>Grand total foyer</span>
+                <span>{{ cotisation.grandTotal|number_format(2, ',', ' ') }} €</span>
             </div>
         </div>
 

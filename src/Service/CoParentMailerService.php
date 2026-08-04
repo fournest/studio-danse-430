@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Danseur;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
@@ -12,6 +13,7 @@ final class CoParentMailerService
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly CoParentInvitationService $invitationService,
+        private readonly EntityManagerInterface $em,
     ) {
     }
 
@@ -22,7 +24,8 @@ final class CoParentMailerService
             return false;
         }
 
-        $registerUrl = $this->invitationService->createRegistrationUrl($danseur);
+        $invitation = $this->invitationService->createInvitation($danseur);
+        $acceptUrl = $this->invitationService->createAcceptationUrl($invitation);
         $prenom = $danseur->getParent2Prenom() ?: 'Parent';
 
         $email = (new TemplatedEmail())
@@ -33,12 +36,14 @@ final class CoParentMailerService
             ->context([
                 'danseur' => $danseur,
                 'parent2_prenom' => $prenom,
-                'register_url' => $registerUrl,
+                'register_url' => $acceptUrl,
+                'accept_url' => $acceptUrl,
                 'saison' => '2026-2027',
             ]);
 
         $this->mailer->send($email);
         $danseur->setParent2InvitedAt(new \DateTimeImmutable());
+        $this->em->flush();
 
         return true;
     }

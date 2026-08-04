@@ -6,6 +6,7 @@ enum StatutReservation: string
 {
     case EN_ATTENTE = 'En attente';
     case VALIDEE = 'Validée';
+    case EN_COURS = 'En cours';
     case REFUSEE = 'Refusée';
     case RESTITUEE = 'Restituée';
     case ANNULEE = 'Annulée';

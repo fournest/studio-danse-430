@@ -48,4 +48,60 @@ class DanseurRepository extends ServiceEntityRepository
             }
         ));
     }
+
+    /**
+     * @return list<Danseur>
+     */
+    public function findAllForExport(): array
+    {
+        return $this->createQueryBuilder('d')
+            ->leftJoin('d.foyer', 'f')->addSelect('f')
+            ->leftJoin('f.user', 'u')->addSelect('u')
+            ->leftJoin('d.cours', 'c')->addSelect('c')
+            ->leftJoin('d.inscriptions', 'i')->addSelect('i')
+            ->leftJoin('i.cours', 'ic')->addSelect('ic')
+            ->orderBy('f.nom', 'ASC')
+            ->addOrderBy('d.nom', 'ASC')
+            ->addOrderBy('d.prenom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Élèves d'un cours (inscriptions saison + ManyToMany).
+     *
+     * @return list<Danseur>
+     */
+    public function findForCoursExport(\App\Entity\Cours $cours, string $saison): array
+    {
+        /** @var list<Danseur> $viaInscriptions */
+        $viaInscriptions = $this->createQueryBuilder('d')
+            ->innerJoin('d.inscriptions', 'i')
+            ->leftJoin('d.foyer', 'f')->addSelect('f')
+            ->leftJoin('f.user', 'u')->addSelect('u')
+            ->andWhere('i.cours = :cours')
+            ->andWhere('i.saison = :saison')
+            ->andWhere('i.estEnListeDAttente = false')
+            ->setParameter('cours', $cours)
+            ->setParameter('saison', $saison)
+            ->orderBy('d.nom', 'ASC')
+            ->addOrderBy('d.prenom', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        if ($viaInscriptions !== []) {
+            return $viaInscriptions;
+        }
+
+        return $this->createQueryBuilder('d')
+            ->innerJoin('d.cours', 'c')
+            ->leftJoin('d.foyer', 'f')->addSelect('f')
+            ->leftJoin('f.user', 'u')->addSelect('u')
+            ->andWhere('c = :cours')
+            ->setParameter('cours', $cours)
+            ->orderBy('d.nom', 'ASC')
+            ->addOrderBy('d.prenom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

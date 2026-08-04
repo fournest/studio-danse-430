@@ -14,6 +14,7 @@ use App\Enum\ModePaiement;
 use App\Enum\StatutInscription;
 use App\Enum\StatutPaiement as StatutLignePaiement;
 use App\Enum\StatutSante;
+use App\Form\CoParentContactType;
 use App\Form\FoyerType;
 use App\Form\DanseurType;
 use App\Repository\CoursRepository;
@@ -23,6 +24,7 @@ use App\Security\Voter\InscriptionTunnelVoter;
 use App\Service\CoParentMailerService;
 use App\Service\CotisationCalculatorService;
 use App\Service\EchelonnementService;
+use App\Service\InscriptionAutofillService;
 use App\Service\InscriptionConfirmationMailer;
 use App\Service\QsSportQuestionnaire;
 use App\Service\VirementLibelleService;
@@ -59,13 +61,21 @@ class FoyerController extends AbstractController
         $danseursProprietaire = $foyer ? $foyer->getDanseurs()->toArray() : [];
         $danseursRattaches = $danseurRepository->findAccessibleByParent2Email((string) $user->getEmail());
 
-        $byId = [];
-        foreach (array_merge($danseursProprietaire, $danseursRattaches) as $danseur) {
-            $byId[$danseur->getId()] = $danseur;
-        }
-        $allDanseurs = array_values($byId);
+        $isParentPrincipal = null !== $foyer && $foyer->getUser()?->getId() === $user->getId();
+        $isCoparent = $danseursRattaches !== [];
 
-        if (!$foyer && empty($allDanseurs)) {
+        // Coparent pur : uniquement les enfants rattachés. Parent principal : foyer + éventuels rattachements externes.
+        if ($isParentPrincipal) {
+            $byId = [];
+            foreach (array_merge($danseursProprietaire, $danseursRattaches) as $danseur) {
+                $byId[$danseur->getId()] = $danseur;
+            }
+            $allDanseurs = array_values($byId);
+        } else {
+            $allDanseurs = $danseursRattaches;
+        }
+
+        if (!$isParentPrincipal && empty($allDanseurs)) {
             return $this->redirectToRoute('app_foyer_new');
         }
 
@@ -76,7 +86,8 @@ class FoyerController extends AbstractController
         $reglementSolde = false;
 
         // Recalcule le total foyer ; persiste les parts tant qu’aucun règlement n’a commencé.
-        if ($foyer && !$foyer->getDanseurs()->isEmpty()) {
+        // Uniquement pour le parent principal (jamais pour un coparent en lecture seule).
+        if ($isParentPrincipal && $foyer && !$foyer->getDanseurs()->isEmpty()) {
             $cotisation = $cotisationService->calculerTotalFoyer($foyer, $saison);
             $reglementSoumis = $this->foyerHasPaiementsSaison($foyer, $saison);
             if (!$reglementSoumis) {
@@ -106,8 +117,11 @@ class FoyerController extends AbstractController
         $nbInscriptions = 0;
         $nbReglementsOk = 0;
         $premiereInscriptionId = null;
+        $canEditByDanseurId = [];
 
         foreach ($allDanseurs as $danseur) {
+            $canEditByDanseurId[$danseur->getId()] = $this->isPrimaryParent($danseur, $user);
+
             $email = trim((string) $danseur->getParent2EmailEffectif());
             if ($email !== '') {
                 $existing = $userRepository->createQueryBuilder('u')
@@ -130,10 +144,9 @@ class FoyerController extends AbstractController
 
             foreach ($danseur->getInscriptions() as $inscription) {
                 ++$nbInscriptions;
-                if (null === $premiereInscriptionId) {
+                if (null === $premiereInscriptionId && $canEditByDanseurId[$danseur->getId()]) {
                     $premiereInscriptionId = $inscription->getId();
                 }
-                // Étape 4 OK dès qu’un plan est soumis OU que la ligne est soldée / sans montant.
                 $paiementOk = $inscription->getStatutPaiement() === StatutPaiement::SOLDE
                     || $inscription->hasPlanReglement()
                     || ($inscription->getMontantTotal() ?? 0.0) <= 0.0;
@@ -143,8 +156,8 @@ class FoyerController extends AbstractController
             }
         }
 
-        $step1Done = \count($allDanseurs) > 0;
-        $step2Done = $danseursAvecCours > 0;
+        $step1Done = \count($danseursProprietaire) > 0;
+        $step2Done = $isParentPrincipal && $danseursAvecCours > 0;
         $step3Done = $step2Done && $danseursSanteOk >= $danseursAvecCours;
         $step4Done = $reglementSoumis
             || ($step2Done && $nbInscriptions > 0 && $nbReglementsOk >= $nbInscriptions);
@@ -157,10 +170,13 @@ class FoyerController extends AbstractController
         };
 
         return $this->render('foyer/index.html.twig', [
-            'foyer' => $foyer,
+            'foyer' => $isParentPrincipal ? $foyer : null,
             'danseurs' => $allDanseurs,
-            'isFoyerOwner' => $foyer !== null,
-            'ownedFoyerId' => $foyer?->getId(),
+            'isParentPrincipal' => $isParentPrincipal,
+            'isCoparent' => $isCoparent,
+            'isFoyerOwner' => $isParentPrincipal, // alias rétrocompat template
+            'ownedFoyerId' => $isParentPrincipal ? $foyer?->getId() : null,
+            'canEditByDanseurId' => $canEditByDanseurId,
             'parent2_compte_cree' => $parent2CompteCree,
             'step1_done' => $step1Done,
             'step2_done' => $step2Done,
@@ -175,6 +191,70 @@ class FoyerController extends AbstractController
         ]);
     }
 
+    #[Route('/mes-coordonnees', name: 'app_foyer_coparent_contact', methods: ['GET', 'POST'])]
+    public function coparentContact(
+        Request $request,
+        EntityManagerInterface $em,
+        DanseurRepository $danseurRepository,
+        UserRepository $userRepository,
+    ): Response {
+        /** @var User $user */
+        $user = $this->getUser();
+        $danseursRattaches = $danseurRepository->findAccessibleByParent2Email((string) $user->getEmail());
+
+        if ($danseursRattaches === []) {
+            $this->addFlash('warning', 'Aucun enfant ne vous est rattaché en tant que co-parent.');
+
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        $form = $this->createForm(CoParentContactType::class, null, [
+            'email' => (string) $user->getEmail(),
+            'telephone' => (string) ($user->getTelephone() ?: ($danseursRattaches[0]->getParent2TelephoneEffectif() ?? '')),
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $newEmail = mb_strtolower(trim((string) $form->get('email')->getData()));
+            $newPhone = trim((string) $form->get('telephone')->getData());
+            $oldEmail = mb_strtolower(trim((string) $user->getEmail()));
+
+            if ($newEmail !== $oldEmail) {
+                $conflict = $userRepository->createQueryBuilder('u')
+                    ->andWhere('LOWER(u.email) = :email')
+                    ->andWhere('u.id != :id')
+                    ->setParameter('email', $newEmail)
+                    ->setParameter('id', $user->getId())
+                    ->setMaxResults(1)
+                    ->getQuery()
+                    ->getOneOrNullResult();
+                if (null !== $conflict) {
+                    $this->addFlash('error', 'Cet e-mail est déjà utilisé par un autre compte.');
+
+                    return $this->redirectToRoute('app_foyer_coparent_contact');
+                }
+            }
+
+            $user->setEmail($newEmail);
+            $user->setTelephone($newPhone);
+
+            foreach ($danseursRattaches as $danseur) {
+                $danseur->setParent2Email($newEmail);
+                $danseur->setParent2Telephone($newPhone);
+            }
+
+            $em->flush();
+            $this->addFlash('success', 'Vos coordonnées de co-parent ont été mises à jour.');
+
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        return $this->render('foyer/coparent_contact.html.twig', [
+            'form' => $form->createView(),
+            'danseurs' => $danseursRattaches,
+        ]);
+    }
+
     #[Route('/configuration', name: 'app_foyer_new', methods: ['GET', 'POST'])]
     #[Route('/modifier', name: 'app_foyer_edit_dossier', methods: ['GET', 'POST'])]
     public function configure(Request $request, EntityManagerInterface $em): Response
@@ -182,6 +262,12 @@ class FoyerController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
         $foyer = $user->getFoyer();
+
+        // Un co-parent sans foyer titulaire ne crée pas de dossier familial ici.
+        if (null === $foyer && $request->attributes->get('_route') === 'app_foyer_edit_dossier') {
+            return $this->redirectToRoute('app_foyer_coparent_contact');
+        }
+
         $isEdit = $foyer !== null;
 
         if (!$isEdit) {
@@ -474,20 +560,15 @@ class FoyerController extends AbstractController
                 $this->addFlash(
                     'success',
                     sprintf(
-                        'Inscriptions enregistrées. Total cotisation saison %s : %s €.',
-                        $saison,
-                        number_format($detail->total, 2, ',', ' ')
+                        'Inscriptions enregistrées. Cotisation cours : %s € — total foyer (avec boutique) : %s €.',
+                        number_format($detail->total, 2, ',', ' '),
+                        number_format($detail->grandTotal, 2, ',', ' ')
                     )
                 );
 
-                $nextPaiement = $this->findFirstInscriptionSansPaiement($foyer, $saison);
-                if (null !== $nextPaiement) {
-                    return $this->redirectToRoute('app_foyer_inscription_paiement', ['id' => $nextPaiement->getId()]);
-                }
-
                 $firstInscription = $this->findFirstInscriptionSaison($foyer, $saison);
                 if (null !== $firstInscription) {
-                    return $this->redirectToRoute('app_foyer_inscription_sante', ['id' => $firstInscription->getId()]);
+                    return $this->redirectToRoute('app_foyer_inscription_paiement', ['id' => $firstInscription->getId()]);
                 }
 
                 return $this->redirectToRoute('app_foyer_index');
@@ -712,6 +793,46 @@ class FoyerController extends AbstractController
         return array_values(array_unique($forcedWaitlistLabels));
     }
 
+    #[Route('/inscription/{id}/boutique', name: 'app_foyer_inscription_boutique', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
+    public function inscriptionBoutique(Inscription $inscription): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $danseur = $inscription->getDanseur();
+
+        if (null === $danseur || !$this->isPrimaryParent($danseur, $user)) {
+            throw $this->createAccessDeniedException('Vous n’avez pas accès à cette étape.');
+        }
+
+        $this->addFlash(
+            'info',
+            'La boutique et les locations de costumes ont leurs propres tunnels de paiement. Le règlement foyer concerne uniquement les cours.'
+        );
+
+        return $this->redirectToRoute('app_foyer_inscription_paiement', ['id' => $inscription->getId()]);
+    }
+
+    #[Route('/confirmation', name: 'app_foyer_confirmation', methods: ['GET'])]
+    public function confirmationAlias(): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $foyer = $user->getFoyer();
+        if (!$foyer) {
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        $saison = CotisationCalculatorService::SAISON_COURANTE;
+        $inscription = $this->findFirstInscriptionSaison($foyer, $saison);
+        if (!$inscription) {
+            $this->addFlash('warning', 'Aucune inscription à confirmer pour la saison en cours.');
+
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        return $this->redirectToRoute('app_foyer_inscription_confirmation', ['id' => $inscription->getId()]);
+    }
+
     #[Route('/inscription/{id}/paiement', name: 'app_foyer_inscription_paiement', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
     public function inscriptionPaiement(
         Inscription $inscription,
@@ -752,7 +873,7 @@ class FoyerController extends AbstractController
                 if (!$hadRef) {
                     $em->flush();
                 }
-                if (($inscription->getMontantTotal() ?? 0.0) <= 0 && $cotisation->total > 0) {
+                if (($inscription->getMontantTotal() ?? 0.0) <= 0 && $cotisation->grandTotal > 0) {
                     $cible = $this->findFirstInscriptionSansPaiement($foyer, $saison)
                         ?? $this->findFirstInscriptionAvecMontant($foyer, $saison);
                     if (null !== $cible && $cible->getId() !== $inscription->getId()) {
@@ -762,16 +883,16 @@ class FoyerController extends AbstractController
             }
         }
 
-        $montantTotal = $cotisation?->total > 0
-            ? $cotisation->total
+        $montantTotal = $cotisation?->grandTotal > 0
+            ? $cotisation->grandTotal
             : ($inscription->getMontantTotal() ?? 0.0);
         $resteAPayer = $foyer
             ? $this->calculerResteAPayerFoyer($foyer, $saison)
             : $inscription->getResteAPayer();
 
         // Si l’inscription porte déjà le total foyer (après concentration), utilise ses valeurs.
-        if (($inscription->getMontantTotal() ?? 0.0) >= ($cotisation?->total ?? 0.0) - 0.01
-            && ($cotisation?->total ?? 0.0) > 0) {
+        if (($inscription->getMontantTotal() ?? 0.0) >= ($cotisation?->grandTotal ?? 0.0) - 0.01
+            && ($cotisation?->grandTotal ?? 0.0) > 0) {
             $montantTotal = $inscription->getMontantTotal() ?? $montantTotal;
             $resteAPayer = $inscription->getResteAPayer();
         }
@@ -801,6 +922,12 @@ class FoyerController extends AbstractController
                     $resteAPayer,
                 );
 
+                // modePaiement + échéances Paiement déjà posés ; s’assurer du montant exact.
+                if ($foyer) {
+                    $cotisation = $cotisationService->calculerTotalFoyer($foyer, $saison);
+                    $this->concentrerMontantFoyerSurInscription($foyer, $saison, $inscription, $cotisation);
+                }
+
                 $inscription->refreshStatutPaiement();
 
                 if ($foyer && $inscription->getResteAPayer() <= 0) {
@@ -811,7 +938,7 @@ class FoyerController extends AbstractController
 
                 $this->addFlash('success', 'Vos moyens de paiement ont bien été enregistrés. Le bureau procédera à l’encaissement.');
 
-                return $this->redirectToRoute('app_foyer_index');
+                return $this->redirectToRoute('app_foyer_inscription_sante', ['id' => $inscription->getId()]);
             } catch (\InvalidArgumentException $e) {
                 $this->addFlash('error', $e->getMessage());
             }
@@ -847,6 +974,7 @@ class FoyerController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         ValidatorInterface $validator,
+        InscriptionAutofillService $autofill,
     ): Response {
         /** @var User $user */
         $user = $this->getUser();
@@ -897,6 +1025,7 @@ class FoyerController extends AbstractController
                     $this->addFlash('error', $error);
                 }
             } else {
+                $autofill->syncSanteFoyer($foyer, $saison);
                 $em->flush();
                 $this->addFlash('success', 'Informations santé enregistrées pour tous les danseurs.');
                 return $this->redirectToRoute('app_foyer_inscription_confirmation', ['id' => $inscription->getId()]);
@@ -1271,7 +1400,7 @@ class FoyerController extends AbstractController
                     continue;
                 }
                 if ($inscription->getId() === $cible->getId()) {
-                    $inscription->setMontantTotal($detail->total);
+                    $inscription->setMontantTotal($detail->grandTotal);
                 } else {
                     $inscription->setMontantTotal(0);
                 }
@@ -1406,6 +1535,7 @@ class FoyerController extends AbstractController
         EntityManagerInterface $em,
         InscriptionConfirmationMailer $confirmationMailer,
         CotisationCalculatorService $calculator,
+        InscriptionAutofillService $autofill,
     ): Response {
         /** @var User $user */
         $user = $this->getUser();
@@ -1451,11 +1581,7 @@ class FoyerController extends AbstractController
             }
 
             if ($action === 'valider' && $isBrouillon) {
-                foreach ($inscriptions as $ins) {
-                    if ($ins->getStatut() === StatutInscription::BROUILLON) {
-                        $ins->soumettreAuBureau();
-                    }
-                }
+                $autofill->finaliserSoumissionFoyer($foyer, $saison);
                 $em->flush();
 
                 $responsable = $foyer->getUser();
@@ -1650,6 +1776,7 @@ class FoyerController extends AbstractController
             return true;
         }
 
-        return $this->canViewDanseur($danseur, $user);
+        // Facturation / échéancier : réservés au parent principal du foyer.
+        return $this->isPrimaryParent($danseur, $user);
     }
 }
