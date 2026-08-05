@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Demande de raccordement de foyer — Studio Danse 430</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e5e5e5;font-family:Georgia,serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:32px 16px;">
+    <tr>
+        <td align="center">
+            <table width="560" cellpadding="0" cellspacing="0" style="background:#171717;border:1px solid #404040;border-radius:8px;padding:32px;">
+                <tr>
+                    <td>
+                        <h1 style="margin:0 0 8px;color:#FFD700;font-size:22px;">Studio Danse 430</h1>
+                        <p style="margin:0 0 24px;color:#a3a3a3;font-size:14px;">Demande de raccordement de foyer</p>
+
+                        <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#d4d4d4;">
+                            Bonjour,
+                        </p>
+
+                        <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#d4d4d4;">
+                            <strong style="color:#fff;">{{ nom_demandeur }}</strong>
+                            souhaite rattacher son compte à votre foyer
+                            <strong style="color:#FFD700;">{{ foyer_target.nom }}</strong>.
+                        </p>
+
+                        <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#d4d4d4;">
+                            Cliquez ici pour accepter le regroupement des enfants sous le même foyer :
+                        </p>
+
+                        <p style="margin:0 0 24px;text-align:center;">
+                            <a href="{{ accept_url }}"
+                               style="display:inline-block;background:#FFD700;color:#000;text-decoration:none;padding:14px 22px;border-radius:999px;font-weight:bold;font-size:13px;letter-spacing:0.04em;">
+                                ACCEPTER LA FUSION
+                            </a>
+                        </p>
+
+                        <p style="margin:0;font-size:12px;color:#737373;line-height:1.5;">
+                            Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
+                            <a href="{{ accept_url }}" style="color:#FFD700;word-break:break-all;">{{ accept_url }}</a>
+                        </p>
+
+                        <p style="margin:24px 0 0;font-size:12px;color:#737373;">
+                            Ce lien est valable 14 jours. Si vous n’êtes pas à l’origine de cette demande,
+                            vous pouvez ignorer cet e-mail.
+                        </p>
+
+                        <p style="margin:24px 0 0;font-size:12px;color:#737373;">
+                            L’équipe du Studio Danse 430
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Définir votre mot de passe — Studio Danse 430{% endblock %}
+
+{% block body %}
+<section class="bg-black py-20 min-h-[70vh] flex items-center">
+    <div class="max-w-md mx-auto w-full px-4 sm:px-6">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-[#FFD700]">Création du mot de passe</h1>
+            <p class="mt-3 text-white/70">
+                Bonjour {{ user.nomComplet }} — définissez le mot de passe de votre compte.
+            </p>
+        </div>
+
+        <div class="bg-black border border-[#FFD700]/40 rounded-3xl p-8 shadow-[0_0_30px_rgba(255,215,0,0.12)]">
+            {{ form_start(activationPasswordForm, { attr: { class: 'space-y-6' } }) }}
+                <div>
+                    {{ form_label(activationPasswordForm.plainPassword.first, null, { label_attr: { class: 'block text-sm font-semibold text-[#FFD700] mb-2' } }) }}
+                    {{ form_widget(activationPasswordForm.plainPassword.first, {
+                        attr: { class: 'w-full bg-black border border-[#FFD700] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]', id: 'activation-password' }
+                    }) }}
+                    {% include 'security/_password_requirements.html.twig' with { input_id: 'activation-password' } %}
+                    {{ form_errors(activationPasswordForm.plainPassword.first) }}
+                </div>
+                <div>
+                    {{ form_label(activationPasswordForm.plainPassword.second, null, { label_attr: { class: 'block text-sm font-semibold text-[#FFD700] mb-2' } }) }}
+                    {{ form_widget(activationPasswordForm.plainPassword.second, {
+                        attr: { class: 'w-full bg-black border border-[#FFD700] rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[#FFD700]' }
+                    }) }}
+                    {{ form_errors(activationPasswordForm.plainPassword.second) }}
+                </div>
+                {{ form_errors(activationPasswordForm.plainPassword) }}
+                {{ form_rest(activationPasswordForm) }}
+                <button type="submit" class="w-full px-8 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors">
+                    Activer mon compte
+                </button>
+            {{ form_end(activationPasswordForm) }}
+        </div>
+    </div>
+</section>
+{% endblock %}

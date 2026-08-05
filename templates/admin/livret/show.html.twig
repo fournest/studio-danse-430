@@ -1,0 +1,103 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}
+    <i class="{{ livret.icon }}"></i> {{ livret.title }}
+{% endblock %}
+
+{% block main %}
+<style>
+    .livret-page {
+        max-width: 1100px;
+        color: #f3f3f3;
+    }
+    .livret-page__header {
+        margin-bottom: 1.5rem;
+        padding: 1.25rem 1.5rem;
+        background: #161616;
+        border-left: 3px solid #FFD700;
+        border-radius: 0 0.75rem 0.75rem 0;
+    }
+    .livret-page__header h2 {
+        margin: 0 0 0.35rem;
+        color: #FFD700;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+    .livret-page__header p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.65);
+    }
+    .livret-page__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+    .livret-page__actions .btn-primary {
+        background: #FFD700;
+        border-color: #FFD700;
+        color: #111;
+        font-weight: 700;
+    }
+    .livret-page__actions .btn-outline-light {
+        border-color: rgba(255, 215, 0, 0.45);
+        color: #FFD700;
+    }
+    .livret-page__viewer {
+        background: #0c0c0c;
+        border: 1px solid rgba(255, 215, 0, 0.22);
+        border-radius: 1rem;
+        overflow: hidden;
+        min-height: 70vh;
+    }
+    .livret-page__viewer iframe {
+        display: block;
+        width: 100%;
+        min-height: 75vh;
+        border: 0;
+        background: #fff;
+    }
+    .livret-page__empty {
+        padding: 3rem 1.5rem;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.55);
+    }
+</style>
+
+<div class="livret-page">
+    <div class="livret-page__header">
+        <h2>{{ livret.title }}</h2>
+        <p>{{ livret.subtitle }}</p>
+    </div>
+
+    <div class="livret-page__actions">
+        {% if file_exists %}
+            <a href="{{ download_url }}" class="btn btn-primary">
+                <i class="fa fa-download"></i> Télécharger le PDF
+            </a>
+            <a href="{{ inline_url }}" target="_blank" rel="noopener" class="btn btn-outline-light">
+                <i class="fa fa-external-link-alt"></i> Ouvrir dans un nouvel onglet
+            </a>
+        {% else %}
+            <span class="badge bg-warning text-dark">
+                PDF non disponible — déposez le fichier dans <code>var/uploads/livrets/{{ livret.filename }}</code>
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="livret-page__viewer">
+        {% if file_exists and inline_url %}
+            <iframe
+                src="{{ inline_url }}"
+                title="{{ livret.title }}"
+                loading="lazy">
+            </iframe>
+        {% else %}
+            <div class="livret-page__empty">
+                <i class="fa fa-file-pdf fa-3x mb-3" style="color:#FFD700;"></i>
+                <p>Le livret n'a pas encore été publié. Contactez la Présidence pour déposer la version à jour.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

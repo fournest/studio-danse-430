@@ -86,6 +86,12 @@ class Inscription
     #[ORM\OrderBy(['dateEncaissementPrevue' => 'ASC', 'id' => 'ASC'])]
     private Collection $paiements;
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $lastPiecesReminderSentAt = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $lastPaymentReminderSentAt = null;
+
     public function __construct()
     {
         $this->paiements = new ArrayCollection();
@@ -337,6 +343,19 @@ class Inscription
         return $this;
     }
 
+    public function getPayeurLabel(): string
+    {
+        $nom = trim((string) ($this->payeurNom ?? ''));
+        $prenom = trim((string) ($this->payeurPrenom ?? ''));
+        if ($nom !== '' || $prenom !== '') {
+            return trim($prenom.' '.$nom);
+        }
+
+        $foyer = $this->danseur?->getFoyer();
+
+        return $foyer?->getNom() ?? '—';
+    }
+
     public function getPayeurEmail(): ?string
     {
         return $this->payeurEmail;
@@ -452,18 +471,41 @@ class Inscription
     }
 
     /**
-     * Somme des paiements à l'état ENCAISSE ou RECU.
+     * Somme des paiements encaissés (confirmés par la trésorerie).
      */
-    public function getMontantRegle(): float
+    public function getMontantEncaisse(): float
     {
         $total = 0.0;
         foreach ($this->paiements as $paiement) {
-            if (\in_array($paiement->getStatut(), [StatutLignePaiement::ENCAISSE, StatutLignePaiement::RECU], true)) {
+            if ($paiement->isPaid()) {
                 $total += $paiement->getMontant();
             }
         }
 
         return round($total, 2);
+    }
+
+    /**
+     * Somme des paiements déclarés par la famille (en attente de validation trésorerie).
+     */
+    public function getMontantDeclare(): float
+    {
+        $total = 0.0;
+        foreach ($this->paiements as $paiement) {
+            if ($paiement->isDeclared()) {
+                $total += $paiement->getMontant();
+            }
+        }
+
+        return round($total, 2);
+    }
+
+    /**
+     * @deprecated Alias — utilise getMontantEncaisse()
+     */
+    public function getMontantRegle(): float
+    {
+        return $this->getMontantEncaisse();
     }
 
     /**
@@ -483,7 +525,48 @@ class Inscription
 
     public function getResteAPayer(): float
     {
-        return round(max(0.0, ($this->getMontantTotal() ?? 0.0) - $this->getMontantRegle()), 2);
+        return round(max(0.0, ($this->getMontantTotal() ?? 0.0) - $this->getMontantEncaisse()), 2);
+    }
+
+    /**
+     * Reste à payer après déduction des montants déclarés (indicateur d'alerte allégé).
+     */
+    public function getResteAPayerApresDeclaration(): float
+    {
+        return round(max(0.0, $this->getResteAPayer() - $this->getMontantDeclare()), 2);
+    }
+
+    /**
+     * Libellé texte du reste à payer (pour TextField EasyAdmin).
+     */
+    public function getResteAPayerLabel(): string
+    {
+        return number_format($this->getResteAPayer(), 2, ',', ' ').' €';
+    }
+
+    /**
+     * Résumé lisible des échéances de règlement (ex. « 3/10 réglés »).
+     */
+    public function getEcheances(): string
+    {
+        $total = $this->paiements->count();
+        if ($total === 0) {
+            return 'Aucune échéance';
+        }
+
+        $regles = 0;
+        foreach ($this->paiements as $paiement) {
+            if ($paiement->isPaid()) {
+                ++$regles;
+            }
+        }
+
+        return sprintf('%d/%d réglés', $regles, $total);
+    }
+
+    public function getEcheancesCount(): int
+    {
+        return $this->paiements->count();
     }
 
     /**
@@ -561,5 +644,76 @@ class Inscription
             number_format($reste, 2, ',', ' '),
             $this->getLibelleStatutPaiement()
         );
+    }
+
+    public function getLastPiecesReminderSentAt(): ?\DateTimeImmutable
+    {
+        return $this->lastPiecesReminderSentAt;
+    }
+
+    public function setLastPiecesReminderSentAt(?\DateTimeImmutable $lastPiecesReminderSentAt): self
+    {
+        $this->lastPiecesReminderSentAt = $lastPiecesReminderSentAt;
+
+        return $this;
+    }
+
+    public function getLastPaymentReminderSentAt(): ?\DateTimeImmutable
+    {
+        return $this->lastPaymentReminderSentAt;
+    }
+
+    public function setLastPaymentReminderSentAt(?\DateTimeImmutable $lastPaymentReminderSentAt): self
+    {
+        $this->lastPaymentReminderSentAt = $lastPaymentReminderSentAt;
+
+        return $this;
+    }
+
+    public function hasOverduePaiement(): bool
+    {
+        return $this->getOverduePaiements() !== [];
+    }
+
+    /**
+     * @return list<Paiement>
+     */
+    public function getOverduePaiements(): array
+    {
+        $overdue = [];
+        foreach ($this->paiements as $paiement) {
+            if ($paiement->isOverdue()) {
+                $overdue[] = $paiement;
+            }
+        }
+
+        return $overdue;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getPiecesManquantes(): array
+    {
+        $pieces = [];
+        $danseur = $this->danseur;
+
+        if (null === $danseur) {
+            return ['Dossier danseur introuvable'];
+        }
+
+        if (!$danseur->hasJustificatifSanteComplet()) {
+            $pieces[] = 'Justificatif de santé (certificat médical ou questionnaire QS-Sport signé)';
+        }
+
+        if ($this->statutDossier === StatutDossier::INCOMPLET) {
+            $pieces[] = 'Éléments du dossier d\'inscription signalés comme incomplets par le bureau';
+        }
+
+        if ($pieces === []) {
+            $pieces[] = 'Compléter le dossier depuis votre Espace Famille';
+        }
+
+        return $pieces;
     }
 }

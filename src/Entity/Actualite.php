@@ -7,6 +7,9 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ActualiteRepository::class)]
+#[ORM\Table(name: 'actualite')]
+#[ORM\UniqueConstraint(name: 'UNIQ_ACTUALITE_SLUG', columns: ['slug'])]
+#[ORM\HasLifecycleCallbacks]
 class Actualite
 {
     #[ORM\Id]
@@ -14,35 +17,147 @@ class Actualite
     #[ORM\Column]
     private ?int $id = null;
 
+    #[ORM\Column(length: 255)]
+    private ?string $titre = null;
+
+    #[ORM\Column(length: 255, unique: true)]
+    private ?string $slug = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $chapeau = null;
+
     #[ORM\Column(type: Types::TEXT)]
     private ?string $contenu = null;
 
-    #[ORM\Column(length: 500, nullable: true)]
-    private ?string $urlMedia = null; // Lien vers l'image de la publication
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $image = null;
 
-    #[ORM\Column(length: 500)]
-    private ?string $urlOrigine = null; // Lien cliquable direct vers le post FB/Insta
+    #[ORM\Column(options: ['default' => true])]
+    private bool $isPublished = true;
 
-    #[ORM\Column(length: 50)]
-    private ?string $plateforme = null; // 'facebook' ou 'instagram'
+    /** Afficher dans le fil d’actualités (accueil + liste). Désactivable pour flyers / événements internes. */
+    #[ORM\Column(options: ['default' => true])]
+    private bool $publierDansFil = true;
 
     #[ORM\Column]
-    private ?\DateTimeImmutable $datePublication = null;
+    private ?\DateTimeImmutable $createdAt = null;
 
-    public function getId(): ?int { return $this->id; }
+    public function __construct()
+    {
+        $this->createdAt = new \DateTimeImmutable();
+    }
 
-    public function getContenu(): ?string { return $this->contenu; }
-    public function setContenu(string $contenu): self { $this->contenu = $contenu; return $this; }
+    #[ORM\PrePersist]
+    public function onPrePersist(): void
+    {
+        if (null === $this->createdAt) {
+            $this->createdAt = new \DateTimeImmutable();
+        }
+    }
 
-    public function getUrlMedia(): ?string { return $this->urlMedia; }
-    public function setUrlMedia(?string $urlMedia): self { $this->urlMedia = $urlMedia; return $this; }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
 
-    public function getUrlOrigine(): ?string { return $this->urlOrigine; }
-    public function setUrlOrigine(string $urlOrigine): self { $this->urlOrigine = $urlOrigine; return $this; }
+    public function getTitre(): ?string
+    {
+        return $this->titre;
+    }
 
-    public function getPlateforme(): ?string { return $this->plateforme; }
-    public function setPlateforme(string $plateforme): self { $this->plateforme = $plateforme; return $this; }
+    public function setTitre(string $titre): static
+    {
+        $this->titre = $titre;
 
-    public function getDatePublication(): ?\DateTimeImmutable { return $this->datePublication; }
-    public function setDatePublication(\DateTimeImmutable $datePublication): self { $this->datePublication = $datePublication; return $this; }
+        return $this;
+    }
+
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(string $slug): static
+    {
+        $this->slug = $slug;
+
+        return $this;
+    }
+
+    public function getChapeau(): ?string
+    {
+        return $this->chapeau;
+    }
+
+    public function setChapeau(?string $chapeau): static
+    {
+        $this->chapeau = $chapeau;
+
+        return $this;
+    }
+
+    public function getContenu(): ?string
+    {
+        return $this->contenu;
+    }
+
+    public function setContenu(string $contenu): static
+    {
+        $this->contenu = $contenu;
+
+        return $this;
+    }
+
+    public function getImage(): ?string
+    {
+        return $this->image;
+    }
+
+    public function setImage(?string $image): static
+    {
+        $this->image = $image;
+
+        return $this;
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->isPublished;
+    }
+
+    public function setIsPublished(bool $isPublished): static
+    {
+        $this->isPublished = $isPublished;
+
+        return $this;
+    }
+
+    public function isPublierDansFil(): bool
+    {
+        return $this->publierDansFil;
+    }
+
+    public function setPublierDansFil(bool $publierDansFil): static
+    {
+        $this->publierDansFil = $publierDansFil;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->titre ?? 'Actualité';
+    }
 }

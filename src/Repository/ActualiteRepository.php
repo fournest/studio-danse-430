@@ -17,16 +17,41 @@ class ActualiteRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère les dernières actualités des réseaux triées par date décroissante
-     * * @param int $limit Le nombre maximum d'actualités à afficher
-     * @return Actualite[]
+     * Dernières actualités publiées (gestion manuelle back-office).
+     *
+     * @return list<Actualite>
      */
-    public function findLatest(int $limit = 5): array
+    public function findLatest(int $limit = 3): array
     {
         return $this->createQueryBuilder('a')
-            ->orderBy('a.datePublication', 'DESC')
+            ->andWhere('a.isPublished = true')
+            ->andWhere('a.publierDansFil = true')
+            ->orderBy('a.createdAt', 'DESC')
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * @return list<Actualite>
+     */
+    public function findAllPublished(): array
+    {
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.isPublished = true')
+            ->andWhere('a.publierDansFil = true')
+            ->orderBy('a.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findOnePublishedBySlug(string $slug): ?Actualite
+    {
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.slug = :slug')
+            ->andWhere('a.isPublished = true')
+            ->setParameter('slug', $slug)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

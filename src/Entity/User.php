@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use App\Security\ClubRole;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -24,11 +25,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private array $roles = [];
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?string $password = null;
 
     #[ORM\Column(length: 20)]
     private ?string $telephone = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $prenom = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $nom = null;
 
     // Champs de sécurité requis pour notre futur UserChecker
     #[ORM\Column]
@@ -36,6 +43,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column]
     private bool $isActif = true;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $isActivated = false;
 
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?Foyer $foyer = null;
@@ -69,6 +79,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): self
     {
         $this->roles = $roles;
+        return $this;
+    }
+
+    /**
+     * Rôle officiel unique stocké en base (hors ROLE_USER implicite).
+     */
+    public function getPrimaryClubRole(): string
+    {
+        return ClubRole::extractPrimaryRole($this->roles);
+    }
+
+    public function setPrimaryClubRole(string $role): self
+    {
+        if (ClubRole::USER === $role || '' === trim($role)) {
+            $this->roles = [];
+        } else {
+            $this->roles = [$role];
+        }
+
         return $this;
     }
 
@@ -138,6 +167,57 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->isActif = $isActif;
         return $this;
+    }
+
+    public function isActivated(): bool
+    {
+        return $this->isActivated;
+    }
+
+    public function setIsActivated(bool $isActivated): self
+    {
+        $this->isActivated = $isActivated;
+
+        return $this;
+    }
+
+    /**
+     * Compte importé en attente de première connexion (mot de passe non défini).
+     */
+    public function needsActivation(): bool
+    {
+        return !$this->isActivated;
+    }
+
+    public function getPrenom(): ?string
+    {
+        return $this->prenom;
+    }
+
+    public function setPrenom(?string $prenom): self
+    {
+        $this->prenom = null !== $prenom ? trim($prenom) : null;
+
+        return $this;
+    }
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(?string $nom): self
+    {
+        $this->nom = null !== $nom ? trim($nom) : null;
+
+        return $this;
+    }
+
+    public function getNomComplet(): string
+    {
+        $parts = array_filter([$this->prenom, $this->nom]);
+
+        return $parts !== [] ? implode(' ', $parts) : (string) $this->email;
     }
 
     public function __toString(): string

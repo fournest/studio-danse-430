@@ -74,8 +74,14 @@
 					<button type="submit" class="w-full px-8 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200 shadow-lg">
 						Se connecter
 					</button>
-					<div class="text-center mt-4">
-						<a href="{{ path('app_forgot_password_request') }}" class="text-xs text-white/60 hover:text-[#FFD700]">
+					<div class="text-center mt-4 space-y-2">
+						<a href="{{ path('app_activation_request') }}" class="text-sm text-[#FFD700] hover:underline font-semibold block">
+							Première connexion (adhérent importé)
+						</a>
+						<a href="{{ path('app_register') }}" class="text-sm text-white/60 hover:text-[#FFD700] block">
+							Créer un compte — nouveau membre
+						</a>
+						<a href="{{ path('app_forgot_password_request') }}" class="text-xs text-white/60 hover:text-[#FFD700] block">
 							Mot de passe oublié ?
 						</a>
 					</div>

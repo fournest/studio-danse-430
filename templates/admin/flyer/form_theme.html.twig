@@ -1,0 +1,44 @@
+{% extends 'form_div_layout.html.twig' %}
+
+{# Astérisque sur les labels des champs obligatoires #}
+{% block form_label %}
+    {% if label is not same as(false) -%}
+        {% if not compound -%}
+            {% set label_attr = label_attr|merge({'for': id}) %}
+        {%- endif -%}
+        {% if required -%}
+            {% set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' flyer-field-required')|trim}) %}
+        {%- endif -%}
+        <label{% with {attr: label_attr} %}{{ block('attributes') }}{% endwith %}>
+            {{- block('form_label_content') -}}
+        </label>
+    {%- endif -%}
+{% endblock %}
+
+{# Erreurs de champ bien visibles #}
+{% block form_errors %}
+    {%- if errors|length > 0 -%}
+        <ul class="flyer-field-errors">
+            {%- for error in errors -%}
+                <li>{{ error.message }}</li>
+            {%- endfor -%}
+        </ul>
+    {%- endif -%}
+{% endblock %}
+
+{# Bordure rouge sur les champs invalides #}
+{% block widget_attributes %}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ (errors|length > 0 ? ' is-invalid' : ''))|trim}) -%}
+    {{ parent() }}
+{% endblock %}
+
+{% block choice_widget_expanded %}
+    <div {{ block('widget_container_attributes') }} class="flyer-choice-expanded{{ errors|length > 0 ? ' is-invalid-group' : '' }}">
+        {%- for child in form -%}
+            <div class="form-check flyer-choice-item">
+                {{- form_widget(child) -}}
+                {{- form_label(child) -}}
+            </div>
+        {%- endfor -%}
+    </div>
+{% endblock %}

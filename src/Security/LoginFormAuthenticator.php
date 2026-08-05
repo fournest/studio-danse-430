@@ -64,13 +64,17 @@ class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
                     return new RedirectResponse($this->urlGenerator->generate('app_foyer_index'));
                 }
             }
+
+            if (null === $user->getFoyer()) {
+                return new RedirectResponse($this->urlGenerator->generate('app_foyer_new'));
+            }
         }
 
         if ($targetPath = $this->getTargetPath($request->getSession(), $firewallName)) {
             return new RedirectResponse($targetPath);
         }
 
-        if (\in_array('ROLE_ADMIN', $token->getRoleNames(), true) || \in_array('ROLE_BUREAU', $token->getRoleNames(), true)) {
+        if (\in_array('ROLE_PROF', $token->getRoleNames(), true)) {
             return new RedirectResponse($this->urlGenerator->generate('admin'));
         }
 

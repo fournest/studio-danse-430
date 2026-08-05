@@ -19,6 +19,9 @@ parameters:
     env(SOCIAL_INSTAGRAM_URL): '#'
     social.facebook_url: '%env(SOCIAL_FACEBOOK_URL)%'
     social.instagram_url: '%env(SOCIAL_INSTAGRAM_URL)%'
+    app.livrets_dir: '%kernel.project_dir%/public/docs'
+    app.ldc_upload_dir: '%kernel.project_dir%/public/uploads/ldc'
+    app.ldc_legacy_document_path: '%kernel.project_dir%/var/uploads/ldc/ldc-courante.pdf'
 
 services:
     # default configuration for services in *this* file
@@ -33,5 +36,11 @@ services:
     App\:
         resource: '../src/'
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
+    App\Controller\Admin\LdcDocumentController:
+        arguments:
+            $ldcUploadDir: '%app.ldc_upload_dir%'
+            $ldcLegacyDocumentPath: '%app.ldc_legacy_document_path%'
+
+    App\Controller\Admin\LdcDocumentCrudController:
+        arguments:
+            $ldcUploadDir: '%app.ldc_upload_dir%'

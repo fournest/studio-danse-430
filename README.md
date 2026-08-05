@@ -24,129 +24,62 @@ Site vitrine & back-office de gestion pour une association de danse — identit�
 
 **Studio Danse 430** est l'application web d'une **association de danse fondée en 1976**. Elle couvre :
 
-- 🎭 **Site vitrine** — Accueil (disciplines regroupées), planning hebdomadaire, galerie, Gala, sponsors
-- 👨‍👩‍👧 **Inscriptions familles** — Tunnel foyer dédié aux cours (santé, cotisation, échéancier)
-- 👕 **Boutique** — Tunnel e-commerce séparé (goodies & vêtements)
-- 👗 **Location costumes** — Tunnel hors-gala dédié (soirées / événements)
-- 💃 **Espace professeur** — Consultation des cours et élèves (`ROLE_PROF`)
+- 🎭 **Site vitrine** — Accueil, planning, galerie, Gala, sponsors, actualités
+- 👨‍👩‍👧 **Inscriptions familles** — Tunnel foyer (santé, cotisation, échéancier, déclaration de paiement)
+- 👕 **Boutique** — Goodies & vêtements (tunnel séparé)
+- 👗 **Location costumes** — Tunnel hors-gala
+- 💃 **Espace professeur** — Cours et élèves (`ROLE_PROF`)
 - 🖨️ **Flyers** — Génération / impression A5
-- 🛠️ **Back-office EasyAdmin** — Adhérents, cours, inscriptions, paiements, boutique, costumes, galerie
+- 🛠️ **Back-office EasyAdmin** — Adhérents, règlements, LDC, livrets dynamiques, galerie
 
 Identité visuelle : fond **noir**, accents **or (`#FFD700`)**.
 
-Les **3 tunnels de paiement** sont indépendants :
-
 | Tunnel | Portée | Paiement |
 | :--- | :--- | :--- |
-| **1 · Foyer** `/mon-foyer` | Cours, cotisation, dégressivité, santé, échéancier | Chèque / virement / Pass’Sport / ANCV / HelloAsso |
-| **2 · Boutique** `/boutique` | Goodies & vêtements | 1× (HelloAsso / CB, chèque ou espèces au club) |
+| **1 · Foyer** `/mon-foyer` | Cours, cotisation, santé, échéancier | Chèque / virement / Pass'Sport / ANCV / HelloAsso |
+| **2 · Boutique** `/boutique` | Goodies & vêtements | 1× (HelloAsso / CB, chèque ou espèces) |
 | **3 · Costumes** `/costumes` | Location hors-gala | 1× + caution au retrait |
 
 ---
 
 ## 🧱 Stack technique
 
-| Domaine | Technologie | Détails |
-| :--- | :--- | :--- |
-| 🐘 **Langage** | PHP `8.2+` | Typage strict, enums, attributs |
-| 🎼 **Framework** | Symfony `7.4` | MVC, AssetMapper, Security, Mailer, RateLimiter |
-| 🖋️ **Templating** | Twig `3` | Globals RIB + réseaux sociaux |
-| 🗄️ **ORM** | Doctrine ORM `3` + Migrations | Entités, relations, migrations |
-| 🔐 **Back-office** | EasyAdmin `5` | CRUD, dashboard |
-| 🛡️ **Sécurité** | Symfony Security | Login throttling, verify-email, reset-password |
-| 🎨 **CSS public** | Tailwind CSS `v4` | `symfonycasts/tailwind-bundle` (pas de npm) |
-| 📤 **Uploads** | VichUploader | Costumes · Galerie · Goodies · certificats |
-| ⚡ **Front** | Symfony UX (Turbo + Stimulus) | |
-| 🗃️ **BDD** | MySQL / MariaDB / PostgreSQL | Via `DATABASE_URL` |
-| 🎟️ **Billetterie** | Billetweb | Gala (lien externe) |
-| 💳 **Paiement** | Chèque · Virement · ANCV · Pass’Sport · Espèces · HelloAsso | Pas de Stripe |
+| Domaine | Technologie |
+| :--- | :--- |
+| PHP `8.2+` · Symfony `7.4` · Twig `3` |
+| Doctrine ORM `3` + **Migrations** (schéma versionné) |
+| EasyAdmin `5` · Tailwind CSS `v4` (`symfonycasts/tailwind-bundle`) |
+| Symfony Security · Verify Email · Reset Password |
+| VichUploader · Dompdf (livrets PDF) · Symfony Mailer |
+| MySQL / MariaDB / PostgreSQL via `DATABASE_URL` |
 
 ---
 
-## ✨ Fonctionnalités clés
+## 🔐 Comptes & authentification
 
-### 🌐 Site public
+Deux parcours distincts :
 
-- 🏠 **Accueil** — Disciplines regroupées (plusieurs créneaux sur une seule fiche), actualités, sponsors
-- 📅 **Planning** — `/cours` : agenda semaine (Lun → Dim), grille desktop + accordéon mobile
-- 🖼️ **Galerie** — Albums & médias
-- 👕 **Boutique** — Catalogue, panier session, commande, confirmation
-- 👗 **Costumes** — Catalogue hors-gala, réservation (taille en liste déroulante), validation, confirmation
-- 🎟️ **Gala** — Réservation via Billetweb
-- 👤 **Compte** — Inscription + vérification e-mail, login, mot de passe oublié
+| Parcours | URL | Usage |
+| :--- | :--- | :--- |
+| **Première connexion** (adhérents importés) | `/activation` | E-mail pré-enregistré, pas de mot de passe → lien 48 h → création MDP → Espace Famille |
+| **Inscription classique** (nouveaux membres) | `/register` | Prénom, nom, e-mail, MDP sécurisé → e-mail de vérification → création du foyer |
 
-### 👨‍👩‍👧 Tunnel 1 — Inscriptions cours (`/mon-foyer`)
+Règles mot de passe (activation + inscription) : **8 caractères min.**, 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial.
 
-Stepper guidé :
+Connexion : `/login` · Mot de passe oublié : `/reset-password`
 
-1. **Famille** — Configuration foyer + danseurs
-2. **Choix des cours** — Filtrage par **âge** (`ageMin` / `ageMax`), places / liste d’attente, cotisation live
-3. **Santé** — QS Sport / certificat médical
-4. **Règlement & Facture** — aides + échéancier 1× / 3× / 10×, attestation
+**Import adhérents :** créer les comptes avec `is_activated = 0` et `password = NULL` pour forcer le parcours `/activation`.
 
-> Boutique et costumes ne font **plus** partie de ce tunnel.
+---
 
-**Co-parent :** invitation e-mail ; le 2ᵉ parent voit le foyer en lecture seule.
+## ✨ Fonctionnalités clés (récentes)
 
-### 👕 Tunnel 2 — Boutique
-
-```text
-/boutique → /boutique/panier → /boutique/commande → /boutique/confirmation/{id}
-```
-
-- Panier en **session**
-- Entité `CommandeBoutique` (+ lignes)
-- Coordonnées préremplies si connecté
-- Retrait club ou livraison · règlement 1×
-
-### 👗 Tunnel 3 — Location costumes
-
-```text
-/costumes/{id}/reserver → /costumes/{id}/validation → /costumes/confirmation/{id}
-```
-
-- Taille via `<select>` (`Costume::getTaillesAsArray()` — ex. `S, M, L` ou `S à L`)
-- Confirmation montant + caution au retrait
-- Cycle : Demandée → Validée → En cours → Restituée
-
-### 💶 Cotisations cours — saison 2026/2027
-
-Service : `CotisationCalculatorService`.
-
-| Règle | Détail |
-| :--- | :--- |
-| **Tarif de base** | `Cours.tarif` (EasyAdmin) |
-| **Gratuité 2020** | ≥ 2 cours → le moins cher est gratuit |
-| **Remise foyer** | 1 cours : 0 % · 2 : **−20 %** · 3+ : **−30 %** |
-| **Remise bureau** | `Foyer.remiseManuelle` + `Inscription.remiseManuelle` |
-| **Liste d’attente** | Non facturée jusqu’à confirmation bureau |
-| **Extras** | Boutique & costumes **exclus** du total foyer |
-
-```bash
-php bin/console app:test-cotisation-calculator
-php bin/console app:test-echelonnement
-```
-
-### 🎫 Capacité & liste d’attente
-
-| Élément | Détail |
-| :--- | :--- |
-| **Capacité** | `Cours.capaciteMax` (défaut 25) |
-| **Complet** | Proposition liste d’attente |
-| **Âge** | `ageMin` / `ageMax` — front-office bloque ; EasyAdmin peut outrepasser |
-| **Groupe** | `numeroGroupe` → affichage `getNomComplet()` (ex. `Modern Jazz #1`) |
-
-### 🛠️ Administration (EasyAdmin)
-
-Accès : **`ROLE_TRESORIER`** ou **`ROLE_BUREAU`**.
-
-- Dashboard KPI
-- Users, Foyers, Danseurs
-- **Cours** — tarif, capacité, n° groupe, âge min/max, jauge, liste d’attente
-- Inscriptions, Paiements
-- **Goodies** / Achats boutique / Commandes
-- Costumes, Réservations costumes
-- Galas, Salles, Sponsors, Galerie, Flyer
+- **Solde foyer** — Total dû, déclaré par la famille, encaissé, reste à payer (badges)
+- **Déclaration paiement famille** — Modale « Signaler un règlement effectué » → statut `paiement_declare` → validation trésorerie
+- **Règlements EasyAdmin** — Synthèse par inscription, échéancier, relance retard (> 5 j)
+- **Livrets dynamiques** — `/admin/doc/voir/{type}` + PDF à la volée (Dompdf)
+- **LDC** — Upload PDF, déclaration en vigueur
+- **Relances e-mail** — Pièces manquantes · retard de paiement
 
 ---
 
@@ -156,7 +89,7 @@ Accès : **`ROLE_TRESORIER`** ou **`ROLE_BUREAU`**.
 
 - PHP `>= 8.2` · Composer `2.x` · Git
 - MySQL / MariaDB (ex. WAMP) ou PostgreSQL
-- Docker *(optionnel)* · Symfony CLI *(recommandé)*
+- Symfony CLI *(recommandé)*
 
 ### 1. Cloner & dépendances
 
@@ -173,59 +106,59 @@ APP_ENV=dev
 APP_SECRET=changez_moi_par_une_chaine_aleatoire
 DEFAULT_URI=http://localhost:8000
 
-# MySQL / MariaDB (ex. WAMP)
 DATABASE_URL="mysql://root:@127.0.0.1:3306/studio_danse_430?serverVersion=8.0.32&charset=utf8mb4"
 
-# PostgreSQL (Docker Compose)
-# DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&charset=utf8"
-
 MAILER_DSN=null://null
+# En dev sans envoi réel : null://null
+# SMTP : smtp://user:pass@smtp.example.com:587
 
-BILLETWEB_API_KEY=
-BILLETWEB_API_URL=https://api.billetweb.fr/v1
-
-HELLOASSO_CLIENT_ID=
-HELLOASSO_CLIENT_SECRET=
-HELLOASSO_API_URL=https://api.helloasso.com/v5
 HELLOASSO_CAMPAIGN_URL=
-
-CLUB_IBAN="FR76 1234 5678 9012 3456 7890 123"
+CLUB_IBAN="FR76 ..."
 CLUB_BIC="ABCDFR21XXX"
 CLUB_TITULAIRE="Studio Danse 430"
-
 SOCIAL_FACEBOOK_URL="https://www.facebook.com/studiodanse430"
 SOCIAL_INSTAGRAM_URL="#"
 ```
 
-> Secrets de prod uniquement dans `.env.local` (non versionné).
+### 3. Base de données — **obligatoire**
 
-### 3. Base de données
+Le schéma est géré uniquement par les **migrations Doctrine** (pas de `schema:update` en prod).
 
 ```bash
-# Optionnel Postgres
-docker compose up -d
-
+# Créer la base (si elle n'existe pas)
 php bin/console doctrine:database:create
+
+# Appliquer toutes les migrations
 php bin/console doctrine:migrations:migrate
 ```
+
+**Après chaque `git pull`** qui ajoute des fichiers dans `migrations/`, relancer :
+
+```bash
+php bin/console doctrine:migrations:migrate
+```
+
+Vérifier l'état :
+
+```bash
+php bin/console doctrine:migrations:status
+# « New » doit être 0 et « Current » = « Latest »
+```
+
+> Si `migrate` n'a pas été exécuté, l'application peut planter (colonnes ou tables manquantes : `is_activated`, `account_activation_token`, `date_declaration` sur `paiement`, etc.).
 
 ### 4. Comptes équipe
 
 ```bash
+php bin/console app:promote-user president@studio430.fr president
 php bin/console app:create-staff tresorier@studio430.fr "MotDePasseSolide!" tresorier 0612345678
-php bin/console app:create-staff bureau@studio430.fr "MotDePasseSolide!" bureau 0612345678
 php bin/console app:create-staff prof@studio430.fr "MotDePasseSolide!" prof 0612345678
 ```
-
-> Pour l’Espace Prof, l’e-mail du compte doit correspondre au champ **professeur** des cours.
 
 ### 5. Données de test *(optionnel)*
 
 ```bash
 php bin/console app:seed-test-family
-# Parent : parent.test@studio430.fr / Password123!
-
-php bin/console app:test-blended-family
 php bin/console app:seed-sponsors
 ```
 
@@ -233,8 +166,6 @@ php bin/console app:seed-sponsors
 
 ```bash
 php bin/console tailwind:build
-# ou : php bin/console tailwind:build --watch
-
 symfony server:start
 # ou : php -S localhost:8000 -t public/
 ```
@@ -242,12 +173,12 @@ symfony server:start
 | URL | Rôle |
 | :--- | :--- |
 | [/](http://localhost:8000) | Accueil |
-| [/cours](http://localhost:8000/cours) | Planning semaine |
-| [/boutique](http://localhost:8000/boutique) | Boutique |
-| [/costumes](http://localhost:8000/costumes) | Location costumes |
+| [/login](http://localhost:8000/login) | Connexion |
+| [/activation](http://localhost:8000/activation) | Première connexion (import) |
+| [/register](http://localhost:8000/register) | Inscription nouveau membre |
 | [/mon-foyer](http://localhost:8000/mon-foyer) | Espace familial |
-| [/flyer](http://localhost:8000/flyer) | Flyer imprimable |
-| [/espace-prof](http://localhost:8000/espace-prof) | Espace Prof |
+| [/boutique](http://localhost:8000/boutique) | Boutique |
+| [/costumes](http://localhost:8000/costumes) | Costumes |
 | [/admin](http://localhost:8000/admin) | Back-office |
 
 ---
@@ -256,92 +187,63 @@ symfony server:start
 
 ```bash
 # Métier
-php bin/console app:create-staff <email> <password> <bureau|tresorier|prof> [tel]
+php bin/console app:promote-user <email> <role>
 php bin/console app:seed-test-family
-php bin/console app:test-blended-family
 php bin/console app:test-cotisation-calculator
 php bin/console app:test-echelonnement
-php bin/console app:seed-sponsors
 
-# Doctrine
-php bin/console make:migration
+# Doctrine — après chaque mise à jour du dépôt
+php bin/console doctrine:migrations:status
 php bin/console doctrine:migrations:migrate
 php bin/console doctrine:schema:validate
 
 # Cache / debug
 php bin/console cache:clear
 php bin/console debug:router
-php bin/console about
 
 # Front
 php bin/console tailwind:build --watch
-php bin/console importmap:install
-php bin/console asset-map:compile
 ```
 
 ---
 
-## 📂 Structure du projet
+## 📂 Structure (aperçu)
 
 ```text
-studio-danse-430/
-├── compose.yaml
-├── config/
-├── migrations/
-├── public/
-│   ├── images/
-│   └── uploads/              # costumes/ · galerie/ · goodies/
-├── src/
-│   ├── Command/
-│   ├── Controller/           # Public, Foyer, Boutique, Costume…
-│   │   └── Admin/            # EasyAdmin
-│   ├── Dto/
-│   ├── Entity/               # + CommandeBoutique, Goodie, AchatGoodie…
-│   ├── Enum/
-│   ├── Form/
-│   ├── Repository/
-│   ├── Security/
-│   └── Service/              # Cotisation, BoutiqueCart, Echelonnement…
-├── templates/
-│   ├── boutique/ · costume/ · cours/ · foyer/ · home/
-│   ├── partials/             # _remarque_pedagogique.html.twig
-│   └── base.html.twig
-└── assets/
+src/
+├── Controller/
+│   ├── ActivationController.php      # /activation
+│   ├── RegistrationController.php    # /register + verify email
+│   ├── FoyerController.php           # Espace famille
+│   └── Admin/                        # EasyAdmin CRUD
+├── Entity/                           # User, Foyer, Paiement, Inscription…
+├── Service/                          # Cotisation, déclaration paiement, livrets PDF…
+├── Security/                         # Login, UserChecker, EmailVerifier
+└── Validator/Constraints/StrongPassword.php
+
+templates/
+├── security/                         # login, activation_request, activation_reset
+├── foyer/                            # Espace famille
+├── emails/                           # activation_account, relances…
+└── admin/documentation/              # Livrets dynamiques
 ```
 
 ---
 
-## 🗃️ Modèle de données (aperçu)
+## 🗃️ Rôles Symfony
 
-```text
-User ── Foyer ── Danseur ── Inscription ── Cours
-                              └── Paiement
+Hiérarchie : `ROLE_PRESIDENCE` → `ROLE_BUREAU` → `ROLE_PROF` → `ROLE_USER`
 
-Cours ── nom · numeroGroupe · jour · heure · professeur
-         · dureeMinutes · tarif · capaciteMax
-         · ageMin / ageMax · anneeNaissanceMin/Max
-
-CommandeBoutique ── lignes (Goodie · taille · qty · prix)
-AchatGoodie (historique foyer, legacy)
-ReservationCostume ── Costume · dates · taille · statut · modePaiementSouhaite
-
-Album ── Media     Gala ── Salle     Sponsor · Actualite
-```
-
-**Enums :** `StatutInscription` · `StatutPaiement` · `ModePaiement` · `StatutSante` · `StatutReservation` · `ModeLivraison` · `StatutCommandeBoutique` · `ModePaiementBoutique` · `ModeRetraitBoutique`
-
-**Rôles :** `ROLE_USER` · `ROLE_PROF` · `ROLE_TRESORIER` · `ROLE_BUREAU`
+Rôles stockés : `ROLE_PRESIDENT`, `ROLE_VICE_PRESIDENT`, `ROLE_TRESORIER`, `ROLE_SECRETAIRE`, `ROLE_PROF`, etc.
 
 ---
 
 ## 📌 Notes métier
 
-- Pas d’entité `Tarif` séparée : le prix vit sur **`Cours.tarif`**.
-- Affichage public des disciplines : regroupement par **nom** (sans n° de groupe) sur l’accueil ; agenda détaillé sur `/cours`.
-- Remarque pédagogique partagée : `templates/partials/_remarque_pedagogique.html.twig`.
-- Le règlement **cours** est centralisé au foyer ; boutique et costumes ont leur propre confirmation.
-- Libellé virement unique sur `Foyer.referenceVirement` (ex. `COTIS-2026-DUPONT`).
-- RIB (`CLUB_*`) et réseaux (`SOCIAL_*`) exposés en globals Twig.
+- Cotisation cours : `CotisationCalculatorService` — saison **2026/2027**
+- Statuts ligne paiement : `en_attente` · `paiement_declare` · `encaisse` · `retard` (affichage)
+- Reste à payer foyer = total dû − **encaissé** (déclaré non déduit tant que non validé)
+- Livrets admin : générés en Twig + PDF (pas de fichiers statiques à maintenir)
 
 ---
 

@@ -3,11 +3,14 @@
 namespace App\Form;
 
 use App\Entity\User;
+use App\Validator\Constraints\StrongPassword;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
+use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\IsTrue;
@@ -22,6 +25,24 @@ class RegistrationFormType extends AbstractType
         $labelClass = 'block text-sm font-medium text-neutral-300';
 
         $builder
+            ->add('prenom', TextType::class, [
+                'label' => 'Prénom',
+                'label_attr' => ['class' => $labelClass],
+                'attr' => ['class' => $inputClass],
+                'constraints' => [
+                    new NotBlank(message: 'Le prénom est obligatoire.'),
+                    new Length(max: 100),
+                ],
+            ])
+            ->add('nom', TextType::class, [
+                'label' => 'Nom',
+                'label_attr' => ['class' => $labelClass],
+                'attr' => ['class' => $inputClass],
+                'constraints' => [
+                    new NotBlank(message: 'Le nom est obligatoire.'),
+                    new Length(max: 100),
+                ],
+            ])
             ->add('email', EmailType::class, [
                 'label' => 'Adresse Email',
                 'label_attr' => ['class' => $labelClass],
@@ -40,18 +61,28 @@ class RegistrationFormType extends AbstractType
                     new NotBlank(['message' => 'Le numéro de téléphone est obligatoire pour l\'association.']),
                 ],
             ])
-            ->add('plainPassword', PasswordType::class, [
+            ->add('plainPassword', RepeatedType::class, [
+                'type' => PasswordType::class,
                 'mapped' => false,
-                'label' => 'Mot de passe',
-                'label_attr' => ['class' => $labelClass],
-                'attr' => ['class' => $inputClass, 'autocomplete' => 'new-password', 'placeholder' => '••••••••'],
+                'first_options' => [
+                    'label' => 'Mot de passe',
+                    'label_attr' => ['class' => $labelClass],
+                    'attr' => [
+                        'class' => $inputClass,
+                        'autocomplete' => 'new-password',
+                        'placeholder' => '••••••••',
+                        'id' => 'register-password',
+                    ],
+                ],
+                'second_options' => [
+                    'label' => 'Confirmation du mot de passe',
+                    'label_attr' => ['class' => $labelClass],
+                    'attr' => ['class' => $inputClass, 'autocomplete' => 'new-password'],
+                ],
+                'invalid_message' => 'Les mots de passe doivent être identiques.',
                 'constraints' => [
-                    new NotBlank(['message' => 'Veuillez entrer un mot de passe']),
-                    new Length([
-                        'min' => 6,
-                        'minMessage' => 'Votre mot de passe doit faire au moins {{ limit }} caractères',
-                        'max' => 4096,
-                    ]),
+                    new NotBlank(message: 'Veuillez entrer un mot de passe.'),
+                    new StrongPassword(),
                 ],
             ])
             ->add('agreeTerms', CheckboxType::class, [

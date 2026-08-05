@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ actualite.titre }} — Studio Danse 430{% endblock %}
+
+{% block body %}
+<article class="bg-black min-h-[calc(100vh-4rem)] py-12 px-4 sm:px-6">
+    <div class="max-w-3xl mx-auto">
+        <p class="mb-6">
+            <a href="{{ path('app_actualite_index') }}" class="text-sm text-neutral-400 hover:text-[#FFD700] transition-colors">
+                ← Toutes les actualités
+            </a>
+        </p>
+
+        <header class="mb-8">
+            <p class="text-xs uppercase tracking-wider text-neutral-500 font-semibold mb-2">
+                {{ actualite.createdAt|date('d/m/Y') }}
+            </p>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-[#FFD700] tracking-tight leading-tight">
+                {{ actualite.titre }}
+            </h1>
+            {% if actualite.chapeau %}
+                <p class="mt-4 text-lg text-neutral-300 leading-relaxed">{{ actualite.chapeau }}</p>
+            {% endif %}
+        </header>
+
+        {% if actualite.image %}
+            <div class="mb-8 rounded-2xl overflow-hidden border border-neutral-800">
+                <img src="{{ asset('uploads/actualites/' ~ actualite.image) }}"
+                     alt="{{ actualite.titre }}"
+                     class="w-full h-auto max-h-120 object-cover">
+            </div>
+        {% endif %}
+
+        <div class="prose prose-invert prose-headings:text-[#FFD700] prose-a:text-[#FFD700] max-w-none text-neutral-200 leading-relaxed">
+            {{ actualite.contenu|raw }}
+        </div>
+    </div>
+</article>
+{% endblock %}

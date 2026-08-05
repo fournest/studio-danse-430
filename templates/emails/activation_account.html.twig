@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Activation de votre compte</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 24px;">
+    <div style="border-bottom: 3px solid #FFD700; padding-bottom: 16px; margin-bottom: 24px;">
+        <p style="color: #8b6914; font-size: 12px; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; margin: 0;">Studio Danse 430</p>
+        <h1 style="margin: 8px 0 0; font-size: 22px;">Activez votre compte adhérent</h1>
+    </div>
+
+    <p>Bonjour{% if user.prenom %} {{ user.prenom }}{% endif %},</p>
+
+    <p>
+        Votre compte adhérent a été préparé par le Studio Danse 430.
+        Pour accéder à votre <strong>Espace Famille</strong> (foyer, cours, règlements), cliquez sur le bouton ci-dessous et définissez votre mot de passe.
+    </p>
+
+    <p style="text-align: center; margin: 32px 0;">
+        <a href="{{ activationUrl }}"
+           style="display: inline-block; background: #FFD700; color: #111; font-weight: bold; text-decoration: none; padding: 14px 28px; border-radius: 9999px;">
+            Activer mon compte
+        </a>
+    </p>
+
+    <p style="font-size: 13px; color: #666;">
+        Ce lien est valable <strong>{{ expiresHours }} heures</strong>.
+        Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.
+    </p>
+
+    <p style="font-size: 12px; color: #999; margin-top: 32px; border-top: 1px solid #eee; padding-top: 16px;">
+        Studio Danse 430 — Ne pas répondre à cet e-mail automatique.
+    </p>
+</body>
+</html>

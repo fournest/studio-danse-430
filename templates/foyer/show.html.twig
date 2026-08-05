@@ -39,6 +39,12 @@
 					{% endif %}
 				</div>
 
+				{% if isReadOnly is defined and isReadOnly %}
+					<div class="mb-8">
+						{% include 'foyer/mon_espace.html.twig' %}
+					</div>
+				{% endif %}
+
 				{# 2. Grille d'informations : Identité & Cours #}
 				<div
 					class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

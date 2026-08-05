@@ -1,0 +1,123 @@
+{% include 'admin/documentation/_partials/_doc_header.html.twig' with {
+    title: livret.title,
+    subtitle: livret.subtitle,
+} %}
+
+<div class="livret-toc">
+    <strong>Sommaire</strong>
+    <ol>
+        <li>Gouvernance et présidence</li>
+        <li>Déclarations LDC (pilotage)</li>
+        <li>Hiérarchie des rôles</li>
+        <li>Pilotage de saison</li>
+        <li>Pages légales et communication</li>
+        <li>Accès (ROLE_PRESIDENCE)</li>
+    </ol>
+</div>
+
+<h2>1. Gouvernance et présidence</h2>
+<p>
+    Ce livret stratégique s'adresse à la <strong>Présidence</strong> du Studio Danse 430 :
+    assemblées générales, statuts, déclarations officielles et coordination du bureau.
+</p>
+
+<div class="livret-warning">
+    <strong>Document confidentiel.</strong>
+    Réservé aux comptes <code>ROLE_PRESIDENCE</code> (Président(e) et Vice-Président(e)).
+    Ne pas diffuser hors cercle dirigeant.
+</div>
+
+<h2>2. Déclarations LDC (pilotage)</h2>
+<p>
+    La Présidence pilote les déclarations préfecture via <strong>Admin → Déclarations LDC</strong>.
+</p>
+<table class="livret-table">
+    <thead>
+        <tr>
+            <th>Fonctionnalité</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Historique par saison</td>
+            <td>Liste des PDF LDC archivés par année / saison.</td>
+        </tr>
+        <tr>
+            <td>LDC en vigueur</td>
+            <td>Un seul document marqué courant ; changement automatique lors de la mise à jour.</td>
+        </tr>
+        <tr>
+            <td>Upload sécurisé</td>
+            <td>PDF stocké via VichUploader (<code>public/uploads/ldc/</code>).</td>
+        </tr>
+        <tr>
+            <td>Téléchargement public staff</td>
+            <td>Lien de consultation sur les fiches utilisateurs bureau + action CRUD.</td>
+        </tr>
+        <tr>
+            <td>Rappels rôles</td>
+            <td>Encart LDC lors des changements de rôle sur un compte bureau.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>3. Hiérarchie des rôles</h2>
+<table class="livret-table">
+    <thead>
+        <tr>
+            <th>Rôle implicite</th>
+            <th>Hérite de</th>
+            <th>Périmètre</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>ROLE_PRESIDENCE</code></td>
+            <td><code>ROLE_BUREAU</code>, <code>ROLE_ADMIN</code></td>
+            <td>Gouvernance, LDC, livret stratégique</td>
+        </tr>
+        <tr>
+            <td><code>ROLE_BUREAU</code></td>
+            <td><code>ROLE_PROF</code> + trésorerie/secrétariat</td>
+            <td>Gestion quotidienne, inscriptions, communication</td>
+        </tr>
+        <tr>
+            <td><code>ROLE_PROF</code></td>
+            <td><code>ROLE_USER</code></td>
+            <td>Pédagogie, consultation cours/danseurs</td>
+        </tr>
+    </tbody>
+</table>
+<p>
+    Rôles stockés en base : <code>ROLE_PRESIDENT</code>, <code>ROLE_VICE_PRESIDENT</code>,
+    <code>ROLE_TRESORIER</code>, <code>ROLE_SECRETAIRE</code>, <code>ROLE_PROF</code>, etc.
+    La hiérarchie est définie dans <code>security.yaml</code>.
+</p>
+
+<h2>4. Pilotage de saison</h2>
+<ul>
+    <li><strong>Assemblées générales</strong> — coordination statuts, votes, communication aux adhérents.</li>
+    <li><strong>Galas & événements</strong> — Admin → Galas, Flyers & Événements (trésorerie).</li>
+    <li><strong>Actualités</strong> — Admin → Actualités (site public).</li>
+    <li><strong>Comptabilité</strong> — suivi trésorerie, impayés, relances (délégation trésorier).</li>
+</ul>
+
+<h2>5. Pages légales et communication</h2>
+<p>
+    Les pages légales du site (RGPD, mentions légales, CGU…) sont éditables depuis
+    <strong>Admin → Site & Légal → Pages légales</strong>.
+</p>
+<div class="livret-info">
+    <strong>Livrets dynamiques :</strong> cette documentation est générée par Symfony (Twig + PDF).
+    Elle reflète les fonctionnalités réelles du site au {{ generated_at|date('d/m/Y') }} —
+    pas de PDF statique obsolète à maintenir manuellement.
+</div>
+
+<h2>6. Accès (ROLE_PRESIDENCE)</h2>
+<p>
+    Accès strict : Président(e) et Vice-Président(e). Les membres du bureau ordinaire
+    consultent le livret Bureau ; les professeurs le livret Pédagogique.
+</p>
+
+{% include 'admin/documentation/_partials/_doc_footer.html.twig' %}

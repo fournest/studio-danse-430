@@ -38,14 +38,14 @@
 		</div>
 	</section>
 
-	{# ===== Section Mixte : Cours & Actualités Réseaux ===== #}
+			{# ===== Section Mixte : Cours & Actualités ===== #}
 	<section class="bg-black py-20 border-b border-neutral-900">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6">
 
 			<div class="text-center mb-16">
 				<h2 class="text-4xl font-extrabold text-[#FFD700]">Vie du Club & Horaires</h2>
 				<p class="mt-4 text-white/70 max-w-2xl mx-auto">
-					Retrouvez le planning de nos cours ainsi que les dernières publications de nos réseaux sociaux.
+					Retrouvez le planning de nos cours ainsi que les dernières actualités du studio.
 				</p>
 			</div>
 
@@ -78,35 +78,34 @@
 					{% endif %}
 				</div>
 
-				<div class="w-full lg:w-1/3 bg-neutral-900/30 border border-neutral-800 rounded-2xl p-6 backdrop-blur-sm">
-					<h3 class="text-2xl font-bold text-white flex items-center gap-2 border-b border-neutral-800 pb-3 mb-6">
-						<span class="text-[#FFD700]">📢</span>
-						Actus Récentes
-					</h3>
+			</div>
 
-					<div class="space-y-4">
-						{% for actu in actualites %}
-							<div class="bg-black/40 border border-neutral-800/80 rounded-xl p-4 text-sm hover:border-neutral-700 transition duration-200">
-								<div class="flex items-center justify-between mb-2">
-									<span class="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded {{ actu.plateforme == 'facebook' ? 'bg-blue-950/60 text-blue-400 border border-blue-900/50' : 'bg-pink-950/60 text-pink-400 border border-pink-900/50' }}">
-										{{ actu.plateforme }}
-									</span>
-									<span class="text-xs text-neutral-500">{{ actu.datePublication|date('d/m/Y') }}</span>
-								</div>
-								<p class="text-neutral-300 line-clamp-3 mb-3 leading-relaxed">{{ actu.contenu }}</p>
-								<a href="{{ actu.urlOrigine }}" target="_blank" rel="noopener noreferrer" class="text-xs text-[#FFD700] hover:underline inline-flex items-center gap-1 font-semibold">
-									Voir la publication originale →
-								</a>
-							</div>
-						{% else %}
-							<div class="text-center py-12 border border-dashed border-neutral-800 rounded-xl">
-								<p class="text-sm text-neutral-500 italic">Aucune actualité synchronisée pour le moment.</p>
-							</div>
-						{% endfor %}
+			{# Cartes actualités (3 dernières publiées) #}
+			<div class="mt-16 pt-12 border-t border-neutral-900">
+				<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
+					<div>
+						<h3 class="text-2xl font-bold text-white flex items-center gap-2">
+							<span class="text-[#FFD700]">📢</span>
+							Actualités
+						</h3>
+						<p class="mt-1 text-sm text-neutral-500">Les dernières nouvelles du club</p>
 					</div>
+					<a href="{{ path('app_actualite_index') }}" class="text-sm font-semibold text-[#FFD700] hover:underline">
+						Toutes les actualités →
+					</a>
 				</div>
 
-
+				{% if actualites is empty %}
+					<div class="text-center py-12 border border-dashed border-neutral-800 rounded-2xl">
+						<p class="text-sm text-neutral-500 italic">Aucune actualité publiée pour le moment.</p>
+					</div>
+				{% else %}
+					<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+						{% for actu in actualites %}
+							{% include 'actualite/_card.html.twig' with { actu: actu } only %}
+						{% endfor %}
+					</div>
+				{% endif %}
 			</div>
 		</div>
 	</section>

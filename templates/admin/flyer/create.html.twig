@@ -1,6 +1,8 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
 
-{% block content_title %}Créer un Flyer{% endblock %}
+{% form_theme form 'admin/flyer/form_theme.html.twig' %}
+
+{% block content_title %}Flyers &amp; Événements{% endblock %}
 
 {% block main %}
 <style>
@@ -22,10 +24,17 @@
         font-weight: 700;
     }
     .flyer-admin__intro p {
-        margin: 0;
+        margin: 0 0 0.65rem;
         color: rgba(255, 255, 255, 0.65);
         font-size: 0.95rem;
         line-height: 1.55;
+    }
+    .flyer-admin__intro ul {
+        margin: 0.5rem 0 0;
+        padding-left: 1.25rem;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 0.88rem;
+        line-height: 1.5;
     }
     .flyer-admin__grid {
         display: grid;
@@ -50,6 +59,19 @@
         font-size: 0.8rem;
         font-weight: 800;
         letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .flyer-admin__subsection {
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .flyer-admin__subsection-title {
+        margin: 0 0 1rem;
+        color: rgba(255, 215, 0, 0.9);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
     }
     .flyer-admin .form-group,
@@ -184,26 +206,111 @@
         border: 1px solid rgba(255, 215, 0, 0.45) !important;
         color: #FFD700 !important;
     }
+    .flyer-admin__required-legend {
+        margin: 0 0 1.25rem;
+        padding: 0.65rem 1rem;
+        background: rgba(255, 215, 0, 0.08);
+        border: 1px solid rgba(255, 215, 0, 0.25);
+        border-radius: 0.65rem;
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 0.88rem;
+    }
+    .flyer-admin__required-legend .required-marker,
+    .flyer-admin .flyer-field-required::after {
+        content: ' *';
+        color: #FFD700;
+        font-weight: 800;
+    }
+    .flyer-admin .flyer-field-conditional-required.flyer-field-required-visible::after {
+        content: ' *';
+        color: #FFD700;
+        font-weight: 800;
+    }
+    .flyer-admin__errors {
+        margin: 0 0 1.25rem;
+        padding: 1rem 1.15rem;
+        background: rgba(220, 53, 69, 0.12);
+        border: 1px solid rgba(220, 53, 69, 0.55);
+        border-left: 4px solid #dc3545;
+        border-radius: 0.65rem;
+        color: #ffb4b4;
+    }
+    .flyer-admin__errors-title {
+        margin: 0 0 0.5rem;
+        color: #ff6b6b;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+    .flyer-admin__errors ul {
+        margin: 0;
+        padding-left: 1.2rem;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+    .flyer-admin .flyer-field-errors {
+        margin: 0.4rem 0 0;
+        padding: 0;
+        list-style: none;
+        color: #ff6b6b;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .flyer-admin .form-control.is-invalid,
+    .flyer-admin textarea.is-invalid,
+    .flyer-admin .is-invalid-group {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
+    }
 </style>
 
     <div class="flyer-admin">
         <div class="flyer-admin__intro">
-            <h2><i class="fa fa-qrcode"></i> Composer un flyer</h2>
+            <h2><i class="fa fa-calendar-days"></i> Générateur Flyers &amp; Événements</h2>
             <p>
-                Remplissez les champs, puis cliquez sur
-                <strong style="color:#FFD700;">Générer &amp; Imprimer</strong>.
-                Le flyer A5 s’ouvre dans un nouvel onglet, prêt à imprimer
-                (Inscription, AG, Gala, Stages…).
+                Cet outil sert <strong style="color:#FFD700;">exclusivement</strong> à composer et imprimer
+                les supports de communication du club : Assemblée Générale, Gala, ventes (chocolats, saucissons),
+                stages, inscriptions, etc.
+            </p>
+            <ul>
+                <li>Étape 1 : renseignez le contenu et les options du flyer.</li>
+                <li>Étape 2 : choisissez si l’événement apparaît dans le fil d’actualités du site.</li>
+                <li>Étape 3 : cliquez sur <strong style="color:#FFD700;">Générer &amp; Imprimer</strong> — le flyer s’ouvre en PDF/impression et l’événement est enregistré.</li>
+            </ul>
+            <p class="flyer-admin__required-legend">
+                <span class="required-marker" aria-hidden="true">*</span>
+                Champs obligatoires : <strong>Titre</strong>, <strong>Badge / Saison</strong>,
+                <strong>Mode d'affichage</strong>, <strong>Destination QR Code</strong>
+                (+ <strong>URL personnalisée</strong> si cette option est choisie).
             </p>
         </div>
+
+        {% if not form.vars.valid %}
+            <div class="flyer-admin__errors" role="alert">
+                <p class="flyer-admin__errors-title">
+                    <i class="fa fa-triangle-exclamation"></i> Corrigez les champs signalés ci-dessous
+                </p>
+                <ul>
+                    {% for error in form.vars.errors %}
+                        <li>{{ error.message }}</li>
+                    {% endfor %}
+                    {% for child in form.children %}
+                        {% for error in child.vars.errors %}
+                            <li><strong>{{ child.vars.label|default(child.name) }}</strong> — {{ error.message }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
 
         {{ form_start(form, {
             attr: {
                 id: 'flyer-config-form',
-                target: '_blank',
-                class: 'ea-form'
+                class: 'ea-form',
+                method: 'post',
+                novalidate: 'novalidate'
             }
         }) }}
+            {{ form_widget(form._token) }}
 
             <div class="flyer-admin__grid">
                 <section class="flyer-admin__panel">
@@ -221,6 +328,11 @@
                     {{ form_row(form.target) }}
                     <div id="flyer-custom-url" hidden>
                         {{ form_row(form.target_url) }}
+                    </div>
+
+                    <div class="flyer-admin__subsection">
+                        <h4 class="flyer-admin__subsection-title">Fil d'actualités / Site Web</h4>
+                        {{ form_row(form.publier_dans_fil) }}
                     </div>
                 </section>
             </div>
@@ -253,8 +365,19 @@
 
             function syncCustomUrl() {
                 const target = selectedValue('target');
+                const urlLabel = customWrap ? customWrap.querySelector('.flyer-field-conditional-required') : null;
+                const urlInput = form.querySelector('[name="target_url"]');
+
                 if (customWrap) {
                     customWrap.hidden = target !== 'custom';
+                }
+
+                if (urlLabel) {
+                    urlLabel.classList.toggle('flyer-field-required-visible', target === 'custom');
+                }
+                if (urlInput) {
+                    urlInput.required = target === 'custom';
+                    urlInput.setAttribute('aria-required', target === 'custom' ? 'true' : 'false');
                 }
             }
 

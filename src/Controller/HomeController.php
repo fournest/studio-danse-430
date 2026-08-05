@@ -23,7 +23,7 @@ final class HomeController extends AbstractController
         return $this->render('home/index.html.twig', [
             'disciplines' => $this->groupCoursByDiscipline($coursRepository->findAllOrdered()),
             'sponsors' => $sponsorRepository->findAll(),
-            'actualites' => $actualiteRepository->findLatest(5),
+            'actualites' => $actualiteRepository->findLatest(3),
             'albums' => $albumRepository->findBy([], ['dateEvenement' => 'DESC']),
         ]);
     }

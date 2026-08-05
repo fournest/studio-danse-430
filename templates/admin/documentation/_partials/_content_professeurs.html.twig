@@ -1,0 +1,115 @@
+{% include 'admin/documentation/_partials/_doc_header.html.twig' with {
+    title: livret.title,
+    subtitle: livret.subtitle,
+} %}
+
+<div class="livret-toc">
+    <strong>Sommaire</strong>
+    <ol>
+        <li>Rôle du livret pédagogique</li>
+        <li>Organisation des cours et salles</li>
+        <li>Santé et sécurité des danseurs</li>
+        <li>Relation avec les familles</li>
+        <li>Galas et spectacles</li>
+        <li>Accès et droits (ROLE_PROF)</li>
+    </ol>
+</div>
+
+<h2>1. Rôle du livret pédagogique</h2>
+<p>
+    Ce guide accompagne les professeurs de danse du <strong>Studio Danse 430</strong>.
+    Il décrit les procédures réelles de l'application : consultation des cours, suivi des danseurs,
+    communication avec les familles et bonnes pratiques de sécurité.
+</p>
+
+<div class="livret-info">
+    <strong>Document dynamique</strong> — Ce livret est généré par Symfony à partir des fonctionnalités
+    actuelles du site. Téléchargez le PDF pour une version datée du {{ generated_at|date('d/m/Y') }}.
+</div>
+
+<h2>2. Organisation des cours et salles</h2>
+<table class="livret-table">
+    <thead>
+        <tr>
+            <th>Action</th>
+            <th>Emplacement dans l'admin</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Consulter les cours</td>
+            <td>Admin → Cours</td>
+            <td>Liste des cours par saison, niveau, salle et professeur assigné.</td>
+        </tr>
+        <tr>
+            <td>Consulter les danseurs</td>
+            <td>Admin → Danseurs</td>
+            <td>Fiche danseur : inscriptions, niveau, foyer familial.</td>
+        </tr>
+        <tr>
+            <td>Salles</td>
+            <td>Admin → Salles</td>
+            <td>Capacité et localisation des salles de répétition.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>3. Santé et sécurité des danseurs</h2>
+<div class="livret-warning">
+    <strong>Attention — certificat médical obligatoire.</strong>
+    Les familles doivent fournir un certificat médical (PDF, JPG ou PNG) depuis l'Espace Famille.
+    Le bureau valide les dossiers incomplets via le statut <em>Incomplet</em>.
+</div>
+<ul>
+    <li>Vérifier le statut dossier de l'inscription (En attente, Incomplet, Validé).</li>
+    <li>Signaler au bureau toute absence prolongée ou problème de santé.</li>
+    <li>Respecter les consignes QS-Sport et les protocoles d'accueil du club.</li>
+</ul>
+
+<h2>4. Relation avec les familles</h2>
+<p>
+    Les familles gèrent leurs inscriptions depuis l'<strong>Espace Famille</strong> (foyer, danseurs,
+    choix de cours, pièces santé, règlement). Les professeurs ne modifient pas les dossiers financiers.
+</p>
+<ul>
+    <li>Orienter les parents vers l'Espace Famille pour toute mise à jour administrative.</li>
+    <li>Les relances e-mail (pièces manquantes, retard de paiement) sont envoyées par le bureau.</li>
+</ul>
+
+<h2>5. Galas et spectacles</h2>
+<ul>
+    <li>Consultation des galas : Admin → Galas (accès bureau).</li>
+    <li>Préparation des costumes : coordination avec le bureau et la boutique goodies.</li>
+    <li>Flyers et événements publics gérés par la trésorerie / communication.</li>
+</ul>
+
+<h2>6. Accès et droits (ROLE_PROF)</h2>
+<table class="livret-table">
+    <thead>
+        <tr>
+            <th>Rôle</th>
+            <th>Accès livret</th>
+            <th>Modules admin principaux</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>ROLE_PROF</code></td>
+            <td>Livret Pédagogique</td>
+            <td>Danseurs, Cours, Tableau de bord</td>
+        </tr>
+        <tr>
+            <td><code>ROLE_BUREAU</code></td>
+            <td>+ Livret Bureau</td>
+            <td>Inscriptions, Foyers, Communication, Règlements…</td>
+        </tr>
+        <tr>
+            <td><code>ROLE_PRESIDENCE</code></td>
+            <td>+ Livret Stratégique</td>
+            <td>LDC, gouvernance, pages légales</td>
+        </tr>
+    </tbody>
+</table>
+
+{% include 'admin/documentation/_partials/_doc_footer.html.twig' %}

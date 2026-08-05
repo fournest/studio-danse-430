@@ -35,6 +35,7 @@ class PaiementType extends AbstractType
             ->add('statut', EnumType::class, [
                 'class' => StatutLignePaiement::class,
                 'label' => 'Statut',
+                'choices' => StatutLignePaiement::storableCases(),
                 'choice_label' => fn (StatutLignePaiement $c) => $c->getLabel(),
             ])
             ->add('reference', TextType::class, [

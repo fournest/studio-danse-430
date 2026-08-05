@@ -1,0 +1,29 @@
+{# Carte actualité — home & liste #}
+<article class="group flex flex-col bg-neutral-950/80 border border-neutral-800 rounded-2xl overflow-hidden hover:border-[#FFD700]/40 transition-colors duration-200 h-full">
+    <a href="{{ path('app_actualite_show', {slug: actu.slug}) }}" class="block aspect-video bg-neutral-900 overflow-hidden">
+        {% if actu.image %}
+            <img src="{{ asset('uploads/actualites/' ~ actu.image) }}"
+                 alt="{{ actu.titre }}"
+                 class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300">
+        {% else %}
+            <div class="w-full h-full flex items-center justify-center text-neutral-600 text-sm">
+                Studio Danse 430
+            </div>
+        {% endif %}
+    </a>
+    <div class="flex flex-col flex-1 p-5">
+        <p class="text-[11px] uppercase tracking-wider text-neutral-500 font-semibold mb-2">
+            {{ actu.createdAt|date('d/m/Y') }}
+        </p>
+        <h3 class="text-lg font-bold text-white group-hover:text-[#FFD700] transition-colors leading-snug">
+            <a href="{{ path('app_actualite_show', {slug: actu.slug}) }}">{{ actu.titre }}</a>
+        </h3>
+        {% if actu.chapeau %}
+            <p class="mt-2 text-sm text-neutral-400 line-clamp-3 leading-relaxed flex-1">{{ actu.chapeau }}</p>
+        {% endif %}
+        <a href="{{ path('app_actualite_show', {slug: actu.slug}) }}"
+           class="mt-4 inline-flex items-center text-sm font-semibold text-[#FFD700] hover:underline">
+            Lire la suite →
+        </a>
+    </div>
+</article>

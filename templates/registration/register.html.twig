@@ -36,6 +36,20 @@
 				</div>
 			{% endif %}
 
+			{# Prénom & Nom #}
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+				<div>
+					<label for="{{ registrationForm.prenom.vars.id }}" class="block text-sm font-medium text-neutral-300">Prénom</label>
+					{{ form_widget(registrationForm.prenom, { attr: { class: 'mt-1 block w-full rounded-md bg-black border border-neutral-800 text-white focus:border-[#FFD700] focus:ring-[#FFD700] sm:text-sm px-4 py-2.5' } }) }}
+					<div class="text-red-500 text-xs mt-1">{{ form_errors(registrationForm.prenom) }}</div>
+				</div>
+				<div>
+					<label for="{{ registrationForm.nom.vars.id }}" class="block text-sm font-medium text-neutral-300">Nom</label>
+					{{ form_widget(registrationForm.nom, { attr: { class: 'mt-1 block w-full rounded-md bg-black border border-neutral-800 text-white focus:border-[#FFD700] focus:ring-[#FFD700] sm:text-sm px-4 py-2.5' } }) }}
+					<div class="text-red-500 text-xs mt-1">{{ form_errors(registrationForm.nom) }}</div>
+				</div>
+			</div>
+
 			{# Champ Email #}
 			<div>
 				<label for="{{ registrationForm.email.vars.id }}" class="block text-sm font-medium text-neutral-300">Adresse Email</label>
@@ -54,31 +68,25 @@
 				<div class="text-red-500 text-xs mt-1">{{ form_errors(registrationForm.telephone) }}</div>
 			</div>
 
-			{# Champ Mot de passe avec bouton oeil intégré #}
+			{# Mot de passe #}
 			<div>
-				<label for="{{ registrationForm.plainPassword.vars.id }}" class="block text-sm font-medium text-neutral-300">Mot de passe</label>
+				<label for="{{ registrationForm.plainPassword.first.vars.id }}" class="block text-sm font-medium text-neutral-300">Mot de passe</label>
 				<div class="relative mt-1">
-					{{ form_widget(registrationForm.plainPassword, {
-                        'attr': {
-                            'class': 'block w-full rounded-md bg-black border border-neutral-800 text-white focus:border-[#FFD700] focus:ring-[#FFD700] sm:text-sm px-4 py-2.5 pr-10 transition-colors', 
-                            'placeholder': '••••••••'
-                        }
-                    }) }}
-
-					{# Bouton oeil centré dans l'input #}
-					<button type="button" id="togglePassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#FFD700] hover:text-[#FFD700]/80 transition-colors focus:outline-none p-1">
-						<svg id="eye-open" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewbox="0 0 20 20" fill="currentColor">
-							<path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-							<path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM10 15a5 5 0 100-10 5 5 0 000 10z" clip-rule="evenodd"/>
-						</svg>
-						<svg id="eye-closed" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" viewbox="0 0 20 20" fill="currentColor">
-							<path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/>
-							<path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 1.037 0 2.043-.157 2.986-.447z"/>
-						</svg>
-					</button>
+					{{ form_widget(registrationForm.plainPassword.first, {
+						attr: { class: 'block w-full rounded-md bg-black border border-neutral-800 text-white focus:border-[#FFD700] focus:ring-[#FFD700] sm:text-sm px-4 py-2.5 pr-10', placeholder: '••••••••', id: 'register-password' }
+					}) }}
 				</div>
-				<div class="text-red-500 text-xs mt-1">{{ form_errors(registrationForm.plainPassword) }}</div>
+				{% include 'security/_password_requirements.html.twig' with { input_id: 'register-password' } %}
+				<div class="text-red-500 text-xs mt-1">{{ form_errors(registrationForm.plainPassword.first) }}</div>
 			</div>
+			<div>
+				<label for="{{ registrationForm.plainPassword.second.vars.id }}" class="block text-sm font-medium text-neutral-300">Confirmation du mot de passe</label>
+				{{ form_widget(registrationForm.plainPassword.second, {
+					attr: { class: 'mt-1 block w-full rounded-md bg-black border border-neutral-800 text-white focus:border-[#FFD700] focus:ring-[#FFD700] sm:text-sm px-4 py-2.5', placeholder: '••••••••' }
+				}) }}
+				<div class="text-red-500 text-xs mt-1">{{ form_errors(registrationForm.plainPassword.second) }}</div>
+			</div>
+			{{ form_errors(registrationForm.plainPassword) }}
 
 			{# Case à cocher CGU #}
 			<div class="flex items-start">
@@ -105,32 +113,4 @@
 
 		</div>
 	</div>
-
-	{% block javascripts %}
-		{{ parent() }}
-		<script>
-			document.addEventListener('DOMContentLoaded', function () {
-const passwordInput = document.getElementById('{{ registrationForm.plainPassword.vars.id }}');
-const toggleButton = document.getElementById('togglePassword');
-const eyeOpen = document.getElementById('eye-open');
-const eyeClosed = document.getElementById('eye-closed');
-
-if (toggleButton && passwordInput) {
-toggleButton.addEventListener('click', function () {
-const isPassword = passwordInput.getAttribute('type') === 'password';
-passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
-
-// Bascule de l'icône SVG (ouvert / fermé)
-if (isPassword) {
-eyeOpen.classList.add('hidden');
-eyeClosed.classList.remove('hidden');
-} else {
-eyeOpen.classList.remove('hidden');
-eyeClosed.classList.add('hidden');
-}
-});
-}
-});
-		</script>
-	{% endblock %}
 {% endblock %}

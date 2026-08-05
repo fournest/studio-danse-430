@@ -21,7 +21,7 @@
 					<ol class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
 						{% set step4_href = premiere_inscription_id
 							? (step4_done
-								? path('app_foyer_inscription_facture', {id: premiere_inscription_id})
+								? path('app_foyer_facture_ce')
 								: path('app_foyer_inscription_paiement', {id: paiement_inscription_id|default(premiere_inscription_id)}))
 							: null %}
 						{% set steps = [
@@ -142,25 +142,94 @@
 					{% endif %}
 				</div>
 			{% elseif isFoyerOwner and cotisation is defined and cotisation and cotisation.grandTotal > 0 and reglement_soumis|default(false) %}
-				<div class="rounded-xl border {{ reglement_solde|default(false) ? 'border-emerald-700/50 bg-emerald-950/20' : 'border-sky-700/50 bg-sky-950/20' }} px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-					<div>
-						<p class="text-xs font-bold uppercase tracking-wider {{ reglement_solde|default(false) ? 'text-emerald-400/80' : 'text-sky-300/80' }}">Total foyer · Saison en cours</p>
-						<p class="text-lg sm:text-xl font-extrabold text-white mt-1">
-							{{ cotisation.grandTotal|number_format(2, ',', ' ') }} €
-						</p>
-						<p class="mt-2">
-							{% if reglement_solde|default(false) %}
-								<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-950/60 border border-emerald-700/60 text-emerald-300">
-									✅ Soldé
-								</span>
+				<div class="rounded-xl border {{ reglement_solde|default(false) ? 'border-emerald-700/50 bg-emerald-950/20' : 'border-sky-700/50 bg-sky-950/20' }} px-5 py-4 space-y-4">
+					<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+						<div class="grow">
+							<p class="text-xs font-bold uppercase tracking-wider {{ reglement_solde|default(false) ? 'text-emerald-400/80' : 'text-sky-300/80' }}">Total foyer · Saison en cours</p>
+
+							{% if financier_foyer is defined and financier_foyer %}
+								<div class="mt-3 grid gap-2 sm:grid-cols-2 text-sm">
+									<div>
+										<span class="text-neutral-400">Total dû</span>
+										<p class="font-bold text-white">{{ financier_foyer.total_du|number_format(2, ',', ' ') }} €</p>
+									</div>
+									<div>
+										<span class="text-neutral-400">Encaissé</span>
+										<p class="font-bold text-emerald-300">{{ financier_foyer.total_encaisse|number_format(2, ',', ' ') }} €</p>
+									</div>
+									<div>
+										<span class="text-neutral-400">Déclaré par la famille</span>
+										<p class="font-bold text-sky-300">{{ financier_foyer.total_declare|number_format(2, ',', ' ') }} €</p>
+									</div>
+									<div>
+										<span class="text-neutral-400">Reste à payer</span>
+										<p class="mt-0.5">
+											{% set reste = financier_foyer.reste_a_payer %}
+											{% if reste <= 0.001 %}
+												<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-bold bg-emerald-950/60 border border-emerald-700/60 text-emerald-300">
+													0,00 € — Soldé
+												</span>
+											{% elseif reste >= 50 %}
+												<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-bold bg-red-950/50 border border-red-700/50 text-red-200">
+													{{ reste|number_format(2, ',', ' ') }} €
+												</span>
+											{% else %}
+												<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-bold bg-amber-950/50 border border-amber-700/50 text-amber-200">
+													{{ reste|number_format(2, ',', ' ') }} €
+												</span>
+											{% endif %}
+										</p>
+									</div>
+								</div>
+
+								{% if financier_foyer.paiements_declares is not empty %}
+									<div class="mt-3 space-y-2">
+										{% for paiement in financier_foyer.paiements_declares %}
+											<p class="text-xs text-sky-200/90 bg-sky-950/30 border border-sky-800/40 rounded-md px-3 py-2">
+												Paiement de {{ paiement.montant|number_format(2, ',', ' ') }} € déclaré le
+												{{ paiement.dateDeclaration|date('d/m/Y') }} — En cours de confirmation par la trésorerie
+												{% if paiement.reference %} (réf. {{ paiement.reference }}){% endif %}
+											</p>
+										{% endfor %}
+									</div>
+								{% endif %}
 							{% else %}
-								<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-amber-950/50 border border-amber-700/50 text-amber-200">
-									⏳ En attente d'encaissement
-								</span>
+								<p class="text-lg sm:text-xl font-extrabold text-white mt-1">
+									{{ cotisation.grandTotal|number_format(2, ',', ' ') }} €
+								</p>
 							{% endif %}
-						</p>
+
+							<p class="mt-2">
+								{% if reglement_solde|default(false) %}
+									<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-950/60 border border-emerald-700/60 text-emerald-300">
+										✅ Soldé
+									</span>
+								{% else %}
+									<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-amber-950/50 border border-amber-700/50 text-amber-200">
+										⏳ En attente d'encaissement ou de confirmation
+									</span>
+								{% endif %}
+							</p>
+						</div>
+						<div class="flex flex-col gap-2 shrink-0">
+							{% if declarer_paiement_form and financier_foyer is defined and financier_foyer and financier_foyer.reste_a_payer > 0.001 %}
+								<button type="button"
+								        id="btn-declarer-paiement"
+								        class="inline-flex justify-center px-4 py-2.5 rounded-md text-sm font-bold text-black bg-[#FFD700] hover:bg-amber-300 transition-colors">
+									💳 Signaler un règlement effectué
+								</button>
+							{% endif %}
+							<a href="{{ path('app_foyer_facture_ce') }}"
+							   class="inline-flex justify-center px-4 py-2.5 rounded-md text-sm font-bold text-black bg-[#FFD700] hover:bg-amber-300 transition-colors">
+								📄 Imprimer / Télécharger la Facture &amp; Attestations CE (PDF)
+							</a>
+						</div>
 					</div>
 				</div>
+
+				{% if declarer_paiement_form %}
+					{% include 'foyer/_declarer_paiement_modal.html.twig' %}
+				{% endif %}
 			{% endif %}
 
 			<div class="grid gap-6 md:grid-cols-3">
@@ -312,6 +381,10 @@
 										</div>
 									</div>
 
+									{% if not canEdit %}
+										{% include 'foyer/mon_espace.html.twig' %}
+									{% endif %}
+
 									{# Santé (toujours visible, lecture seule pour le coparent) #}
 									<div class="flex flex-wrap gap-2 text-xs">
 										{% if danseur.hasJustificatifSanteComplet %}
@@ -436,9 +509,9 @@
 										✏️ Modifier mon dossier
 									</a>
 								{% else %}
-									<a href="{{ path('app_foyer_inscription_facture', {id: premiere_inscription_id}) }}"
+									<a href="{{ path('app_foyer_facture_ce') }}"
 									   class="inline-flex justify-center py-3 px-6 text-sm font-bold rounded-md text-black bg-emerald-400 hover:bg-emerald-300 border border-[#FFD700]/50 transition-colors duration-200 uppercase tracking-wider shadow-lg">
-										📄 Télécharger l'Attestation / Facture CE
+										📄 Imprimer / Télécharger la Facture &amp; Attestations CE (PDF)
 									</a>
 									<a href="{{ path('app_foyer_inscription_confirmation', {id: premiere_inscription_id}) }}"
 									   class="inline-flex justify-center text-sm font-semibold text-neutral-400 hover:text-[#FFD700] transition-colors">

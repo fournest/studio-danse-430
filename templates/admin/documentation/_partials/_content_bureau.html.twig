@@ -1,0 +1,172 @@
+{% include 'admin/documentation/_partials/_doc_header.html.twig' with {
+    title: livret.title,
+    subtitle: livret.subtitle,
+} %}
+
+<div class="livret-toc">
+    <strong>Sommaire</strong>
+    <ol>
+        <li>Inscriptions et dossiers familles</li>
+        <li>Relances e-mail aux familles</li>
+        <li>Déclarations LDC (upload PDF)</li>
+        <li>Comptabilité — Règlements et reste à payer</li>
+        <li>Utilisateurs et rôles bureau</li>
+        <li>Accès (ROLE_BUREAU)</li>
+    </ol>
+</div>
+
+<h2>1. Inscriptions et dossiers familles</h2>
+<p>
+    Le bureau traite les demandes soumises depuis l'<strong>Espace Famille</strong> :
+    validation des inscriptions, suivi des pièces santé et recalcul automatique des cotisations.
+</p>
+<table class="livret-table">
+    <thead>
+        <tr>
+            <th>Statut dossier</th>
+            <th>Signification</th>
+            <th>Action bureau</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>En attente</td>
+            <td>Dossier soumis, en cours de vérification</td>
+            <td>Contrôler pièces et valider ou marquer incomplet</td>
+        </tr>
+        <tr>
+            <td>Incomplet</td>
+            <td>Pièces manquantes (santé, compléments)</td>
+            <td>Relancer la famille (voir section 2)</td>
+        </tr>
+        <tr>
+            <td>Validé</td>
+            <td>Dossier complet</td>
+            <td>Suivi règlement uniquement si impayé</td>
+        </tr>
+    </tbody>
+</table>
+<p><strong>Emplacement :</strong> Admin → Inscriptions · Admin → Foyers / Familles</p>
+
+<h2>2. Relances e-mail aux familles</h2>
+<p>
+    Depuis <strong>Admin → Inscriptions</strong>, deux actions de relance automatique sont disponibles
+    (Symfony Mailer, templates HTML avec lien vers l'Espace Famille).
+</p>
+
+<h3>2.1 Relancer (Pièces manquantes)</h3>
+<ul>
+    <li>Visible lorsque le statut dossier est <strong>Incomplet</strong>.</li>
+    <li>Bouton bleu avec icône enveloppe sur la liste et la fiche inscription.</li>
+    <li>E-mail listant les pièces attendues (certificat médical, compléments bureau).</li>
+    <li>Date enregistrée dans la colonne <code>Relance pièces</code>.</li>
+    <li>Flash de confirmation : « Email de relance pièces manquantes envoyé ».</li>
+</ul>
+
+<h3>2.2 Relancer (Retard paiement)</h3>
+<div class="livret-warning">
+    <strong>Condition d'affichage :</strong> échéance dépassée de <strong>plus de 5 jours</strong>
+    et ligne de paiement non encaissée / non reçue (chèques différés, prélèvements).
+</div>
+<ul>
+    <li>Bouton orange/warning avec icône enveloppe.</li>
+    <li>E-mail HTML : montants en retard, dates d'échéance, lien Espace Famille.</li>
+    <li>Date de relance sur chaque ligne de paiement + colonne <code>Relance paiement</code>.</li>
+</ul>
+
+<h2>3. Déclarations LDC — upload PDF</h2>
+<p>
+    La <strong>Liste des Dirigeants (LDC)</strong> préfecture est gérée depuis
+    <strong>Admin → Déclarations LDC</strong> (accès présidence pour création ;
+    consultation sur fiche utilisateur pour le bureau).
+</p>
+<table class="livret-table">
+    <thead>
+        <tr>
+            <th>Étape</th>
+            <th>Procédure</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>1. Créer une déclaration</td>
+            <td>Admin → Déclarations LDC → Nouveau — saisir l'année / saison.</td>
+        </tr>
+        <tr>
+            <td>2. Upload PDF</td>
+            <td>Champ fichier PDF (VichUploader) — formats <code>application/pdf</code> uniquement.</td>
+        </tr>
+        <tr>
+            <td>3. Marquer « en vigueur »</td>
+            <td>Case <em>LDC en vigueur</em> — une seule déclaration courante (unicité automatique).</td>
+        </tr>
+        <tr>
+            <td>4. Téléchargement</td>
+            <td>Action « Télécharger » sur la fiche · lien sur formulaire utilisateur bureau.</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="livret-info">
+    <strong>Rappel LDC :</strong> lors de l'attribution d'un rôle bureau sur un utilisateur,
+    un encart rappelle la consultation de la LDC en vigueur avant confirmation.
+</div>
+
+<h2>4. Comptabilité — Règlements et reste à payer</h2>
+<p>
+    La synthèse financière est accessible via <strong>Admin → Comptabilité / Règlements → Règlements</strong>
+    (<code>ROLE_TRESORIER</code> minimum, hérité par le bureau).
+</p>
+<table class="livret-table">
+    <thead>
+        <tr>
+            <th>Colonne</th>
+            <th>Calcul / source</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Total dû</td>
+            <td>Montant total de l'inscription (cotisation calculée)</td>
+        </tr>
+        <tr>
+            <td>Encaissé</td>
+            <td>Somme des lignes <em>Encaissé</em> ou <em>Reçu</em></td>
+        </tr>
+        <tr>
+            <td><strong>Reste à payer</strong></td>
+            <td><code>Total dû − Encaissé</code> — badge coloré (vert soldé, orange/rouge impayé)</td>
+        </tr>
+        <tr>
+            <td>Échéances</td>
+            <td>Résumé <code>X/Y réglés</code> selon le plan de paiement</td>
+        </tr>
+        <tr>
+            <td>Statut</td>
+            <td>Non payé · Partiel · Soldé (recalculé automatiquement)</td>
+        </tr>
+    </tbody>
+</table>
+<p>
+    Depuis la fiche règlement (détail inscription), l'échéancier affiche une timeline des paiements
+    avec action <strong>Encaisser</strong> sur chaque ligne en attente.
+</p>
+<p>
+    Sur la fiche <strong>Foyer / Famille</strong>, le reste à payer saison est également visible
+    avec le même système de badges.
+</p>
+
+<h2>5. Utilisateurs et rôles bureau</h2>
+<ul>
+    <li>Admin → Utilisateurs : attribution Trésorier, Secrétaire, Présidence…</li>
+    <li>Hiérarchie Symfony : Présidence → Bureau → Prof.</li>
+    <li>Rôles stockés en base : <code>ROLE_TRESORIER</code>, <code>ROLE_SECRETAIRE</code>, etc.</li>
+</ul>
+
+<h2>6. Accès (ROLE_BUREAU)</h2>
+<p>
+    Ce livret est réservé aux comptes avec <code>ROLE_BUREAU</code>
+    (trésorier(ière), secrétaire, présidence — héritage hiérarchique Symfony).
+</p>
+
+{% include 'admin/documentation/_partials/_doc_footer.html.twig' %}

@@ -11,7 +11,9 @@
                 {{ title }}
             </h2>
             <p class="mt-2 text-xs text-neutral-400">
-                {% if is_edit %}
+                {% if show_fusion_choice|default(false) %}
+                    Un foyer partage déjà cette adresse postale.
+                {% elseif is_edit %}
                     Mettez à jour les informations de votre foyer.
                 {% else %}
                     Veuillez remplir tous les champs obligatoires.
@@ -19,15 +21,40 @@
             </p>
         </div>
 
-        {{ form_start(form, {'attr': {'class': 'mt-8 space-y-6'}}) }}
-            {{ form_widget(form) }}
+        {% if show_fusion_choice|default(false) and foyerTrouve %}
+            {% set nomReferent = foyerTrouve.nom|default(foyerTrouve.user.email) %}
+            {% set prenomReferent = nomReferent|split(' ')|first %}
+            <div class="rounded-xl border border-[#FFD700]/40 bg-[#FFD700]/10 p-5 space-y-4">
+                <p class="text-sm text-neutral-200 leading-relaxed">
+                    📍 Un foyer existe déjà à cette adresse au nom de
+                    <strong class="text-[#FFD700]">{{ nomReferent }}</strong>.
+                    Souhaitez-vous regrouper vos enfants sous le même foyer ?
+                </p>
 
-            <div>
-                <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-md text-black bg-[#FFD700] hover:bg-[#FFD700]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFD700] transition-colors duration-200 uppercase tracking-wider">
-                    {{ submit_label }}
-                </button>
+                <form method="post" action="{{ path('app_foyer_demande_fusion', {idTargetFoyer: foyerTrouve.id}) }}" class="space-y-3">
+                    <input type="hidden" name="_token" value="{{ csrf_token('demande_fusion_' ~ foyerTrouve.id) }}">
+                    <button type="submit"
+                            class="w-full inline-flex justify-center items-center gap-2 py-3 px-4 rounded-md text-sm font-bold text-black bg-[#FFD700] hover:bg-[#FFD700]/90 transition-colors uppercase tracking-wider">
+                        🔗 Demander la fusion avec le Foyer de {{ prenomReferent }}
+                    </button>
+                </form>
+
+                <a href="{{ path('app_foyer_index') }}"
+                   class="w-full inline-flex justify-center py-2.5 px-4 rounded-md text-sm font-semibold border border-neutral-600 text-neutral-300 hover:border-neutral-400 hover:text-white transition-colors">
+                    Garder mon foyer séparé
+                </a>
             </div>
-        {{ form_end(form) }}
+        {% else %}
+            {{ form_start(form, {'attr': {'class': 'mt-8 space-y-6'}}) }}
+                {{ form_widget(form) }}
+
+                <div>
+                    <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-md text-black bg-[#FFD700] hover:bg-[#FFD700]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFD700] transition-colors duration-200 uppercase tracking-wider">
+                        {{ submit_label }}
+                    </button>
+                </div>
+            {{ form_end(form) }}
+        {% endif %}
 
         <div class="text-center mt-4 border-t border-neutral-800 pt-4">
             <a href="{{ path('app_foyer_index') }}" class="text-sm text-neutral-400 hover:text-white transition-colors">

@@ -1,0 +1,12 @@
+{# @var ea \EasyCorp\Bundle\EasyAdminBundle\Context\AdminContext #}
+{% extends '@EasyAdmin/crud/edit.html.twig' %}
+
+{% block edit_form %}
+    {% include 'admin/user/_ldc_reference.html.twig' %}
+    {{ parent() }}
+{% endblock %}
+
+{% block body_javascript %}
+    {{ parent() }}
+    {% include 'admin/user/_ldc_form_scripts.html.twig' %}
+{% endblock %}

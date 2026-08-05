@@ -29,20 +29,20 @@
 	</head>
 	<body class="bg-black text-white min-h-screen flex flex-col antialiased overflow-x-hidden">
 		<header class="bg-black border-b border-[#FFD700]/30 sticky top-0 z-40">
-			<div class="max-w-6xl mx-auto px-4 sm:px-6">
-				<div class="flex items-center justify-between h-16 gap-3">
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+				<div class="flex items-center h-16 gap-3 sm:gap-4 lg:gap-8">
 
-					<a href="{{ path('app_home') }}" class="flex items-center gap-3 shrink-0">
-						<img src="{{ asset('images/logo.studio-danse-430.jpg') }}" alt="Logo Studio Danse 430" class="h-12 w-auto object-contain rounded shadow-sm">
-						<span class="hidden sm:inline text-xl sm:text-2xl font-extrabold tracking-tight text-[#FFD700]">
-							Studio Danse 430
-						</span>
+					<a href="{{ path('app_home') }}" class="flex items-center shrink-0" aria-label="Accueil — Studio Danse 430">
+						<img src="{{ asset('images/logo.studio-danse-430.jpg') }}" alt="Studio Danse 430" class="h-12 w-12 sm:h-14 sm:w-14 object-contain rounded shadow-sm">
 					</a>
 
-					{# Liens publics — desktop #}
-					<nav class="hidden lg:flex items-center gap-1 xl:gap-2" aria-label="Navigation principale">
+					{# Liens publics — desktop, centrés sur la largeur disponible #}
+					<nav class="hidden lg:flex flex-1 items-center justify-center gap-x-5 xl:gap-x-8 px-2 min-w-0" aria-label="Navigation principale">
 						<a href="{{ path('app_cours_index') }}" class="px-2 xl:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200 whitespace-nowrap">
 							Cours
+						</a>
+						<a href="{{ path('app_actualite_index') }}" class="px-2 xl:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200 whitespace-nowrap">
+							Actualités
 						</a>
 						<a href="{{ path('app_costumes_index') }}" class="px-2 xl:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200 whitespace-nowrap">
 							🎭 Location Costumes
@@ -52,19 +52,19 @@
 						</a>
 					</nav>
 
-					<nav class="flex items-center gap-1 sm:gap-3">
+					<nav class="flex items-center gap-2 sm:gap-3 lg:gap-5 ms-auto shrink-0" aria-label="Compte utilisateur">
 						{% if app.user %}
 							{% if is_granted('ROLE_BUREAU') or is_granted('ROLE_TRESORIER') %}
-								<a href="{{ path('admin') }}" class="hidden md:inline px-2 sm:px-3 py-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors duration-200">🛡️ Admin</a>
+								<a href="{{ path('admin') }}" class="hidden md:inline-flex items-center whitespace-nowrap px-2 lg:px-3 py-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors duration-200">🛡️ Admin</a>
 							{% endif %}
 							{% if is_granted('ROLE_PROF') and not is_granted('ROLE_BUREAU') %}
-								<a href="{{ path('app_espace_prof') }}" class="hidden md:inline px-2 sm:px-3 py-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-200">💃 Espace Prof</a>
+								<a href="{{ path('app_espace_prof') }}" class="hidden md:inline-flex items-center whitespace-nowrap px-2 lg:px-3 py-2 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-200">💃 Espace Prof</a>
 							{% endif %}
 							{% if app.user.foyer or not is_granted('ROLE_TRESORIER') %}
-								<a href="{{ path('app_foyer_index') }}" class="hidden sm:inline px-2 sm:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">🏠 Mon Foyer</a>
+								<a href="{{ path('app_foyer_index') }}" class="hidden sm:inline-flex items-center whitespace-nowrap px-2 lg:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">🏠 Mon Foyer</a>
 							{% endif %}
 							{% if app.user.foyer %}
-								<a href="{{ path('app_foyer_inscription_cours') }}" class="hidden sm:inline px-2 sm:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">Inscriptions</a>
+								<a href="{{ path('app_foyer_inscription_cours') }}" class="hidden sm:inline-flex items-center whitespace-nowrap px-2 lg:px-3 py-2 text-sm font-semibold text-white hover:text-[#FFD700] transition-colors duration-200">Inscriptions</a>
 							{% endif %}
 							<a href="{{ path('app_logout') }}" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold text-[#FFD700] border border-[#FFD700] rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200">
 								<span class="hidden sm:inline">Déconnexion</span>
@@ -99,6 +99,7 @@
 					 aria-label="Navigation mobile">
 					<div class="flex flex-col gap-1 pt-3">
 						<a href="{{ path('app_cours_index') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">Cours</a>
+						<a href="{{ path('app_actualite_index') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">Actualités</a>
 						<a href="{{ path('app_costumes_index') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">🎭 Location Costumes</a>
 						<a href="{{ path('app_boutique_index') }}" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-white hover:bg-neutral-900 hover:text-[#FFD700] transition-colors">👕 Boutique</a>
 						{% if app.user %}
@@ -141,137 +142,7 @@
 		<main class="flex-1"> {% block body %}{% endblock %}
 			</main>
 
-			<footer class="bg-[#FFD700] text-black border-t border-neutral-950">
-				<div class="max-w-6xl mx-auto px-4 sm:px-6 py-12">
-					<div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-
-						<div>
-							<h4 class="text-lg font-extrabold mb-3 text-neutral-900">Studio Danse 430</h4>
-							<p class="text-sm text-neutral-800 mb-2">École de danse à Nieul-le-Dolent</p>
-							<p class="text-sm text-neutral-800 flex items-start">
-								<span class="mr-2">📍</span>
-								<span>Rue Armand Calleau,<br>85430 Nieul-le-Dolent</span>
-							</p>
-						</div>
-
-						<div>
-							<h4 class="text-lg font-extrabold mb-3 text-neutral-900">Navigation</h4>
-							<ul class="space-y-2 text-sm font-semibold text-neutral-800">
-								<li>
-									<a href="{{ path('app_home') }}" class="hover:underline">Accueil</a>
-								</li>
-								<li>
-									<a href="{{ path('app_cours_index') }}" class="hover:underline">Les cours</a>
-								</li>
-								<li>
-									<a href="{{ path('app_costumes_index') }}" class="hover:underline">Location Costumes</a>
-								</li>
-								<li>
-									<a href="{{ path('app_boutique_index') }}" class="hover:underline">Boutique</a>
-								</li>
-								<li>
-									<a href="{{ path('app_gala_reservation') }}" class="hover:underline">Réserver le Gala</a>
-								</li>
-								<li>
-									{% if not app.user %}
-										<a href="{{ path('app_register') }}" class="hover:underline">Créez votre compte</a>
-									{% elseif app.user.foyer or not is_granted('ROLE_TRESORIER') %}
-										<a href="{{ path('app_foyer_index') }}" class="hover:underline">Mon espace familial</a>
-									{% else %}
-										<a href="{{ path('app_inscription') }}" class="hover:underline">Inscription aux cours</a>
-									{% endif %}
-								</li>
-							</ul>
-						</div>
-
-						<div>
-							<h4 class="text-lg font-extrabold mb-3 text-neutral-900">Avis Google</h4>
-							<div class="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-black/10 w-full max-w-sm">
-								<div class="flex items-center mb-2">
-									<span class="text-xl font-bold mr-2 text-gray-900">5,0</span>
-									<div class="text-amber-500 flex space-x-1">
-										<span>★</span>
-										<span>★</span>
-										<span>★</span>
-										<span>★</span>
-										<span>★</span>
-									</div>
-								</div>
-								<p class="text-[10px] text-gray-500 mb-3 uppercase tracking-wider font-semibold">Recommandations locales</p>
-								<div class="border-t border-black/5 pt-2">
-									<p class="text-xs italic text-gray-700">"Super école de danse à Nieul-le-Dolent, cours de qualité !"</p>
-									<span class="text-[10px] text-gray-500 block mt-1">— Élève / Parent</span>
-								</div>
-							</div>
-						</div>
-
-						<div>
-							<h4 class="text-lg font-extrabold mb-3 text-neutral-900">Suivez-nous</h4>
-							<div class="flex flex-col gap-2.5">
-								<a href="{{ social_facebook_url|default('#') }}"
-								   target="_blank"
-								   rel="noopener noreferrer"
-								   class="inline-flex items-center gap-2.5 self-start px-3.5 py-2 rounded-md border border-black/15 bg-black/5 text-sm font-bold text-neutral-900 hover:bg-black hover:text-[#FFD700] transition-colors">
-									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 shrink-0" aria-hidden="true">
-										<path d="M22 12.07C22 6.48 17.52 2 11.93 2S1.86 6.48 1.86 12.07c0 5.02 3.66 9.18 8.44 9.93v-7.02H7.9v-2.91h2.4V9.84c0-2.37 1.41-3.68 3.56-3.68 1.03 0 2.11.18 2.11.18v2.32h-1.19c-1.17 0-1.54.73-1.54 1.48v1.78h2.62l-.42 2.91h-2.2V22c4.78-.75 8.44-4.91 8.44-9.93Z"/>
-									</svg>
-									Facebook
-								</a>
-								<a href="{{ social_instagram_url|default('#') }}"
-								   target="_blank"
-								   rel="noopener noreferrer"
-								   class="inline-flex items-center gap-2.5 self-start px-3.5 py-2 rounded-md border border-black/15 bg-black/5 text-sm font-bold text-neutral-900 hover:bg-black hover:text-[#FFD700] transition-colors">
-									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 shrink-0" aria-hidden="true">
-										<path d="M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2Zm0 1.5A4.25 4.25 0 0 0 3.5 7.75v8.5A4.25 4.25 0 0 0 7.75 20.5h8.5a4.25 4.25 0 0 0 4.25-4.25v-8.5A4.25 4.25 0 0 0 16.25 3.5h-8.5ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm5.75-.88a1.13 1.13 0 1 1 0 2.25 1.13 1.13 0 0 1 0-2.25Z"/>
-									</svg>
-									Instagram
-								</a>
-							</div>
-						</div>
-
-					</div>
-
-					{# ========================================================================== #}
-					{# NOUVELLE SECTION : COPYRIGHT & SUPPORT S1 DIGITAL                           #}
-					{# ========================================================================== #}
-						<div class="mt-10 pt-6 border-t border-black/10 text-xs text-neutral-900"> <div
-							class="flex flex-col md:flex-row items-center justify-between gap-4">
-
-							{# 🚀 Lien Retour / Ticket à gauche #}
-							{% if is_granted('ROLE_BUREAU') or is_granted('ROLE_TRESORIER') or is_granted('ROLE_PROF') %}
-							<div class="order-3 md:order-1">
-								<a href="{{ path('app_support') }}" class="inline-flex items-center gap-1.5 font-bold underline hover:text-neutral-700 transition-colors">
-									🚀 Envoyer un retour / Ticket
-								</a>
-							</div>
-							{% endif %}
-
-							{# 📩 Infos Maintenance au centre #}
-							<div class="order-1 md:order-2 text-center space-y-0.5">
-								<p class="font-medium">
-									Maintenance & Support :
-									<strong class="font-extrabold text-black">S1 Digital</strong>
-								</p>
-								<p class="flex items-center justify-center gap-1">
-									<span>📩</span>
-									<a href="mailto:contact@s1digital.fr" class="font-bold underline hover:text-neutral-700 transition-colors">contact@s1digital.fr</a>
-								</p>
-								<p class="text-[11px] text-neutral-800 italic">
-									Société en cours de formation
-								</p>
-							</div>
-
-							{# 📜 Copyright à droite #}
-							<div class="order-2 md:order-3 font-bold text-center md:text-right">
-								&copy;
-								{{ "now"|date("Y") }}
-								Studio Danse 430 &mdash; Tous droits réservés.
-							</div>
-
-						</div>
-					</div>
-				</div>
-			</footer>
+			{% include 'partials/_footer.html.twig' %}
 
 		</body>
 	</html>

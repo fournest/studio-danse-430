@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Controller\Admin\FoyerCrudController;
 use App\Entity\Album;
 use App\Entity\Media;
+use App\Security\ClubRole;
 
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
@@ -87,7 +88,7 @@ class DashboardController extends AbstractDashboardController
             ->setPermission('ROLE_BUREAU');
 
         yield MenuItem::section('Comptabilité / Règlements')->setPermission('ROLE_TRESORIER');
-        yield MenuItem::linkTo(PaiementCrudController::class, 'Règlements', 'fa fa-money-check-dollar')
+        yield MenuItem::linkTo(ReglementCrudController::class, 'Règlements', 'fa fa-money-check-dollar')
             ->setPermission('ROLE_TRESORIER');
 
         yield MenuItem::section('Sponsors')->setPermission('ROLE_BUREAU');
@@ -95,12 +96,28 @@ class DashboardController extends AbstractDashboardController
             ->setPermission('ROLE_BUREAU');
 
         yield MenuItem::section('Galerie & Communication')->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(ActualiteCrudController::class, 'Actualités', 'fa fa-newspaper')
+            ->setPermission('ROLE_BUREAU');
         yield MenuItem::linkTo(AlbumCrudController::class, 'Albums Photos', 'fas fa-images')
             ->setPermission('ROLE_BUREAU');
         yield MenuItem::linkTo(MediaCrudController::class, 'Tous les Médias', 'fas fa-photo-video')
             ->setPermission('ROLE_BUREAU');
-        yield MenuItem::linkTo(FlyerAdminController::class, 'Créer un Flyer', 'fas fa-qrcode')
+        yield MenuItem::linkTo(FlyerAdminController::class, 'Flyers & Événements', 'fas fa-qrcode')
             ->setAction('index')
             ->setPermission('ROLE_TRESORIER');
+
+        yield MenuItem::section('Documentation & Livrets');
+        yield MenuItem::linkToRoute('Livret Pédagogique (Profs)', 'fa fa-book-open', 'admin_doc_voir', ['type' => 'professeurs'])
+            ->setPermission('ROLE_PROF');
+        yield MenuItem::linkToRoute('Livret Bureau & Gestion', 'fa fa-briefcase', 'admin_doc_voir', ['type' => 'bureau'])
+            ->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkToRoute('Livret Stratégique & Admin.', 'fa fa-chess-king', 'admin_doc_voir', ['type' => 'presidence'])
+            ->setPermission('ROLE_PRESIDENCE');
+        yield MenuItem::linkTo(LdcDocumentCrudController::class, 'Déclarations LDC', 'fa fa-scale-balanced')
+            ->setPermission(ClubRole::PRESIDENCE);
+
+        yield MenuItem::section('Site & Légal')->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(PageLegaleCrudController::class, 'Pages légales', 'fa fa-scale-balanced')
+            ->setPermission('ROLE_BUREAU');
     }
 }

@@ -1,0 +1,111 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}
+    <i class="{{ livret.icon }}"></i> {{ livret.title }}
+{% endblock %}
+
+{% block main %}
+<style>
+    .livret-screen { max-width: 960px; color: #f3f3f3; }
+    .livret-screen__toolbar {
+        display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
+        margin-bottom: 1.25rem;
+    }
+    .livret-screen__toolbar .btn-primary {
+        background: #FFD700; border-color: #FFD700; color: #111; font-weight: 700;
+    }
+    .livret-screen__toolbar .btn-outline-light {
+        border-color: rgba(255,215,0,0.45); color: #FFD700;
+    }
+    .livret-screen__meta {
+        font-size: 0.85rem; color: rgba(255,255,255,0.55);
+    }
+    .livret-screen__document {
+        background: #fff;
+        color: #1a1a1a;
+        border-radius: 0.75rem;
+        padding: 2rem 2.25rem;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        line-height: 1.55;
+        font-size: 0.95rem;
+    }
+    .livret-screen__document .livret-doc-header {
+        border-bottom: 3px solid #1a1a1a;
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .livret-screen__document .livret-doc-header h1 {
+        font-size: 1.45rem; margin: 0; color: #111; font-weight: 800;
+    }
+    .livret-screen__document .livret-doc-header .livret-doc-subtitle {
+        color: #555; margin: 0.35rem 0 0; font-size: 0.95rem;
+    }
+    .livret-screen__document .livret-doc-brand {
+        color: #b8860b; font-weight: 700; font-size: 0.8rem;
+        letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .livret-screen__document h2 {
+        color: #111; font-size: 1.05rem; margin: 1.75rem 0 0.75rem;
+        border-left: 4px solid #FFD700; padding-left: 0.65rem;
+    }
+    .livret-screen__document h3 { font-size: 0.95rem; margin: 1.25rem 0 0.5rem; color: #333; }
+    .livret-screen__document .livret-toc {
+        background: #f8f8f8; border: 1px solid #e0e0e0;
+        border-radius: 0.5rem; padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+    }
+    .livret-screen__document .livret-toc ol { margin: 0; padding-left: 1.25rem; }
+    .livret-screen__document .livret-toc li { margin-bottom: 0.35rem; }
+    .livret-screen__document .livret-warning {
+        background: #fff8e1; border: 1px solid #f0c040;
+        border-left: 4px solid #e6a800; padding: 0.85rem 1rem;
+        border-radius: 0.35rem; margin: 1rem 0;
+    }
+    .livret-screen__document .livret-warning strong { color: #8a6d00; }
+    .livret-screen__document .livret-info {
+        background: #eef6ff; border: 1px solid #b8d4f0;
+        border-left: 4px solid #3b82f6; padding: 0.85rem 1rem;
+        border-radius: 0.35rem; margin: 1rem 0;
+    }
+    .livret-screen__document table.livret-table {
+        width: 100%; border-collapse: collapse; margin: 0.75rem 0 1rem;
+        font-size: 0.88rem;
+    }
+    .livret-screen__document table.livret-table th,
+    .livret-screen__document table.livret-table td {
+        border: 1px solid #ccc; padding: 0.45rem 0.6rem; text-align: left;
+    }
+    .livret-screen__document table.livret-table th {
+        background: #f0f0f0; font-weight: 700;
+    }
+    .livret-screen__document code {
+        background: #f4f4f4; padding: 0.1rem 0.35rem; border-radius: 0.2rem;
+        font-size: 0.85em; color: #333;
+    }
+    .livret-screen__document .livret-footer {
+        margin-top: 2rem; padding-top: 0.75rem;
+        border-top: 1px solid #ddd; font-size: 0.8rem; color: #777;
+    }
+    @media print {
+        .livret-screen__toolbar { display: none !important; }
+        .livret-screen__document { box-shadow: none; border-radius: 0; }
+    }
+</style>
+
+<div class="livret-screen">
+    <div class="livret-screen__toolbar">
+        <a href="{{ pdf_download_url }}" class="btn btn-primary">
+            <i class="fa fa-download"></i> Télécharger au format PDF
+        </a>
+        <a href="{{ pdf_inline_url }}" target="_blank" rel="noopener" class="btn btn-outline-light">
+            <i class="fa fa-external-link-alt"></i> Ouvrir le PDF
+        </a>
+        <span class="livret-screen__meta">
+            Document généré dynamiquement — {{ generated_at|date('d/m/Y à H:i') }}
+        </span>
+    </div>
+
+    <div class="livret-screen__document livret-document">
+        {% block livret_document %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

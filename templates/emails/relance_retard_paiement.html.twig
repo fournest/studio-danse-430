@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Règlement en retard — Studio Danse 430</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e5e5e5;font-family:Georgia,serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:32px 16px;">
+    <tr>
+        <td align="center">
+            <table width="560" cellpadding="0" cellspacing="0" style="background:#171717;border:1px solid #404040;border-radius:8px;padding:32px;">
+                <tr>
+                    <td>
+                        <h1 style="margin:0 0 8px;color:#FFD700;font-size:22px;">Studio Danse 430</h1>
+                        <p style="margin:0 0 24px;color:#a3a3a3;font-size:14px;">Relance — échéance de paiement dépassée</p>
+
+                        <p style="margin:0 0 16px;font-size:15px;line-height:1.5;">
+                            Bonjour,<br><br>
+                            Nous constatons un retard de règlement pour le foyer <strong style="color:#fff;">{{ foyer.nom }}</strong>
+                            ({{ danseur.prenom }} {{ danseur.nom }} — {{ cours.nom }}).
+                        </p>
+
+                        <h2 style="margin:24px 0 12px;color:#FFD700;font-size:14px;text-transform:uppercase;letter-spacing:0.05em;">Échéances en retard</h2>
+                        <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse:collapse;font-size:14px;color:#d4d4d4;">
+                            <thead>
+                                <tr style="border-bottom:1px solid #404040;">
+                                    <th align="left" style="color:#FFD700;">Échéance</th>
+                                    <th align="left" style="color:#FFD700;">Mode</th>
+                                    <th align="right" style="color:#FFD700;">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ligne in lignes_retard %}
+                                    <tr style="border-bottom:1px solid #2a2a2a;">
+                                        <td>{{ ligne.echeance ? ligne.echeance|date('d/m/Y') : '—' }}</td>
+                                        <td>{{ ligne.mode }}</td>
+                                        <td align="right">{{ ligne.montant|number_format(2, ',', ' ') }} €</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                        <p style="margin:16px 0 0;font-size:14px;color:#fff;">
+                            <strong>Total en retard : {{ montant_total_retard|number_format(2, ',', ' ') }} €</strong>
+                        </p>
+
+                        <p style="margin:24px 0 16px;font-size:14px;line-height:1.5;color:#d4d4d4;">
+                            Merci de régulariser votre situation ou de contacter le bureau si vous avez déjà effectué le paiement.
+                        </p>
+
+                        <p style="margin:0 0 16px;">
+                            <a href="{{ espace_famille_url }}" style="display:inline-block;background:#FFD700;color:#000;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:bold;font-size:13px;">
+                                Accéder à mon Espace Famille
+                            </a>
+                        </p>
+
+                        <p style="margin:24px 0 0;font-size:12px;color:#737373;line-height:1.5;">
+                            Studio Danse 430 — Association loi 1901<br>
+                            Cet e-mail est envoyé automatiquement, merci de ne pas répondre directement.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

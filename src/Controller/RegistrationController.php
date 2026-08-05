@@ -8,6 +8,7 @@ use App\Repository\InvitationCoparentRepository;
 use App\Repository\UserRepository;
 use App\Security\EmailVerifier;
 use App\Service\CoParentInvitationService;
+use App\Security\LoginFormAuthenticator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Authentication\UserAuthenticatorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
 
@@ -72,6 +74,8 @@ class RegistrationController extends AbstractController
             }
 
             $user->setPassword($userPasswordHasher->hashPassword($user, $plainPassword));
+            $user->setIsActivated(true);
+            $user->setIsVerified(false);
 
             $entityManager->persist($user);
             $entityManager->flush();
@@ -108,8 +112,13 @@ class RegistrationController extends AbstractController
     }
 
     #[Route('/verify/email', name: 'app_verify_email')]
-    public function verifyUserEmail(Request $request, TranslatorInterface $translator, UserRepository $userRepository): Response
-    {
+    public function verifyUserEmail(
+        Request $request,
+        TranslatorInterface $translator,
+        UserRepository $userRepository,
+        UserAuthenticatorInterface $userAuthenticator,
+        LoginFormAuthenticator $loginFormAuthenticator,
+    ): Response {
         $id = $request->query->get('id');
         if (null === $id) {
             $this->addFlash('verify_email_error', 'Lien de confirmation invalide.');
@@ -132,10 +141,12 @@ class RegistrationController extends AbstractController
             return $this->redirectToRoute('app_login');
         }
 
-        $this->addFlash('success', 'Votre adresse e-mail est confirmée. Vous pouvez maintenant vous connecter.');
+        $this->addFlash('success', 'Votre adresse e-mail est confirmée. Créez maintenant votre foyer pour inscrire vos danseurs aux cours.');
 
-        return $this->redirectToRoute('app_login', [
-            'email' => $user->getEmail(),
-        ]);
+        return $userAuthenticator->authenticateUser(
+            $user,
+            $loginFormAuthenticator,
+            $request
+        );
     }
 }

@@ -8,10 +8,16 @@ use App\Dto\CotisationDetail;
 use App\Entity\Cours;
 use App\Entity\Danseur;
 use App\Entity\Foyer;
+use App\Entity\Inscription;
 
 /**
  * Calcule les cotisations saison 2026-2027 selon les règles tarifaires du Studio Danse 430.
  * Boutique et locations costumes sont facturées dans leurs tunnels dédiés.
+ *
+ * Remise dégressive foyer (2 cours → −20 %, 3+ → −30 %) :
+ * STRICTEMENT calculée sur les inscriptions du foyer payeur
+ * ({@see Foyer::getInscriptions()}). Un cours vu en lecture seule par un
+ * co-parent (enfant rattaché à un autre foyer) ne compte pas.
  */
 final class CotisationCalculatorService
 {
@@ -23,20 +29,12 @@ final class CotisationCalculatorService
     }
 
     /**
-     * Calcule la cotisation à partir des inscriptions (ou des cours ManyToMany) du foyer.
-     * Prend en compte tous les cours rattachés aux danseurs pour la saison, avec dégressivité.
+     * Calcule la cotisation du foyer payeur uniquement.
+     * Source de vérité : inscriptions des danseurs de ce foyer (pas les rattachements co-parent).
      */
     public function calculateForFoyer(Foyer $foyer, string $saison = self::SAISON_COURANTE): CotisationDetail
     {
-        $selection = [];
-
-        foreach ($foyer->getDanseurs() as $danseur) {
-            $selection[] = [
-                'danseur' => $danseur,
-                'cours' => $this->resolveCoursForDanseur($danseur, $saison),
-                'attenteIds' => $this->resolveAttenteIdsForDanseur($danseur, $saison),
-            ];
-        }
+        $selection = $this->buildSelectionFromFoyerPayeur($foyer, $saison);
 
         return $this->calculate($selection, $foyer, $saison);
     }
@@ -51,6 +49,7 @@ final class CotisationCalculatorService
 
     /**
      * Calcule depuis une sélection libre (ex. formulaire avant persistance).
+     * Si un foyer payeur est fourni, les danseurs hors de ce foyer sont exclus.
      *
      * @param list<array{danseur: Danseur, cours: list<Cours>, attenteIds?: list<int>}> $selection
      */
@@ -59,6 +58,13 @@ final class CotisationCalculatorService
         ?Foyer $foyer = null,
         string $saison = self::SAISON_COURANTE,
     ): CotisationDetail {
+        if (null !== $foyer) {
+            $selection = array_values(array_filter(
+                $selection,
+                fn (array $entry): bool => $this->danseurBelongsToPayingFoyer($entry['danseur'], $foyer)
+            ));
+        }
+
         $breakdownByDanseur = [];
         $subtotal = 0.0;
         $gratuit2020Amount = 0.0;
@@ -180,6 +186,111 @@ final class CotisationCalculatorService
     }
 
     /**
+     * Construit la sélection tarifaire STRICTEMENT depuis les inscriptions du foyer payeur.
+     *
+     * @return list<array{danseur: Danseur, cours: list<Cours>, attenteIds: list<int>}>
+     */
+    private function buildSelectionFromFoyerPayeur(Foyer $foyer, string $saison): array
+    {
+        /** @var array<int|string, array{danseur: Danseur, cours: array<int|string, Cours>, attenteIds: list<int>}> $byDanseur */
+        $byDanseur = [];
+
+        foreach ($foyer->getInscriptions($saison) as $inscription) {
+            if (!$this->inscriptionBelongsToPayingFoyer($inscription, $foyer)) {
+                continue;
+            }
+
+            $danseur = $inscription->getDanseur();
+            if (null === $danseur || !$this->danseurBelongsToPayingFoyer($danseur, $foyer)) {
+                continue;
+            }
+
+            $cours = $inscription->getCours();
+            if (null === $cours) {
+                continue;
+            }
+
+            $danseurKey = $danseur->getId() ?? spl_object_id($danseur);
+            if (!isset($byDanseur[$danseurKey])) {
+                $byDanseur[$danseurKey] = [
+                    'danseur' => $danseur,
+                    'cours' => [],
+                    'attenteIds' => [],
+                ];
+            }
+
+            $coursKey = $cours->getId() ?? spl_object_id($cours);
+            $byDanseur[$danseurKey]['cours'][$coursKey] = $cours;
+
+            if ($inscription->isEstEnListeDAttente() && null !== $cours->getId()) {
+                $byDanseur[$danseurKey]['attenteIds'][] = (int) $cours->getId();
+            }
+        }
+
+        if ($byDanseur !== []) {
+            $selection = [];
+            foreach ($byDanseur as $entry) {
+                $selection[] = [
+                    'danseur' => $entry['danseur'],
+                    'cours' => array_values($entry['cours']),
+                    'attenteIds' => array_values(array_unique($entry['attenteIds'])),
+                ];
+            }
+
+            return $selection;
+        }
+
+        // Fallback tests / avant persistance des Inscription : ManyToMany des danseurs DU foyer payeur uniquement.
+        $selection = [];
+        foreach ($foyer->getDanseurs() as $danseur) {
+            if (!$this->danseurBelongsToPayingFoyer($danseur, $foyer)) {
+                continue;
+            }
+            $coursList = $danseur->getCours()->toArray();
+            if ($coursList === []) {
+                continue;
+            }
+            $selection[] = [
+                'danseur' => $danseur,
+                'cours' => array_values($coursList),
+                'attenteIds' => [],
+            ];
+        }
+
+        return $selection;
+    }
+
+    private function inscriptionBelongsToPayingFoyer(Inscription $inscription, Foyer $foyer): bool
+    {
+        $danseur = $inscription->getDanseur();
+
+        return null !== $danseur && $this->danseurBelongsToPayingFoyer($danseur, $foyer);
+    }
+
+    /**
+     * Un danseur ne contribue à la remise foyer que s'il appartient au foyer payeur.
+     * Les enfants seulement visibles en co-parent (autre foyer) sont exclus.
+     */
+    private function danseurBelongsToPayingFoyer(Danseur $danseur, Foyer $foyer): bool
+    {
+        $danseurFoyer = $danseur->getFoyer();
+        if (null === $danseurFoyer) {
+            return false;
+        }
+
+        if ($danseurFoyer === $foyer) {
+            return true;
+        }
+
+        $foyerId = $foyer->getId();
+        $danseurFoyerId = $danseurFoyer->getId();
+
+        return null !== $foyerId
+            && null !== $danseurFoyerId
+            && $foyerId === $danseurFoyerId;
+    }
+
+    /**
      * @return array{0: float, 1: list<CotisationExtraLine>, 2: float, 3: list<CotisationExtraLine>}
      */
     private function resolveExtras(?Foyer $foyer, string $saison): array
@@ -210,73 +321,24 @@ final class CotisationCalculatorService
             }
         }
 
-        foreach ($foyer->getDanseurs() as $danseur) {
-            foreach ($danseur->getInscriptions() as $inscription) {
-                if ($inscription->getSaison() !== $saison) {
-                    continue;
-                }
-                $remise = $inscription->getRemiseManuelle();
-                if (null === $remise || $remise <= 0) {
-                    continue;
-                }
-                $amount += $remise;
-                if ($inscription->getMotifRemise()) {
-                    $motifs[] = $inscription->getMotifRemise();
-                }
+        // Remises manuelles : uniquement sur les inscriptions du foyer payeur.
+        foreach ($foyer->getInscriptions($saison) as $inscription) {
+            if (!$this->inscriptionBelongsToPayingFoyer($inscription, $foyer)) {
+                continue;
+            }
+            $remise = $inscription->getRemiseManuelle();
+            if (null === $remise || $remise <= 0) {
+                continue;
+            }
+            $amount += $remise;
+            if ($inscription->getMotifRemise()) {
+                $motifs[] = $inscription->getMotifRemise();
             }
         }
 
         $motif = $motifs === [] ? null : implode(' · ', array_unique($motifs));
 
         return [$amount, $motif];
-    }
-
-    /**
-     * @return list<Cours>
-     */
-    private function resolveCoursForDanseur(Danseur $danseur, string $saison): array
-    {
-        $byKey = [];
-
-        foreach ($danseur->getInscriptions() as $inscription) {
-            if ($inscription->getSaison() !== $saison) {
-                continue;
-            }
-            $cours = $inscription->getCours();
-            if (null === $cours) {
-                continue;
-            }
-            $key = $cours->getId() ?? spl_object_id($cours);
-            $byKey[$key] = $cours;
-        }
-
-        if ($byKey === []) {
-            foreach ($danseur->getCours() as $cours) {
-                $key = $cours->getId() ?? spl_object_id($cours);
-                $byKey[$key] = $cours;
-            }
-        }
-
-        return array_values($byKey);
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function resolveAttenteIdsForDanseur(Danseur $danseur, string $saison): array
-    {
-        $ids = [];
-        foreach ($danseur->getInscriptions() as $inscription) {
-            if ($inscription->getSaison() !== $saison || !$inscription->isEstEnListeDAttente()) {
-                continue;
-            }
-            $coursId = $inscription->getCours()?->getId();
-            if (null !== $coursId) {
-                $ids[] = $coursId;
-            }
-        }
-
-        return $ids;
     }
 
     private function resolveTarif(Cours $cours): float

@@ -345,6 +345,116 @@ class Foyer
         return $this;
     }
 
+    /**
+     * Inscriptions des danseurs rattachés à CE foyer (foyer payeur).
+     * Ne remonte jamais les inscriptions d’un enfant consulté en co-parent
+     * depuis un autre foyer.
+     *
+     * @return list<Inscription>
+     */
+    public function getInscriptions(?string $saison = null): array
+    {
+        $inscriptions = [];
+
+        foreach ($this->danseurs as $danseur) {
+            foreach ($danseur->getInscriptions() as $inscription) {
+                if (null !== $saison && $inscription->getSaison() !== $saison) {
+                    continue;
+                }
+                $inscriptions[] = $inscription;
+            }
+        }
+
+        return $inscriptions;
+    }
+
+    public function getTotalDu(?string $saison = '2026/2027'): float
+    {
+        $total = 0.0;
+        foreach ($this->getInscriptions($saison) as $inscription) {
+            $total += $inscription->getMontantTotal() ?? 0.0;
+        }
+
+        return round($total, 2);
+    }
+
+    public function getTotalEncaisse(?string $saison = '2026/2027'): float
+    {
+        $total = 0.0;
+        foreach ($this->getInscriptions($saison) as $inscription) {
+            $total += $inscription->getMontantEncaisse();
+        }
+
+        return round($total, 2);
+    }
+
+    public function getTotalDeclare(?string $saison = '2026/2027'): float
+    {
+        $total = 0.0;
+        foreach ($this->getInscriptions($saison) as $inscription) {
+            $total += $inscription->getMontantDeclare();
+        }
+
+        return round($total, 2);
+    }
+
+    public function getResteAPayer(?string $saison = '2026/2027'): float
+    {
+        return round(max(0.0, $this->getTotalDu($saison) - $this->getTotalEncaisse($saison)), 2);
+    }
+
+    public function getResteAPayerApresDeclaration(?string $saison = '2026/2027'): float
+    {
+        return round(max(0.0, $this->getResteAPayer($saison) - $this->getTotalDeclare($saison)), 2);
+    }
+
+    public function getTotalDuSaison(): float
+    {
+        return $this->getTotalDu();
+    }
+
+    public function getTotalEncaisseSaison(): float
+    {
+        return $this->getTotalEncaisse();
+    }
+
+    public function getTotalDeclareSaison(): float
+    {
+        return $this->getTotalDeclare();
+    }
+
+    public function getResteAPayerSaison(): float
+    {
+        return $this->getResteAPayer();
+    }
+
+    public function getResteAPayerBadgeSaisonLabel(): string
+    {
+        return number_format($this->getResteAPayerSaison(), 2, ',', ' ').' €';
+    }
+
+    public function getTotalDeclareSaisonLabel(): string
+    {
+        return number_format($this->getTotalDeclareSaison(), 2, ',', ' ').' €';
+    }
+
+    /**
+     * @return list<Paiement>
+     */
+    public function getPaiementsDeclares(?string $saison = '2026/2027'): array
+    {
+        $declares = [];
+        foreach ($this->getInscriptions($saison) as $inscription) {
+            foreach ($inscription->getPaiements() as $paiement) {
+                if ($paiement->isDeclared()) {
+                    $declares[] = $paiement;
+                }
+            }
+        }
+
+        return $declares;
+    }
+
     public function __toString(): string
     {
         return $this->nom ?? 'Foyer sans nom';

@@ -1,0 +1,46 @@
+<script>
+(function () {
+    const LDC_MESSAGE = "Attention : Toute modification de la composition du Bureau doit faire l'objet d'une déclaration officielle en préfecture (LDC).\n\nAvez-vous mis à jour et déposé le document LDC officiel ?";
+    const LDC_DEPOT_HINT = {% if is_granted('ROLE_PRESIDENCE') %}"\n\nUtilisez le bouton « Accéder au dépôt de la nouvelle LDC » ci-dessus si besoin."{% else %}""{% endif %};
+
+    const BUREAU_ROLES = [
+        'ROLE_TRESORIER',
+        'ROLE_TRESORIER_ADJOINT',
+        'ROLE_SECRETAIRE',
+        'ROLE_PRESIDENT',
+        'ROLE_VICE_PRESIDENT',
+        'ROLE_BUREAU'
+    ];
+
+    const form = document.querySelector('form[name="User"]') || document.querySelector('form.ea-form');
+    if (!form) return;
+
+    const initialRole = getSelectedRole();
+
+    form.addEventListener('submit', function (event) {
+        const selectedRole = getSelectedRole();
+        if (!selectedRole || !BUREAU_ROLES.includes(selectedRole)) {
+            return;
+        }
+
+        if (selectedRole === initialRole) {
+            return;
+        }
+
+        if (!window.confirm(LDC_MESSAGE + LDC_DEPOT_HINT)) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    });
+
+    function getSelectedRole() {
+        const select = form.querySelector('[name="User[primaryClubRole]"]');
+        if (select) {
+            return select.value;
+        }
+
+        const legacy = form.querySelector('[name="primaryClubRole"]');
+        return legacy ? legacy.value : null;
+    }
+})();
+</script>

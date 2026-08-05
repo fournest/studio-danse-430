@@ -1,0 +1,35 @@
+<div class="alert alert-warning border-warning mb-4" role="alert">
+    <h5 class="alert-heading mb-2">
+        <i class="fa fa-scale-balanced"></i> Liste des Dirigeants (LDC / Préfecture)
+    </h5>
+    <p class="mb-2">
+        <strong>Attention :</strong> toute modification de la composition du Bureau doit faire l'objet
+        d'une déclaration officielle en préfecture (LDC).
+    </p>
+    <p class="mb-3 text-muted small">
+        Lors d'un changement de rôle (Trésorier(ière), Secrétaire, Présidence…), vérifiez que la
+        déclaration LDC en vigueur a bien été mise à jour et déposée avant d'enregistrer.
+    </p>
+
+    {% set ldc_download = path('admin_ldc_download') %}
+    {% set ldc_inline = path('admin_ldc_download', { inline: 1 }) %}
+    {% set ldc_depot_url = path('admin_ldc_document_index') %}
+
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ ldc_inline }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-warning">
+            <i class="fa fa-eye"></i> Consulter la LDC en vigueur
+        </a>
+        <a href="{{ ldc_download }}" class="btn btn-sm btn-warning">
+            <i class="fa fa-download"></i> Télécharger la LDC (PDF)
+        </a>
+        {% if is_granted('ROLE_PRESIDENCE') %}
+            <a href="{{ ldc_depot_url }}" class="btn btn-sm btn-outline-light">
+                <i class="fa fa-folder-open"></i> Accéder au dépôt de la nouvelle LDC (Réservé Présidence)
+            </a>
+        {% endif %}
+    </div>
+    <p class="mt-2 mb-0 small text-muted">
+        La LDC en vigueur est celle marquée « en vigueur » dans l'historique des déclarations LDC
+        (dépôt réservé à la Présidence).
+    </p>
+</div>

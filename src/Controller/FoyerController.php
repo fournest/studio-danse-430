@@ -15,6 +15,7 @@ use App\Enum\StatutInscription;
 use App\Enum\StatutPaiement as StatutLignePaiement;
 use App\Enum\StatutSante;
 use App\Form\CoParentContactType;
+use App\Form\DeclarerPaiementType;
 use App\Form\FoyerType;
 use App\Form\DanseurType;
 use App\Repository\CoursRepository;
@@ -23,11 +24,15 @@ use App\Repository\InscriptionRepository;
 use App\Security\Voter\InscriptionTunnelVoter;
 use App\Service\CoParentMailerService;
 use App\Service\CotisationCalculatorService;
+use App\Service\DeclarerPaiementFoyerService;
 use App\Service\EchelonnementService;
+use App\Service\FoyerFusionService;
 use App\Service\InscriptionAutofillService;
 use App\Service\InscriptionConfirmationMailer;
 use App\Service\QsSportQuestionnaire;
 use App\Service\VirementLibelleService;
+use App\Repository\DemandeFusionFoyerRepository;
+use App\Repository\FoyerRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -84,6 +89,7 @@ class FoyerController extends AbstractController
         $paiementInscriptionId = null;
         $reglementSoumis = false;
         $reglementSolde = false;
+        $financierFoyer = null;
 
         // Recalcule le total foyer ; persiste les parts tant qu’aucun règlement n’a commencé.
         // Uniquement pour le parent principal (jamais pour un coparent en lecture seule).
@@ -104,6 +110,15 @@ class FoyerController extends AbstractController
                 $em->flush();
                 $reglementSolde = $this->foyerReglementSolde($foyer, $saison);
             }
+
+            $financierFoyer = [
+                'total_du' => $foyer->getTotalDu($saison),
+                'total_declare' => $foyer->getTotalDeclare($saison),
+                'total_encaisse' => $foyer->getTotalEncaisse($saison),
+                'reste_a_payer' => $foyer->getResteAPayer($saison),
+                'reste_apres_declaration' => $foyer->getResteAPayerApresDeclaration($saison),
+                'paiements_declares' => $foyer->getPaiementsDeclares($saison),
+            ];
 
             $sansPaiement = $this->findFirstInscriptionSansPaiement($foyer, $saison);
             $paiementInscriptionId = $sansPaiement?->getId()
@@ -188,7 +203,67 @@ class FoyerController extends AbstractController
             'cotisation' => $cotisation,
             'reglement_soumis' => $reglementSoumis,
             'reglement_solde' => $reglementSolde,
+            'saison' => $saison,
+            'financier_foyer' => $financierFoyer,
+            'declarer_paiement_form' => $isParentPrincipal && $foyer && $reglementSoumis
+                ? $this->createForm(DeclarerPaiementType::class)->createView()
+                : null,
         ]);
+    }
+
+    #[Route('/declarer-paiement', name: 'app_foyer_declarer_paiement', methods: ['POST'])]
+    public function declarerPaiement(
+        Request $request,
+        DeclarerPaiementFoyerService $declarerPaiementService,
+        EntityManagerInterface $em,
+    ): Response {
+        /** @var User $user */
+        $user = $this->getUser();
+        $foyer = $user->getFoyer();
+
+        if (null === $foyer || $foyer->getUser()?->getId() !== $user->getId()) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $saison = CotisationCalculatorService::SAISON_COURANTE;
+        if (!$this->foyerHasPaiementsSaison($foyer, $saison)) {
+            $this->addFlash('warning', 'Aucun plan de règlement enregistré pour cette saison.');
+
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        $form = $this->createForm(DeclarerPaiementType::class);
+        $form->handleRequest($request);
+
+        if (!$form->isSubmitted() || !$form->isValid()) {
+            $this->addFlash('error', 'Le formulaire de déclaration de paiement est invalide.');
+
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        /** @var ModePaiement $mode */
+        $mode = $form->get('mode')->getData();
+        $montant = (float) $form->get('montant')->getData();
+        $reference = $form->get('reference')->getData();
+
+        try {
+            $paiement = $declarerPaiementService->declarer($foyer, $saison, $mode, $montant, $reference);
+            $em->flush();
+            $this->addFlash(
+                'success',
+                sprintf(
+                    'Paiement de %s € déclaré le %s — En cours de confirmation par la trésorerie.',
+                    number_format($paiement->getMontant(), 2, ',', ' '),
+                    $paiement->getDateDeclaration()?->format('d/m/Y') ?? date('d/m/Y')
+                )
+            );
+        } catch (\InvalidArgumentException $e) {
+            $this->addFlash('error', $e->getMessage());
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
+        return $this->redirectToRoute('app_foyer_index');
     }
 
     #[Route('/mes-coordonnees', name: 'app_foyer_coparent_contact', methods: ['GET', 'POST'])]
@@ -257,8 +332,11 @@ class FoyerController extends AbstractController
 
     #[Route('/configuration', name: 'app_foyer_new', methods: ['GET', 'POST'])]
     #[Route('/modifier', name: 'app_foyer_edit_dossier', methods: ['GET', 'POST'])]
-    public function configure(Request $request, EntityManagerInterface $em): Response
-    {
+    public function configure(
+        Request $request,
+        EntityManagerInterface $em,
+        FoyerRepository $foyerRepository,
+    ): Response {
         /** @var User $user */
         $user = $this->getUser();
         $foyer = $user->getFoyer();
@@ -279,6 +357,8 @@ class FoyerController extends AbstractController
         ]);
         $form->handleRequest($request);
 
+        $foyerTrouve = null;
+
         if ($form->isSubmitted() && $form->isValid()) {
             $user->setTelephone(trim((string) $form->get('telephone')->getData()));
 
@@ -289,6 +369,23 @@ class FoyerController extends AbstractController
             }
 
             $em->flush();
+
+            $foyerTrouve = $foyerRepository->findOtherFoyerByAdresse(
+                (string) $foyer->getAdresse(),
+                (string) $foyer->getCodePostal(),
+                $foyer,
+            );
+
+            if (null !== $foyerTrouve) {
+                return $this->render('foyer/configuration.html.twig', [
+                    'form' => $form->createView(),
+                    'is_edit' => true,
+                    'title' => 'Adresse déjà utilisée',
+                    'submit_label' => 'Enregistrer les modifications',
+                    'foyerTrouve' => $foyerTrouve,
+                    'show_fusion_choice' => true,
+                ]);
+            }
 
             if ($isEdit) {
                 $this->addFlash('success', 'Les informations de votre dossier familial ont bien été mises à jour.');
@@ -308,7 +405,76 @@ class FoyerController extends AbstractController
             'submit_label' => $isEdit
                 ? 'Enregistrer les modifications'
                 : 'Enregistrer et continuer',
+            'foyerTrouve' => null,
+            'show_fusion_choice' => false,
         ]);
+    }
+
+    #[Route('/demande-fusion/{idTargetFoyer}', name: 'app_foyer_demande_fusion', methods: ['POST'], requirements: ['idTargetFoyer' => '\d+'])]
+    public function demandeFusion(
+        int $idTargetFoyer,
+        Request $request,
+        FoyerRepository $foyerRepository,
+        FoyerFusionService $fusionService,
+    ): Response {
+        /** @var User $user */
+        $user = $this->getUser();
+        $foyerSource = $user->getFoyer();
+
+        if (null === $foyerSource) {
+            throw $this->createNotFoundException('Aucun foyer associé à votre compte.');
+        }
+
+        if (!$this->isCsrfTokenValid('demande_fusion_' . $idTargetFoyer, (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
+
+        if ($foyerSource->getUser()?->getId() !== $user->getId()) {
+            throw $this->createAccessDeniedException('Seul le titulaire du foyer peut demander une fusion.');
+        }
+
+        $foyerTarget = $foyerRepository->find($idTargetFoyer);
+        if (null === $foyerTarget) {
+            throw $this->createNotFoundException('Foyer destinataire introuvable.');
+        }
+
+        if ($foyerTarget->getId() === $foyerSource->getId()) {
+            $this->addFlash('warning', 'Vous ne pouvez pas fusionner un foyer avec lui-même.');
+
+            return $this->redirectToRoute('app_foyer_index');
+        }
+
+        try {
+            $fusionService->createAndSendDemande($foyerSource, $foyerTarget, $user);
+            $this->addFlash('success', 'Une demande de confirmation a été envoyée à votre conjointe.');
+        } catch (\Throwable $e) {
+            $this->addFlash('danger', 'Impossible d’envoyer la demande de fusion : ' . $e->getMessage());
+        }
+
+        return $this->redirectToRoute('app_foyer_index');
+    }
+
+    #[Route('/valider-fusion/{token}', name: 'app_foyer_valider_fusion', methods: ['GET'], requirements: ['token' => '[a-f0-9]{64}'])]
+    public function validerFusion(
+        string $token,
+        FoyerFusionService $fusionService,
+        DemandeFusionFoyerRepository $demandeRepository,
+    ): Response {
+        $demande = $demandeRepository->findOneBy(['token' => $token]);
+
+        if (null === $demande) {
+            $this->addFlash('danger', 'Lien de fusion invalide.');
+
+            return $this->redirectToRoute('app_home');
+        }
+
+        /** @var User $current */
+        $current = $this->getUser();
+
+        $result = $fusionService->accepterFusion($demande, $current);
+        $this->addFlash($result['ok'] ? 'success' : 'danger', $result['message']);
+
+        return $this->redirectToRoute($result['ok'] ? 'app_foyer_index' : 'app_home');
     }
 
     #[Route('/ajouter-un-danseur', name: 'app_foyer_add', methods: ['GET', 'POST'])]
@@ -512,66 +678,81 @@ class FoyerController extends AbstractController
             }
 
             if ($action === 'save') {
-                $forcedWaitlist = $this->persistCourseSelection(
-                    $em,
-                    $inscriptionRepository,
-                    $foyer,
+                $allowAgeOverride = $this->isGranted('ROLE_BUREAU');
+
+                if (!$allowAgeOverride && $this->selectionContainsIncompatibleCours(
                     $danseurs,
                     $allCours,
                     $selectionByDanseur,
                     $attenteByDanseur,
-                    $saison,
-                );
-                $em->flush();
-
-                // Re-synchronise les tableaux après éventuelles bascules auto en liste d'attente
-                $selectionByDanseur = [];
-                $attenteByDanseur = [];
-                foreach ($danseurs as $danseur) {
-                    $selectedIds = [];
-                    $attenteIds = [];
-                    foreach ($danseur->getInscriptions() as $inscription) {
-                        if ($inscription->getSaison() !== $saison || !$inscription->getCours()) {
-                            continue;
-                        }
-                        $coursId = $inscription->getCours()->getId();
-                        if ($inscription->isEstEnListeDAttente()) {
-                            $attenteIds[] = $coursId;
-                        } else {
-                            $selectedIds[] = $coursId;
-                        }
-                    }
-                    $selectionByDanseur[$danseur->getId()] = $selectedIds;
-                    $attenteByDanseur[$danseur->getId()] = $attenteIds;
-                }
-
-                $detail = $calculator->calculerTotalFoyer($foyer, $saison);
-                $this->applyMontantsToInscriptions($foyer, $saison, $detail);
-                $em->flush();
-
-                if ($forcedWaitlist !== []) {
+                )) {
                     $this->addFlash(
-                        'warning',
-                        'Certains cours étaient complets : inscription placée en liste d’attente (non facturée) — '
-                        . implode(', ', $forcedWaitlist) . '.'
+                        'error',
+                        'Certains cours sélectionnés ne correspondent pas à la tranche d’âge de l’élève.'
                     );
+                } else {
+                    $forcedWaitlist = $this->persistCourseSelection(
+                        $em,
+                        $inscriptionRepository,
+                        $foyer,
+                        $danseurs,
+                        $allCours,
+                        $selectionByDanseur,
+                        $attenteByDanseur,
+                        $saison,
+                        $allowAgeOverride,
+                    );
+                    $em->flush();
+
+                    // Re-synchronise les tableaux après éventuelles bascules auto en liste d'attente
+                    $selectionByDanseur = [];
+                    $attenteByDanseur = [];
+                    foreach ($danseurs as $danseur) {
+                        $selectedIds = [];
+                        $attenteIds = [];
+                        foreach ($danseur->getInscriptions() as $inscription) {
+                            if ($inscription->getSaison() !== $saison || !$inscription->getCours()) {
+                                continue;
+                            }
+                            $coursId = $inscription->getCours()->getId();
+                            if ($inscription->isEstEnListeDAttente()) {
+                                $attenteIds[] = $coursId;
+                            } else {
+                                $selectedIds[] = $coursId;
+                            }
+                        }
+                        $selectionByDanseur[$danseur->getId()] = $selectedIds;
+                        $attenteByDanseur[$danseur->getId()] = $attenteIds;
+                    }
+
+                    $detail = $calculator->calculerTotalFoyer($foyer, $saison);
+                    $this->applyMontantsToInscriptions($foyer, $saison, $detail);
+                    $em->flush();
+
+                    if ($forcedWaitlist !== []) {
+                        $this->addFlash(
+                            'warning',
+                            'Certains cours étaient complets : inscription placée en liste d’attente (non facturée) — '
+                            . implode(', ', $forcedWaitlist) . '.'
+                        );
+                    }
+
+                    $this->addFlash(
+                        'success',
+                        sprintf(
+                            'Inscriptions enregistrées. Cotisation cours : %s € — total foyer (avec boutique) : %s €.',
+                            number_format($detail->total, 2, ',', ' '),
+                            number_format($detail->grandTotal, 2, ',', ' ')
+                        )
+                    );
+
+                    $firstInscription = $this->findFirstInscriptionSaison($foyer, $saison);
+                    if (null !== $firstInscription) {
+                        return $this->redirectToRoute('app_foyer_inscription_paiement', ['id' => $firstInscription->getId()]);
+                    }
+
+                    return $this->redirectToRoute('app_foyer_index');
                 }
-
-                $this->addFlash(
-                    'success',
-                    sprintf(
-                        'Inscriptions enregistrées. Cotisation cours : %s € — total foyer (avec boutique) : %s €.',
-                        number_format($detail->total, 2, ',', ' '),
-                        number_format($detail->grandTotal, 2, ',', ' ')
-                    )
-                );
-
-                $firstInscription = $this->findFirstInscriptionSaison($foyer, $saison);
-                if (null !== $firstInscription) {
-                    return $this->redirectToRoute('app_foyer_inscription_paiement', ['id' => $firstInscription->getId()]);
-                }
-
-                return $this->redirectToRoute('app_foyer_index');
             }
         }
 
@@ -596,7 +777,7 @@ class FoyerController extends AbstractController
             $eligible = [];
             $ineligible = [];
             foreach ($allCours as $cours) {
-                if ($cours->isEligibleForDanseur($danseur)) {
+                if ($cours->isCompatibleAvecDanseur($danseur)) {
                     $eligible[] = $cours;
                 } else {
                     $ineligible[] = $cours;
@@ -616,7 +797,7 @@ class FoyerController extends AbstractController
                     continue;
                 }
                 $cours = $coursById[$coursId];
-                if (!$cours->isEligibleForDanseur($danseur)) {
+                if (!$cours->isCompatibleAvecDanseur($danseur)) {
                     continue;
                 }
                 $selectedCours[] = $cours;
@@ -647,6 +828,42 @@ class FoyerController extends AbstractController
      * @param list<\App\Entity\Cours> $allCours
      * @param array<int, list<int>> $selectionByDanseur
      * @param array<int, list<int>> $attenteByDanseur
+     */
+    private function selectionContainsIncompatibleCours(
+        array $danseurs,
+        array $allCours,
+        array $selectionByDanseur,
+        array $attenteByDanseur,
+    ): bool {
+        $coursById = [];
+        foreach ($allCours as $cours) {
+            $coursById[$cours->getId()] = $cours;
+        }
+
+        foreach ($danseurs as $danseur) {
+            $ids = array_values(array_unique(array_merge(
+                $selectionByDanseur[$danseur->getId()] ?? [],
+                $attenteByDanseur[$danseur->getId()] ?? [],
+            )));
+
+            foreach ($ids as $coursId) {
+                if (!isset($coursById[$coursId])) {
+                    continue;
+                }
+                if (!$coursById[$coursId]->isCompatibleAvecDanseur($danseur)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Danseur> $danseurs
+     * @param list<\App\Entity\Cours> $allCours
+     * @param array<int, list<int>> $selectionByDanseur
+     * @param array<int, list<int>> $attenteByDanseur
      *
      * @return list<string> libellés des cours basculés automatiquement en liste d'attente
      */
@@ -659,6 +876,7 @@ class FoyerController extends AbstractController
         array $selectionByDanseur,
         array $attenteByDanseur,
         string $saison,
+        bool $allowAgeOverride = false,
     ): array {
         $coursById = [];
         foreach ($allCours as $cours) {
@@ -679,15 +897,19 @@ class FoyerController extends AbstractController
             $wantedAttente = array_values(array_unique($attenteByDanseur[$danseur->getId()] ?? []));
             $wantedAttente = array_values(array_diff($wantedAttente, $wantedNormal));
 
-            $filterEligible = static function (array $ids) use ($coursById, $danseur): array {
+            $filterEligible = static function (array $ids) use ($coursById, $danseur, $allowAgeOverride): array {
                 return array_values(array_filter(
                     $ids,
-                    static function (int $id) use ($coursById, $danseur): bool {
+                    static function (int $id) use ($coursById, $danseur, $allowAgeOverride): bool {
                         if (!isset($coursById[$id])) {
                             return false;
                         }
 
-                        return $coursById[$id]->isEligibleForDanseur($danseur);
+                        if ($allowAgeOverride) {
+                            return true;
+                        }
+
+                        return $coursById[$id]->isCompatibleAvecDanseur($danseur);
                     }
                 ));
             };
@@ -722,15 +944,19 @@ class FoyerController extends AbstractController
             $wantedAttente = array_values(array_unique($attenteByDanseur[$danseur->getId()] ?? []));
             $wantedAttente = array_values(array_diff($wantedAttente, $wantedNormal));
 
-            $filterEligible = static function (array $ids) use ($coursById, $danseur): array {
+            $filterEligible = static function (array $ids) use ($coursById, $danseur, $allowAgeOverride): array {
                 return array_values(array_filter(
                     $ids,
-                    static function (int $id) use ($coursById, $danseur): bool {
+                    static function (int $id) use ($coursById, $danseur, $allowAgeOverride): bool {
                         if (!isset($coursById[$id])) {
                             return false;
                         }
 
-                        return $coursById[$id]->isEligibleForDanseur($danseur);
+                        if ($allowAgeOverride) {
+                            return true;
+                        }
+
+                        return $coursById[$id]->isCompatibleAvecDanseur($danseur);
                     }
                 ));
             };
@@ -1645,6 +1871,157 @@ class FoyerController extends AbstractController
                 'codePostal' => '85430',
                 'ville' => 'Nieul-le-Dolent',
                 'email' => 'contact@studiodanse430.fr',
+            ],
+        ]);
+    }
+
+    #[Route('/facture-ce', name: 'app_foyer_facture_ce', methods: ['GET'])]
+    public function factureCe(CotisationCalculatorService $calculator): Response
+    {
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+        $foyer = $currentUser->getFoyer();
+
+        if (null === $foyer) {
+            throw $this->createNotFoundException('Aucun foyer associé à votre compte.');
+        }
+
+        $isTitulaire = $foyer->getUser()?->getId() === $currentUser->getId();
+        if (!$isTitulaire && !$this->isGranted('ROLE_BUREAU')) {
+            throw $this->createAccessDeniedException(
+                'Seuls le titulaire du foyer ou le bureau peuvent télécharger cette attestation.'
+            );
+        }
+
+        $saison = CotisationCalculatorService::SAISON_COURANTE;
+        $cotisation = $calculator->calculateForFoyer($foyer, $saison);
+
+        // Parts nettes proportionnelles (même logique que applyMontantsToInscriptions).
+        $payingSubtotal = 0.0;
+        foreach ($cotisation->breakdownByDanseur as $block) {
+            foreach ($block->lines as $line) {
+                if (!$line->isListeAttente) {
+                    $payingSubtotal += $line->montantApresGratuit;
+                }
+            }
+        }
+
+        $pagesDanseurs = [];
+        $lignesRecap = [];
+        $resteNet = $cotisation->total;
+
+        $blocks = $cotisation->breakdownByDanseur;
+        $flatPaying = [];
+        foreach ($blocks as $bi => $block) {
+            foreach ($block->lines as $li => $line) {
+                if (!$line->isListeAttente && $line->montantApresGratuit > 0) {
+                    $flatPaying[] = [$bi, $li];
+                }
+            }
+        }
+        $lastPayingKey = $flatPaying !== [] ? end($flatPaying) : null;
+
+        foreach ($blocks as $bi => $block) {
+            $danseur = null;
+            foreach ($foyer->getDanseurs() as $d) {
+                if ($d->getId() === $block->danseurId) {
+                    $danseur = $d;
+                    break;
+                }
+            }
+            if (null === $danseur) {
+                continue;
+            }
+
+            $coursPages = [];
+            foreach ($block->lines as $li => $line) {
+                if ($line->isListeAttente) {
+                    continue;
+                }
+
+                $inscription = null;
+                $cours = null;
+                foreach ($danseur->getInscriptions() as $ins) {
+                    if ($ins->getSaison() === $saison
+                        && $ins->getCours()?->getId() === $line->coursId
+                        && $ins->getStatut() !== StatutInscription::ANNULE
+                    ) {
+                        $inscription = $ins;
+                        $cours = $ins->getCours();
+                        break;
+                    }
+                }
+
+                if ($line->isGratuit2020 || $line->montantApresGratuit <= 0) {
+                    $montantNet = 0.0;
+                } elseif ($payingSubtotal <= 0) {
+                    $montantNet = 0.0;
+                } elseif ($lastPayingKey !== null && $lastPayingKey[0] === $bi && $lastPayingKey[1] === $li) {
+                    $montantNet = round(max(0.0, $resteNet), 2);
+                } else {
+                    $montantNet = round($cotisation->total * ($line->montantApresGratuit / $payingSubtotal), 2);
+                    $resteNet = round($resteNet - $montantNet, 2);
+                }
+
+                $remises = [];
+                if ($line->isGratuit2020) {
+                    $remises[] = 'Gratuité enfant né en 2020';
+                }
+                if ($cotisation->foyerDiscountPercentage > 0 && $line->montantApresGratuit > 0) {
+                    $remises[] = sprintf('Remise fratrie −%d %%', $cotisation->foyerDiscountPercentage);
+                }
+                if ($inscription && ($inscription->getRemiseManuelle() ?? 0) > 0) {
+                    $motif = $inscription->getMotifRemise() ?: 'Remise individuelle';
+                    $remises[] = sprintf('%s (−%s €)', $motif, number_format((float) $inscription->getRemiseManuelle(), 2, ',', ' '));
+                }
+
+                $coursPages[] = [
+                    'coursNom' => $line->coursNom,
+                    'jour' => $cours?->getJour() ?? '—',
+                    'horaire' => $cours ? $cours->getHeure()->format('H\\hi') : '—',
+                    'tarifBrut' => $line->tarifBrut,
+                    'remises' => $remises,
+                    'montantNet' => $montantNet,
+                ];
+
+                $lignesRecap[] = [
+                    'danseurNom' => trim($danseur->getPrenom() . ' ' . $danseur->getNom()),
+                    'coursNom' => $line->coursNom,
+                    'montantNet' => $montantNet,
+                ];
+            }
+
+            if ($coursPages === []) {
+                continue;
+            }
+
+            $pagesDanseurs[] = [
+                'danseur' => $danseur,
+                'cours' => $coursPages,
+                'totalNet' => array_sum(array_column($coursPages, 'montantNet')),
+            ];
+        }
+
+        return $this->render('foyer/facture_ce.html.twig', [
+            'foyer' => $foyer,
+            'responsable' => $foyer->getUser(),
+            'saison' => $saison,
+            'cotisation' => $cotisation,
+            'pagesDanseurs' => $pagesDanseurs,
+            'lignesRecap' => $lignesRecap,
+            'numeroDocument' => sprintf(
+                'SD430-CE-%s-%04d',
+                preg_replace('/\D+/', '', $saison) ?: date('Y'),
+                $foyer->getId() ?? 0
+            ),
+            'association' => [
+                'nom' => 'Studio Danse 430',
+                'adresse' => 'Rue Armand Calleau',
+                'codePostal' => '85430',
+                'ville' => 'Nieul-le-Dolent',
+                'email' => 'contact@studiodanse430.fr',
+                'siret' => 'À compléter',
+                'rna' => 'À compléter',
             ],
         ]);
     }

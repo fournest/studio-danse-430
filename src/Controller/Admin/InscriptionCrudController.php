@@ -8,6 +8,7 @@ use App\Entity\StatutPaiement;
 use App\Enum\StatutInscription;
 use App\Form\PaiementType;
 use App\Service\CotisationCalculatorService;
+use App\Service\FamilleRelanceMailer;
 use App\Service\InscriptionAutofillService;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
@@ -37,6 +38,7 @@ class InscriptionCrudController extends AbstractCrudController
         private readonly AdminUrlGenerator $adminUrlGenerator,
         private readonly InscriptionAutofillService $autofill,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly FamilleRelanceMailer $familleRelanceMailer,
     ) {
     }
 
@@ -77,11 +79,25 @@ class InscriptionCrudController extends AbstractCrudController
             ->setCssClass('btn btn-sm btn-warning')
             ->displayIf(static fn (Inscription $i) => $i->isEstEnListeDAttente());
 
+        $relancePieces = Action::new('relancePieces', 'Relancer (Pièces manquantes)', 'fa fa-envelope')
+            ->linkToCrudAction('relancePiecesManquantes')
+            ->setCssClass('btn btn-sm btn-info')
+            ->displayIf(static fn (Inscription $i) => $i->getStatutDossier() === StatutDossier::INCOMPLET);
+
+        $relancePaiement = Action::new('relancePaiement', 'Relancer (Retard paiement)', 'fa fa-envelope')
+            ->linkToCrudAction('relanceRetardPaiement')
+            ->setCssClass('btn btn-sm btn-warning')
+            ->displayIf(static fn (Inscription $i) => $i->hasOverduePaiement());
+
         return $actions
             ->add(Crud::PAGE_INDEX, $valider)
             ->add(Crud::PAGE_DETAIL, $valider)
             ->add(Crud::PAGE_INDEX, $confirmerAttente)
-            ->add(Crud::PAGE_DETAIL, $confirmerAttente);
+            ->add(Crud::PAGE_DETAIL, $confirmerAttente)
+            ->add(Crud::PAGE_INDEX, $relancePieces)
+            ->add(Crud::PAGE_DETAIL, $relancePieces)
+            ->add(Crud::PAGE_INDEX, $relancePaiement)
+            ->add(Crud::PAGE_DETAIL, $relancePaiement);
     }
 
     public function configureFields(string $pageName): iterable
@@ -145,6 +161,16 @@ class InscriptionCrudController extends AbstractCrudController
 
         yield TextField::new('danseur.statutSanteLabel', 'Statut santé')
             ->onlyOnDetail();
+
+        yield DateTimeField::new('lastPiecesReminderSentAt', 'Relance pièces')
+            ->hideOnForm()
+            ->setFormat('dd/MM/yyyy HH:mm')
+            ->onlyOnIndex();
+
+        yield DateTimeField::new('lastPaymentReminderSentAt', 'Relance paiement')
+            ->hideOnForm()
+            ->setFormat('dd/MM/yyyy HH:mm')
+            ->onlyOnIndex();
 
         yield TextField::new('modePaiement')->hideOnIndex();
 
@@ -304,6 +330,70 @@ class InscriptionCrudController extends AbstractCrudController
                 ->setAction(Action::INDEX)
                 ->generateUrl()
         );
+    }
+
+    public function relancePiecesManquantes(AdminContext $context): Response
+    {
+        /** @var Inscription $inscription */
+        $inscription = $context->getEntity()->getInstance();
+
+        if ($inscription->getStatutDossier() !== StatutDossier::INCOMPLET) {
+            $this->addFlash('warning', 'Cette inscription n’est pas marquée comme dossier incomplet.');
+
+            return $this->redirectAfterRelance($context);
+        }
+
+        if ($this->familleRelanceMailer->sendPiecesManquantes($inscription)) {
+            $inscription->setLastPiecesReminderSentAt(new \DateTimeImmutable());
+            $this->entityManager->flush();
+            $this->addFlash('success', 'Email de relance pièces manquantes envoyé.');
+        } else {
+            $this->addFlash('danger', 'Impossible d’envoyer l’email de relance (adresse introuvable ou erreur d’envoi).');
+        }
+
+        return $this->redirectAfterRelance($context);
+    }
+
+    public function relanceRetardPaiement(AdminContext $context): Response
+    {
+        /** @var Inscription $inscription */
+        $inscription = $context->getEntity()->getInstance();
+
+        if (!$inscription->hasOverduePaiement()) {
+            $this->addFlash('warning', 'Aucune échéance en retard sur cette inscription.');
+
+            return $this->redirectAfterRelance($context);
+        }
+
+        if ($this->familleRelanceMailer->sendRetardPaiement($inscription)) {
+            $now = new \DateTimeImmutable();
+            foreach ($inscription->getOverduePaiements() as $paiement) {
+                $paiement->setLastReminderSentAt($now);
+            }
+            $inscription->setLastPaymentReminderSentAt($now);
+            $this->entityManager->flush();
+            $this->addFlash('success', 'Email de relance retard de paiement envoyé.');
+        } else {
+            $this->addFlash('danger', 'Impossible d’envoyer l’email de relance (adresse introuvable ou erreur d’envoi).');
+        }
+
+        return $this->redirectAfterRelance($context);
+    }
+
+    private function redirectAfterRelance(AdminContext $context): Response
+    {
+        $generator = $this->adminUrlGenerator->setController(self::class);
+
+        if ($context->getCrud()->getCurrentPage() === Crud::PAGE_DETAIL) {
+            return $this->redirect(
+                $generator
+                    ->setAction(Action::DETAIL)
+                    ->setEntityId($context->getEntity()->getPrimaryKeyValue())
+                    ->generateUrl()
+            );
+        }
+
+        return $this->redirect($generator->setAction(Action::INDEX)->generateUrl());
     }
 
     /**

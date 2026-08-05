@@ -57,7 +57,7 @@ class PaiementCrudController extends AbstractCrudController
         }
 
         $statutChoices = [];
-        foreach (StatutLignePaiement::cases() as $statut) {
+        foreach (StatutLignePaiement::storableCases() as $statut) {
             $statutChoices[$statut->getLabel()] = $statut->value;
         }
 
@@ -69,11 +69,11 @@ class PaiementCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        $encaisser = Action::new('encaisser', 'Encaisser', 'fa fa-university')
+        $encaisser = Action::new('encaisser', 'Valider l\'encaissement', 'fa fa-check-circle')
             ->linkToCrudAction('encaisser')
             ->setCssClass('btn btn-sm btn-success')
             ->displayIf(static function (Paiement $paiement) {
-                return $paiement->getStatut() !== StatutLignePaiement::ENCAISSE;
+                return $paiement->canBeEncaisse();
             });
 
         $validerHelloAsso = Action::new('validerHelloAsso', 'Valider le règlement HelloAsso', 'fa fa-credit-card')
@@ -120,13 +120,15 @@ class PaiementCrudController extends AbstractCrudController
             ]);
 
         yield ChoiceField::new('statut', 'Statut')
-            ->setChoices($this->enumChoices(StatutLignePaiement::cases()))
-            ->formatValue(static fn ($value, ?Paiement $entity) => $entity?->getStatut()->getLabel() ?? '')
+            ->setChoices($this->enumChoices(StatutLignePaiement::storableCases()))
+            ->formatValue(static fn ($value, ?Paiement $entity) => $entity?->getStatutAffiche()->getLabel() ?? '')
             ->renderAsBadges([
                 StatutLignePaiement::EN_ATTENTE->value => 'warning',
                 StatutLignePaiement::RECU->value => 'info',
+                StatutLignePaiement::PAIEMENT_DECLARE->value => 'info',
                 StatutLignePaiement::ENCAISSE->value => 'success',
                 StatutLignePaiement::REFUSE->value => 'danger',
+                StatutLignePaiement::RETARD->value => 'danger',
             ]);
 
         yield TextField::new('reference', 'Référence / reçu HelloAsso');
@@ -141,18 +143,16 @@ class PaiementCrudController extends AbstractCrudController
     {
         /** @var Paiement $paiement */
         $paiement = $context->getEntity()->getInstance();
-        $paiement->marquerEncaisse();
-        $paiement->getInscription()?->refreshStatutPaiement();
-        $this->entityManager->flush();
+        if ($paiement->canBeEncaisse()) {
+            $paiement->marquerEncaisse();
+            $paiement->getInscription()?->refreshStatutPaiement();
+            $this->entityManager->flush();
+            $this->addFlash('success', sprintf('Encaissement validé pour le paiement #%d.', $paiement->getId()));
+        } else {
+            $this->addFlash('info', 'Ce paiement ne peut pas être validé.');
+        }
 
-        $this->addFlash('success', sprintf('Paiement #%d marqué comme encaissé.', $paiement->getId()));
-
-        return $this->redirect(
-            $this->adminUrlGenerator
-                ->setController(self::class)
-                ->setAction(Action::INDEX)
-                ->generateUrl()
-        );
+        return $this->redirectAfterEncaissement($paiement);
     }
 
     #[AdminRoute('/{entityId}/valider-helloasso', name: 'valider_helloasso')]
@@ -170,18 +170,14 @@ class PaiementCrudController extends AbstractCrudController
 
         $this->addFlash('success', sprintf('Règlement HelloAsso #%d validé et encaissé.', $paiement->getId()));
 
-        return $this->redirect(
-            $this->adminUrlGenerator
-                ->setController(self::class)
-                ->setAction(Action::INDEX)
-                ->generateUrl()
-        );
+        return $this->redirectAfterEncaissement($paiement);
     }
 
     #[AdminRoute('/marquer-encaisse-batch', name: 'marquer_encaisse_batch')]
     public function marquerEncaisseBatch(BatchActionDto $batchActionDto): Response
     {
         $count = 0;
+        $lastInscriptionId = null;
         foreach ($batchActionDto->getEntityIds() as $id) {
             $paiement = $this->entityManager->find(Paiement::class, $id);
             if (!$paiement instanceof Paiement) {
@@ -189,11 +185,43 @@ class PaiementCrudController extends AbstractCrudController
             }
             $paiement->marquerEncaisse();
             $paiement->getInscription()?->refreshStatutPaiement();
+            $lastInscriptionId = $paiement->getInscription()?->getId() ?? $lastInscriptionId;
             ++$count;
         }
         $this->entityManager->flush();
 
         $this->addFlash('success', sprintf('%d règlement(s) marqué(s) comme encaissé(s).', $count));
+
+        if (null !== $lastInscriptionId) {
+            return $this->redirect(
+                $this->adminUrlGenerator
+                    ->setController(ReglementCrudController::class)
+                    ->setAction(Action::DETAIL)
+                    ->setEntityId($lastInscriptionId)
+                    ->generateUrl()
+            );
+        }
+
+        return $this->redirect(
+            $this->adminUrlGenerator
+                ->setController(ReglementCrudController::class)
+                ->setAction(Action::INDEX)
+                ->generateUrl()
+        );
+    }
+
+    private function redirectAfterEncaissement(Paiement $paiement): Response
+    {
+        $inscriptionId = $paiement->getInscription()?->getId();
+        if (null !== $inscriptionId) {
+            return $this->redirect(
+                $this->adminUrlGenerator
+                    ->setController(ReglementCrudController::class)
+                    ->setAction(Action::DETAIL)
+                    ->setEntityId($inscriptionId)
+                    ->generateUrl()
+            );
+        }
 
         return $this->redirect(
             $this->adminUrlGenerator

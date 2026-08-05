@@ -1,0 +1,64 @@
+<div id="modal-declarer-paiement" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm" aria-hidden="true">
+    <div class="w-full max-w-md rounded-xl border border-neutral-700 bg-neutral-900 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-neutral-800 px-5 py-4">
+            <h3 class="text-lg font-bold text-[#FFD700]">Signaler un règlement effectué</h3>
+            <button type="button" id="btn-close-declarer-paiement" class="text-neutral-400 hover:text-white text-xl leading-none" aria-label="Fermer">×</button>
+        </div>
+        <form method="post" action="{{ path('app_foyer_declarer_paiement') }}" class="px-5 py-4 space-y-4">
+            {{ form_row(declarer_paiement_form.mode, {
+                row_attr: { class: 'space-y-1' },
+                label_attr: { class: 'text-xs font-bold uppercase tracking-wider text-neutral-400' },
+                attr: { class: 'w-full rounded-md border border-neutral-700 bg-neutral-950 text-white px-3 py-2' }
+            }) }}
+            {{ form_row(declarer_paiement_form.montant, {
+                row_attr: { class: 'space-y-1' },
+                label_attr: { class: 'text-xs font-bold uppercase tracking-wider text-neutral-400' },
+                attr: { class: 'w-full rounded-md border border-neutral-700 bg-neutral-950 text-white px-3 py-2', step: '0.01', min: '0.01' }
+            }) }}
+            {{ form_row(declarer_paiement_form.reference, {
+                row_attr: { class: 'space-y-1' },
+                label_attr: { class: 'text-xs font-bold uppercase tracking-wider text-neutral-400' },
+                attr: { class: 'w-full rounded-md border border-neutral-700 bg-neutral-950 text-white px-3 py-2' }
+            }) }}
+            {{ form_rest(declarer_paiement_form) }}
+            <p class="text-xs text-neutral-500">
+                Votre déclaration sera vérifiée par la trésorerie avant confirmation définitive sur le compte du club.
+            </p>
+            <div class="flex gap-2 pt-2">
+                <button type="submit" class="grow px-4 py-2.5 rounded-md text-sm font-bold text-black bg-[#FFD700] hover:bg-amber-300">
+                    Confirmer la déclaration
+                </button>
+                <button type="button" id="btn-cancel-declarer-paiement" class="px-4 py-2.5 rounded-md text-sm font-bold border border-neutral-600 text-neutral-300 hover:bg-neutral-800">
+                    Annuler
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+(function () {
+    const modal = document.getElementById('modal-declarer-paiement');
+    const openBtn = document.getElementById('btn-declarer-paiement');
+    const closeBtn = document.getElementById('btn-close-declarer-paiement');
+    const cancelBtn = document.getElementById('btn-cancel-declarer-paiement');
+    if (!modal) return;
+
+    function openModal() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeModal();
+    });
+})();
+</script>

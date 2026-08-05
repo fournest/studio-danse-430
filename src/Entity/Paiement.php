@@ -44,6 +44,12 @@ class Paiement
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $remarques = null;
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $lastReminderSentAt = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $dateDeclaration = null;
+
     public function __toString(): string
     {
         return sprintf(
@@ -171,6 +177,98 @@ class Paiement
     {
         $this->statut = StatutLignePaiement::ENCAISSE;
         $this->dateEncaissementReelle = $date ?? new \DateTimeImmutable('today');
+
+        return $this;
+    }
+
+    public function marquerDeclare(?ModePaiement $mode = null, ?string $reference = null): self
+    {
+        $this->statut = StatutLignePaiement::PAIEMENT_DECLARE;
+        $this->dateDeclaration = new \DateTimeImmutable();
+        if (null !== $mode) {
+            $this->mode = $mode;
+        }
+        if (null !== $reference && '' !== trim($reference)) {
+            $this->reference = trim($reference);
+        }
+
+        return $this;
+    }
+
+    public function isDeclared(): bool
+    {
+        return \in_array($this->statut, [StatutLignePaiement::PAIEMENT_DECLARE, StatutLignePaiement::RECU], true);
+    }
+
+  /**
+     * Statut affiché (RETARD est calculé pour les échéances en attente dépassées).
+     */
+    public function getStatutAffiche(): StatutLignePaiement
+    {
+        if ($this->statut === StatutLignePaiement::EN_ATTENTE && $this->isOverdue()) {
+            return StatutLignePaiement::RETARD;
+        }
+
+        return $this->statut;
+    }
+
+    public function canBeEncaisse(): bool
+    {
+        return !$this->isPaid()
+            && $this->statut !== StatutLignePaiement::REFUSE;
+    }
+
+    public function canBeDeclaredByFamille(): bool
+    {
+        return !$this->isPaid()
+            && !$this->isDeclared()
+            && $this->statut !== StatutLignePaiement::REFUSE;
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->statut === StatutLignePaiement::ENCAISSE;
+    }
+
+    /**
+     * Échéance dépassée de plus de 5 jours sans déclaration ni encaissement.
+     */
+    public function isOverdue(): bool
+    {
+        if ($this->isPaid() || $this->isDeclared() || $this->statut === StatutLignePaiement::REFUSE) {
+            return false;
+        }
+
+        $dueAt = $this->dateEncaissementPrevue;
+        if (null === $dueAt) {
+            return false;
+        }
+
+        $graceEnd = $dueAt->modify('+5 days');
+
+        return $graceEnd < new \DateTimeImmutable('today');
+    }
+
+    public function getLastReminderSentAt(): ?\DateTimeImmutable
+    {
+        return $this->lastReminderSentAt;
+    }
+
+    public function setLastReminderSentAt(?\DateTimeImmutable $lastReminderSentAt): self
+    {
+        $this->lastReminderSentAt = $lastReminderSentAt;
+
+        return $this;
+    }
+
+    public function getDateDeclaration(): ?\DateTimeImmutable
+    {
+        return $this->dateDeclaration;
+    }
+
+    public function setDateDeclaration(?\DateTimeImmutable $dateDeclaration): self
+    {
+        $this->dateDeclaration = $dateDeclaration;
 
         return $this;
     }

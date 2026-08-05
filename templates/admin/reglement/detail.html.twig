@@ -1,0 +1,115 @@
+{% extends '@EasyAdmin/crud/detail.html.twig' %}
+
+{% block main %}
+    {% set inscription = entity.instance %}
+    {% set reste = inscription.resteAPayer %}
+    {% set declare = inscription.montantDeclare %}
+
+    <div class="content-panel mb-4">
+        <div class="content-panel-header d-flex flex-wrap align-items-center gap-2">
+            <span><i class="fa fa-calculator"></i> Synthèse financière</span>
+            {% if reste <= 0.001 %}
+                <span class="badge bg-success">Soldé</span>
+            {% elseif reste >= 50 %}
+                <span class="badge bg-danger">Reste : {{ reste|number_format(2, ',', ' ') }} €</span>
+            {% else %}
+                <span class="badge bg-warning text-dark">Reste : {{ reste|number_format(2, ',', ' ') }} €</span>
+            {% endif %}
+        </div>
+        <div class="content-panel-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="text-muted small">Total dû</div>
+                    <div class="fw-bold">{{ (inscription.montantTotal ?? 0)|number_format(2, ',', ' ') }} €</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Déclaré par la famille</div>
+                    <div class="fw-bold text-info">{{ declare|number_format(2, ',', ' ') }} €</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Total encaissé</div>
+                    <div class="fw-bold text-success">{{ inscription.montantEncaisse|number_format(2, ',', ' ') }} €</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Reste à payer</div>
+                    <div class="fw-bold">{{ include('admin/partials/_reste_a_payer_badge.html.twig', { reste: reste }) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-panel mb-4">
+        <div class="content-panel-header">
+            <i class="fa fa-calendar-check"></i> Échéancier / historique des règlements
+        </div>
+        <div class="content-panel-body">
+            {% if inscription.paiements is empty %}
+                <p class="text-muted mb-0">Aucune ligne de règlement enregistrée pour cette inscription.</p>
+            {% else %}
+                <ul class="list-unstyled reglement-timeline mb-0">
+                    {% for paiement in inscription.paiements %}
+                        {% set statut_affiche = paiement.statutAffiche %}
+                        {% set statut_val = statut_affiche.value %}
+                        <li class="reglement-timeline__item d-flex flex-wrap align-items-start gap-3 py-3 border-bottom">
+                            <div class="reglement-timeline__date text-muted small" style="min-width:7rem;">
+                                {% if paiement.dateEncaissementPrevue %}
+                                    <i class="fa fa-calendar"></i> {{ paiement.dateEncaissementPrevue|date('d/m/Y') }}
+                                {% else %}
+                                    <i class="fa fa-calendar"></i> —
+                                {% endif %}
+                            </div>
+                            <div class="grow">
+                                <div class="fw-semibold">
+                                    {{ paiement.montant|number_format(2, ',', ' ') }} €
+                                    <span class="badge bg-{{ statut_affiche.badgeColor }}">
+                                        {{ statut_affiche.label }}
+                                    </span>
+                                </div>
+                                <div class="small text-muted">
+                                    {% set mode_labels = {
+                                        'cheque': 'Chèque',
+                                        'ancv': 'Chèque Vacances (ANCV)',
+                                        'pass_sport': 'Pass\'Sport',
+                                        'virement': 'Virement bancaire',
+                                        'especes': 'Espèces',
+                                        'helloasso': 'HelloAsso'
+                                    } %}
+                                    {{ mode_labels[paiement.mode.value]|default(paiement.mode.value) }}
+                                    {% if paiement.reference %} · Réf. {{ paiement.reference }}{% endif %}
+                                    {% if paiement.emetteur %} · {{ paiement.emetteur }}{% endif %}
+                                </div>
+                                {% if paiement.dateDeclaration %}
+                                    <div class="small text-info">Déclaré par la famille le {{ paiement.dateDeclaration|date('d/m/Y H:i') }}</div>
+                                {% endif %}
+                                {% if paiement.dateEncaissementReelle %}
+                                    <div class="small text-success">Encaissé le {{ paiement.dateEncaissementReelle|date('d/m/Y') }}</div>
+                                {% endif %}
+                                {% if paiement.lastReminderSentAt %}
+                                    <div class="small text-warning">Relance envoyée le {{ paiement.lastReminderSentAt|date('d/m/Y H:i') }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex gap-1">
+                                {% if paiement.statut.value != 'encaisse' %}
+                                    <a href="{{ path('admin_reglement_encaisser_paiement', { entityId: inscription.id, paiementId: paiement.id }) }}"
+                                       class="btn btn-sm btn-success">
+                                        <i class="fa fa-check-circle"></i> Valider l'encaissement
+                                    </a>
+                                {% endif %}
+                                <a href="{{ ea_url()
+                                    .setController('App\\Controller\\Admin\\PaiementCrudController')
+                                    .setAction('detail')
+                                    .setEntityId(paiement.id)
+                                    .generateUrl() }}"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    <i class="fa fa-eye"></i>
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+
+    {{ parent() }}
+{% endblock %}

@@ -351,18 +351,60 @@ class Cours
         return sprintf('jusqu’à %d ans', $this->ageMax);
     }
 
+    /**
+     * Libellé « Réservé aux … » pour l’UI tunnel (âge ou années de naissance).
+     */
+    public function getReservationAgeLabel(): ?string
+    {
+        if (null !== $this->getTrancheAgeLabel()) {
+            return 'Réservé aux ' . $this->getTrancheAgeLabel();
+        }
+
+        if (null === $this->anneeNaissanceMin && null === $this->anneeNaissanceMax) {
+            return null;
+        }
+
+        if (null !== $this->anneeNaissanceMin && null !== $this->anneeNaissanceMax) {
+            return sprintf('Réservé aux né(e)s %d–%d', $this->anneeNaissanceMin, $this->anneeNaissanceMax);
+        }
+
+        if (null !== $this->anneeNaissanceMin) {
+            return sprintf('Réservé aux né(e)s à partir de %d', $this->anneeNaissanceMin);
+        }
+
+        return sprintf('Réservé aux né(e)s jusqu’à %d', $this->anneeNaissanceMax);
+    }
+
     public function hasAgeBounds(): bool
     {
         return null !== $this->ageMin || null !== $this->ageMax;
     }
 
+    public function hasBirthYearBounds(): bool
+    {
+        return null !== $this->anneeNaissanceMin || null !== $this->anneeNaissanceMax;
+    }
+
+    /**
+     * Aucune borne d’âge ni d’année de naissance → cours ouvert à tous.
+     */
+    public function isOpenToAllAges(): bool
+    {
+        return !$this->hasAgeBounds() && !$this->hasBirthYearBounds();
+    }
+
     /**
      * Indique si l’âge (années révolues) est dans la tranche [ageMin, ageMax].
+     * Bornes nulles = pas de contrainte sur ce critère.
      */
     public function isEligibleForAge(?int $age): bool
     {
-        if (null === $age || !$this->hasAgeBounds()) {
+        if (!$this->hasAgeBounds()) {
             return true;
+        }
+
+        if (null === $age) {
+            return false;
         }
 
         if (null !== $this->ageMin && $age < $this->ageMin) {
@@ -378,11 +420,16 @@ class Cours
 
     /**
      * Indique si le danseur (année de naissance) est éligible à ce créneau.
+     * Bornes nulles = pas de contrainte sur ce critère.
      */
     public function isEligibleForBirthYear(?int $anneeNaissance): bool
     {
-        if (null === $anneeNaissance) {
+        if (!$this->hasBirthYearBounds()) {
             return true;
+        }
+
+        if (null === $anneeNaissance) {
+            return false;
         }
 
         if (null !== $this->anneeNaissanceMin && $anneeNaissance < $this->anneeNaissanceMin) {
@@ -396,16 +443,52 @@ class Cours
         return true;
     }
 
+    /**
+     * Compatibilité complète (âge révolu prioritaire, sinon année de naissance).
+     * Sans bornes → toujours compatible.
+     */
     public function isEligibleForDanseur(Danseur $danseur): bool
     {
+        return $this->isCompatibleAvecDanseur($danseur);
+    }
+
+    public function isCompatibleAvecDanseur(Danseur $danseur): bool
+    {
+        if ($this->isOpenToAllAges()) {
+            return true;
+        }
+
         if ($this->hasAgeBounds()) {
             $age = $danseur->getAge();
             if (null !== $age) {
                 return $this->isEligibleForAge($age);
             }
+            // Âge inconnu : bascule sur l’année de naissance si disponible.
+            if (null !== $danseur->getAnneeNaissance()) {
+                return $this->isEligibleForBirthYear($danseur->getAnneeNaissance());
+            }
+
+            return false;
         }
 
         return $this->isEligibleForBirthYear($danseur->getAnneeNaissance());
+    }
+
+    public function isCompatibleAvecDateNaissance(\DateTimeInterface $dateNaissance): bool
+    {
+        if ($this->isOpenToAllAges()) {
+            return true;
+        }
+
+        $naissance = \DateTimeImmutable::createFromInterface($dateNaissance);
+
+        if ($this->hasAgeBounds()) {
+            $age = (new \DateTimeImmutable('today'))->diff($naissance)->y;
+
+            return $this->isEligibleForAge($age);
+        }
+
+        return $this->isEligibleForBirthYear((int) $naissance->format('Y'));
     }
 
     /**

@@ -1,0 +1,81 @@
+{% extends '@EasyAdmin/crud/detail.html.twig' %}
+
+{% block main %}
+    {% set foyer = entity.instance %}
+    {% set saison = '2026/2027' %}
+    {% set total_du = foyer.totalDu(saison) %}
+    {% set total_declare = foyer.totalDeclare(saison) %}
+    {% set total_encaisse = foyer.totalEncaisse(saison) %}
+    {% set reste = foyer.resteAPayer(saison) %}
+
+    <div class="content-panel mb-4">
+        <div class="content-panel-header d-flex flex-wrap align-items-center gap-2">
+            <span><i class="fa fa-wallet"></i> Règlements saison {{ saison }}</span>
+            {{ include('admin/partials/_reste_a_payer_badge.html.twig', { reste: reste }) }}
+        </div>
+        <div class="content-panel-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <div class="text-muted small">Total dû</div>
+                    <div class="fw-bold">{{ total_du|number_format(2, ',', ' ') }} €</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Déclaré par la famille</div>
+                    <div class="fw-bold text-info">{{ total_declare|number_format(2, ',', ' ') }} €</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Total encaissé</div>
+                    <div class="fw-bold text-success">{{ total_encaisse|number_format(2, ',', ' ') }} €</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Reste à payer</div>
+                    <div>{{ include('admin/partials/_reste_a_payer_badge.html.twig', { reste: reste }) }}</div>
+                </div>
+            </div>
+
+            {% set inscriptions = foyer.inscriptions(saison) %}
+            {% if inscriptions is not empty %}
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Danseur / inscription</th>
+                            <th>Total dû</th>
+                            <th>Déclaré</th>
+                            <th>Encaissé</th>
+                            <th>Reste</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inscription in inscriptions %}
+                            <tr>
+                                <td>
+                                    {{ inscription.danseur }}
+                                    <span class="text-muted small">— {{ inscription.cours.nom }}</span>
+                                </td>
+                                <td>{{ (inscription.montantTotal ?? 0)|number_format(2, ',', ' ') }} €</td>
+                                <td class="text-info">{{ inscription.montantDeclare|number_format(2, ',', ' ') }} €</td>
+                                <td>{{ inscription.montantEncaisse|number_format(2, ',', ' ') }} €</td>
+                                <td>{{ include('admin/partials/_reste_a_payer_badge.html.twig', { reste: inscription.resteAPayer }) }}</td>
+                                <td>
+                                    <a href="{{ ea_url()
+                                        .setController('App\\Controller\\Admin\\ReglementCrudController')
+                                        .setAction('detail')
+                                        .setEntityId(inscription.id)
+                                        .generateUrl() }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        Échéancier
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted mb-0">Aucune inscription enregistrée pour la saison {{ saison }}.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {{ parent() }}
+{% endblock %}

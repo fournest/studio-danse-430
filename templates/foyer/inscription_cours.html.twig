@@ -133,34 +133,33 @@
                                         Non accessibles pour cet âge
                                     </p>
                                     {% for cours in packs.ineligible %}
-                                        <div class="flex items-start gap-3 p-3 rounded-lg border border-neutral-800/80 bg-neutral-950/40 opacity-55 pointer-events-none select-none" aria-disabled="true">
-                                            <span class="mt-1 inline-block w-4 h-4 rounded border border-neutral-700 bg-neutral-900"></span>
+                                        <label class="flex items-start gap-3 p-3 rounded-lg border border-neutral-800/80 bg-neutral-950/50 opacity-60 cursor-not-allowed select-none grayscale-30" aria-disabled="true">
+                                            <input
+                                                type="checkbox"
+                                                disabled
+                                                tabindex="-1"
+                                                class="mt-1 accent-neutral-600 w-4 h-4 opacity-40 cursor-not-allowed"
+                                                aria-label="Cours non accessible pour cet âge"
+                                            >
                                             <span class="flex-1 min-w-0">
-                                                <span class="block text-sm font-semibold text-neutral-400 line-through decoration-neutral-600">{{ cours.nomComplet }}</span>
-                                                <span class="block text-xs text-neutral-500 mt-0.5">
+                                                <span class="flex flex-wrap items-center gap-2">
+                                                    <span class="block text-sm font-semibold text-neutral-500">{{ cours.nomComplet }}</span>
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-950/40 text-red-300/90 border border-red-800/50">
+                                                        ⛔ Non accessible pour cet âge
+                                                        {% if cours.reservationAgeLabel %}
+                                                            ({{ cours.reservationAgeLabel }})
+                                                        {% endif %}
+                                                    </span>
+                                                </span>
+                                                <span class="block text-xs text-neutral-600 mt-0.5">
                                                     📅 {{ cours.jour }} · {{ cours.heure|date('G\\hi') }} ({{ cours.dureeLabel }})
                                                     · Prof. {{ cours.professeurPrenom }}
-                                                </span>
-                                                <span class="block text-xs text-amber-500/90 mt-1 italic">
-                                                    Non accessible pour cet âge
-                                                    {% if cours.trancheAgeLabel %}
-                                                        (Réservé aux {{ cours.trancheAgeLabel }})
-                                                    {% elseif cours.anneeNaissanceMin or cours.anneeNaissanceMax %}
-                                                        (Réservé aux né(e)s
-                                                        {% if cours.anneeNaissanceMin and cours.anneeNaissanceMax %}
-                                                            {{ cours.anneeNaissanceMin }}–{{ cours.anneeNaissanceMax }}
-                                                        {% elseif cours.anneeNaissanceMin %}
-                                                            à partir de {{ cours.anneeNaissanceMin }}
-                                                        {% else %}
-                                                            jusqu’à {{ cours.anneeNaissanceMax }}
-                                                        {% endif %})
-                                                    {% endif %}
                                                 </span>
                                             </span>
                                             <span class="text-sm font-bold text-neutral-600 whitespace-nowrap">
                                                 {{ cours.tarif|number_format(2, ',', ' ') }} €
                                             </span>
-                                        </div>
+                                        </label>
                                     {% endfor %}
                                 </div>
                             {% endif %}
