@@ -12,8 +12,13 @@ enum ModePaiementBoutique: string
     {
         return match ($this) {
             self::HELLOASSO => 'Paiement en ligne (HelloAsso / CB)',
-            self::CHEQUE => 'Chèque au club',
-            self::ESPECES => 'Espèces au club',
+            self::CHEQUE => 'Chèque (remise sous enveloppe au club)',
+            self::ESPECES => 'Espèces (remise sous enveloppe au club)',
         };
+    }
+
+    public function isPaiementClub(): bool
+    {
+        return $this === self::CHEQUE || $this === self::ESPECES;
     }
 }

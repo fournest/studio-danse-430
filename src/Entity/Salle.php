@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Entity;
 
 use App\Repository\SalleRepository;
@@ -24,44 +25,81 @@ class Salle
     private int $capacite;
 
     /**
-     * @var Collection<int, Gala>
+     * @var Collection<int, Event>
      */
-    #[ORM\OneToMany(mappedBy: 'salle', targetEntity: Gala::class)]
-    private Collection $galas;
+    #[ORM\OneToMany(mappedBy: 'salle', targetEntity: Event::class)]
+    private Collection $events;
 
     public function __construct()
     {
-        $this->galas = new ArrayCollection();
+        $this->events = new ArrayCollection();
     }
 
-    // Getters/Setters
-    public function getId(): ?int { return $this->id; }
-    public function getNom(): string { return $this->nom; }
-    public function setNom(string $nom): self { $this->nom = $nom; return $this; }
-    public function getAdresse(): string { return $this->adresse; }
-    public function setAdresse(string $adresse): self { $this->adresse = $adresse; return $this; }
-    public function getCapacite(): int { return $this->capacite; }
-    public function setCapacite(int $capacite): self { $this->capacite = $capacite; return $this; }
-
-    /**
-     * @return Collection<int, Gala>
-     */
-    public function getGalas(): Collection { return $this->galas; }
-
-    public function addGala(Gala $gala): self
+    public function getId(): ?int
     {
-        if (!$this->galas->contains($gala)) {
-            $this->galas->add($gala);
-            $gala->setSalle($this);
-        }
+        return $this->id;
+    }
+
+    public function getNom(): string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(string $nom): static
+    {
+        $this->nom = $nom;
+
         return $this;
     }
 
-    public function removeGala(Gala $gala): self
+    public function getAdresse(): string
     {
-        if ($this->galas->removeElement($gala)) {
+        return $this->adresse;
+    }
+
+    public function setAdresse(string $adresse): static
+    {
+        $this->adresse = $adresse;
+
+        return $this;
+    }
+
+    public function getCapacite(): int
+    {
+        return $this->capacite;
+    }
+
+    public function setCapacite(int $capacite): static
+    {
+        $this->capacite = $capacite;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Event>
+     */
+    public function getEvents(): Collection
+    {
+        return $this->events;
+    }
+
+    public function addEvent(Event $event): static
+    {
+        if (!$this->events->contains($event)) {
+            $this->events->add($event);
+            $event->setSalle($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEvent(Event $event): static
+    {
+        if ($this->events->removeElement($event)) {
             // Ne rien faire, car la relation est non-nullable
         }
+
         return $this;
     }
 

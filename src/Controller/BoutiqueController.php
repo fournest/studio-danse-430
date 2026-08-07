@@ -62,8 +62,8 @@ final class BoutiqueController extends AbstractController
             return $this->redirectToRoute('app_boutique_index');
         }
 
-        if (!$goodie->isEstActif()) {
-            $this->addFlash('danger', 'Cet article n’est plus disponible.');
+        if (!$goodie->isEstActif() || !$goodie->isAvailableForSale()) {
+            $this->addFlash('danger', 'Cet article n’est plus disponible à la vente.');
 
             return $this->redirectToRoute('app_boutique_index');
         }
@@ -208,11 +208,7 @@ final class BoutiqueController extends AbstractController
                 $commande->setVille($data['ville'] !== '' ? $data['ville'] : null);
                 $commande->setModeRetrait($modeRetrait);
                 $commande->setModePaiement($modePaiement);
-                $commande->setStatut(
-                    $modePaiement === ModePaiementBoutique::HELLOASSO
-                        ? StatutCommandeBoutique::EN_ATTENTE
-                        : StatutCommandeBoutique::CONFIRMEE
-                );
+                $commande->setStatut(StatutCommandeBoutique::EN_ATTENTE_REGLEMENT);
 
                 foreach ($items as $item) {
                     $ligne = new CommandeBoutiqueLigne();

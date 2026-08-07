@@ -245,7 +245,7 @@ class ReglementCrudController extends AbstractCrudController
             return $this->redirectToReglementDetail($inscription);
         }
 
-        if ($paiement->getStatut() === StatutLignePaiement::ENCAISSE) {
+        if ($paiement->getStatut() === StatutLignePaiement::PAYE) {
             $this->addFlash('info', 'Ce règlement est déjà encaissé.');
         } elseif (!$paiement->canBeEncaisse()) {
             $this->addFlash('warning', 'Ce règlement ne peut pas être validé.');
@@ -257,7 +257,7 @@ class ReglementCrudController extends AbstractCrudController
             $this->addFlash(
                 'success',
                 sprintf(
-                    'Encaissement validé : %s €.',
+                    'Règlement de %s € validé avec succès.',
                     number_format($paiement->getMontant(), 2, ',', ' ')
                 )
             );

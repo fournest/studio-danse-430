@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes billets — Studio Danse 430{% endblock %}
+
+{% block body %}
+<section class="bg-black py-12 min-h-[60vh]">
+	<div class="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
+		<div class="space-y-2">
+			<p class="text-xs font-bold uppercase tracking-wider text-neutral-500">
+				<a href="{{ path('app_foyer_index') }}" class="hover:text-[#FFD700] transition-colors">← Mon foyer</a>
+			</p>
+			<h1 class="text-3xl sm:text-4xl font-extrabold text-[#FFD700]">Mes billets</h1>
+			<p class="text-neutral-400 text-sm sm:text-base">
+				Présentez le QR Code à l’entrée. Chaque billet n’est valable qu’une seule fois.
+			</p>
+		</div>
+
+		{% if billets is empty %}
+			<div class="rounded-2xl border border-neutral-800 bg-neutral-950 p-10 text-center">
+				<p class="text-lg text-neutral-400">Vous n’avez aucun billet pour le moment.</p>
+				<a href="{{ path('app_event_index') }}" class="mt-4 inline-flex px-5 py-2.5 rounded-full bg-[#FFD700] text-black font-bold text-sm hover:bg-yellow-400 transition-colors">
+					Voir les événements
+				</a>
+			</div>
+		{% else %}
+			<div class="grid gap-6 sm:grid-cols-2">
+				{% for billet in billets %}
+					<article class="rounded-2xl border {{ billet.estValide ? 'border-emerald-800/60 bg-emerald-950/20' : 'border-neutral-800 bg-neutral-950' }} p-5 flex flex-col items-center text-center space-y-4">
+						<div class="w-full">
+							<p class="text-[11px] uppercase tracking-wider text-neutral-500 font-semibold">
+								{{ billet.event.type.value }}
+							</p>
+							<h2 class="text-lg font-bold text-white mt-1">{{ billet.event.nom }}</h2>
+							<p class="text-sm text-neutral-400 mt-1">
+								{{ billet.event.dateHeure|date('d/m/Y') }} à {{ billet.event.dateHeure|date('H\\hi') }}
+								— {{ billet.event.salle.nom }}
+							</p>
+						</div>
+
+						{% if billet.estValide %}
+							<div class="rounded-xl bg-emerald-500/15 border border-emerald-500/40 px-4 py-3 text-sm text-emerald-300 font-semibold w-full">
+								Déjà scanné
+								{% if billet.scanneA %}
+									<span class="block text-xs font-normal text-emerald-400/80 mt-1">
+										le {{ billet.scanneA|date('d/m/Y à H\\hi') }}
+									</span>
+								{% endif %}
+							</div>
+						{% else %}
+							<div class="rounded-xl bg-white p-3 shadow-lg">
+								<img src="{{ qrCodes[billet.id] }}"
+									 alt="QR Code billet {{ billet.nomParticipant }}"
+									 class="w-48 h-48 object-contain"
+									 width="192"
+									 height="192">
+							</div>
+						{% endif %}
+
+						<div class="space-y-1">
+							<p class="text-base font-bold text-[#FFD700]">{{ billet.nomParticipant }}</p>
+							{% if billet.numeroPlace %}
+								<p class="text-sm text-white">{{ billet.numeroPlace }}</p>
+							{% else %}
+								<p class="text-xs text-neutral-500">Placement libre / sans place numérotée</p>
+							{% endif %}
+						</div>
+					</article>
+				{% endfor %}
+			</div>
+		{% endif %}
+	</div>
+</section>
+{% endblock %}

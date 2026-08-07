@@ -47,6 +47,35 @@
 			</p>
 		</article>
 
+		{% if commande.modePaiement.isPaiementClub %}
+			<article class="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-6 space-y-3 text-sm text-amber-100">
+				<h2 class="text-base font-extrabold text-[#FFD700]">Consignes d’encaissement</h2>
+				<p class="leading-relaxed text-white/90">
+					Veuillez remettre votre règlement de
+					<strong class="text-[#FFD700]">{{ commande.total|number_format(2, ',', ' ') }} €</strong>
+					{% if commande.modePaiement.value == 'especes' %}
+						en espèces
+					{% else %}
+						par chèque
+					{% endif %}
+					sous enveloppe au nom de la famille
+					<strong class="text-white">{{ commande.foyer ? commande.foyer.nom : commande.nomComplet }}</strong>,
+					au club (permanences / secrétariat).
+				</p>
+				<p class="text-xs text-white/60">
+					Indiquez sur l’enveloppe : « Boutique #{{ commande.id }} — {{ commande.nomComplet }} ».
+					Votre commande restera en <em>paiement en attente</em> jusqu’à encaissement par le bureau.
+				</p>
+			</article>
+		{% elseif commande.modePaiement.value == 'helloasso' %}
+			<article class="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-sm text-neutral-300">
+				<p>
+					Le paiement en ligne (HelloAsso / CB) sera finalisé prochainement. Conservez le n° de commande
+					<strong class="text-white">#{{ commande.id }}</strong>.
+				</p>
+			</article>
+		{% endif %}
+
 		<div class="flex flex-col sm:flex-row gap-3">
 			<a href="{{ path('app_boutique_index') }}" class="flex-1 text-center py-3 rounded-full border border-[#FFD700] text-[#FFD700] font-bold hover:bg-[#FFD700] hover:text-black transition-colors">
 				Retour à la boutique

@@ -62,6 +62,8 @@ class DashboardController extends AbstractDashboardController
     {
         yield MenuItem::linkToUrl('Retour au site', 'fa fa-arrow-left-long', $this->generateUrl('app_home'));
         yield MenuItem::linkToDashboard('Tableau de bord', 'fa fa-home');
+        yield MenuItem::linkToUrl('Station scan entrée', 'fa fa-qrcode', $this->generateUrl('app_scan_station'))
+            ->setPermission('ROLE_BUREAU');
 
         yield MenuItem::section('Adhérents');
         yield MenuItem::linkTo(UserCrudController::class, 'Utilisateurs', 'fa fa-users')
@@ -74,7 +76,9 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(CoursCrudController::class, 'Cours', 'fa fa-music');
         yield MenuItem::linkTo(InscriptionCrudController::class, 'Inscriptions', 'fa fa-file-signature')
             ->setPermission('ROLE_TRESORIER');
-        yield MenuItem::linkTo(GalaCrudController::class, 'Galas', 'fa fa-star')
+        yield MenuItem::linkTo(EventCrudController::class, 'Événements', 'fas fa-calendar-alt')
+            ->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(BilletCrudController::class, 'Billets', 'fa fa-ticket')
             ->setPermission('ROLE_BUREAU');
         yield MenuItem::linkTo(SalleCrudController::class, 'Salles', 'fa fa-location-dot')
             ->setPermission('ROLE_BUREAU');
@@ -84,7 +88,9 @@ class DashboardController extends AbstractDashboardController
             ->setPermission('ROLE_TRESORIER');
         yield MenuItem::linkTo(GoodieCrudController::class, 'Boutique (Goodies)', 'fa fa-bag-shopping')
             ->setPermission('ROLE_BUREAU');
-        yield MenuItem::linkTo(AchatGoodieCrudController::class, 'Achats boutique', 'fa fa-receipt')
+        yield MenuItem::linkTo(CommandeBoutiqueCrudController::class, 'Commandes boutique', 'fa fa-receipt')
+            ->setPermission('ROLE_BUREAU');
+        yield MenuItem::linkTo(AchatGoodieCrudController::class, 'Achats boutique (foyer)', 'fa fa-cart-shopping')
             ->setPermission('ROLE_BUREAU');
 
         yield MenuItem::section('Comptabilité / Règlements')->setPermission('ROLE_TRESORIER');

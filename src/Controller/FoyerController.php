@@ -1501,7 +1501,7 @@ class FoyerController extends AbstractController
             $paiement = new Paiement();
             $paiement->setMode($mode);
             $paiement->setMontant($montant);
-            $paiement->setStatut(StatutLignePaiement::EN_ATTENTE);
+            $paiement->setStatut(StatutLignePaiement::EN_ATTENTE_REGLEMENT);
             $paiement->setReference(trim((string) ($ligne['reference'] ?? '')) ?: null);
             $paiement->setRemarques('Aide / autre règlement soustrait du solde à échelonner');
             $paiements[] = $paiement;

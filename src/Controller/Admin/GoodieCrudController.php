@@ -8,6 +8,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ArrayField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
@@ -50,6 +51,24 @@ class GoodieCrudController extends AbstractCrudController
             ->setHelp('Ex. Enfant, XS, S, M, L, XL — une taille par ligne')
             ->hideOnIndex();
         yield IntegerField::new('stock', 'Stock');
+        yield DateTimeField::new('dateDebut', 'Début de vente')
+            ->setFormat('dd/MM/yyyy HH:mm')
+            ->setHelp('Laisser vide = vente ouverte immédiatement')
+            ->hideOnIndex();
+        yield DateTimeField::new('dateFin', 'Fin de vente')
+            ->setFormat('dd/MM/yyyy HH:mm')
+            ->setHelp('Laisser vide = pas de date de fin')
+            ->hideOnIndex();
+        yield DateTimeField::new('dateLivraisonPrevue', 'Livraison prévue')
+            ->setFormat('dd/MM/yyyy HH:mm')
+            ->hideOnIndex();
+        yield TextField::new('saleStatus', 'Vente')
+            ->onlyOnIndex()
+            ->renderAsBadges([
+                'En cours' => 'success',
+                'À venir' => 'warning',
+                'Terminée' => 'danger',
+            ]);
         yield TextField::new('imageFile', 'Image')
             ->setFormType(VichImageType::class)
             ->onlyOnForms();

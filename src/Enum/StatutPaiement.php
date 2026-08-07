@@ -8,11 +8,12 @@ namespace App\Enum;
  */
 enum StatutPaiement: string
 {
-    case EN_ATTENTE = 'en_attente';
+    case EN_ATTENTE_REGLEMENT = 'en_attente';
     /** @deprecated Alias historique — migré vers PAIEMENT_DECLARE */
     case RECU = 'recu';
     case PAIEMENT_DECLARE = 'paiement_declare';
-    case ENCAISSE = 'encaisse';
+    case PAYE = 'encaisse';
+    case ANNULE = 'annule';
     case REFUSE = 'refuse';
     /** Affichage calculé : échéance dépassée sans déclaration ni encaissement */
     case RETARD = 'retard';
@@ -20,10 +21,11 @@ enum StatutPaiement: string
     public function getLabel(): string
     {
         return match ($this) {
-            self::EN_ATTENTE => 'En attente',
+            self::EN_ATTENTE_REGLEMENT => 'Paiement en attente',
             self::RECU => 'Déclaré par la famille',
             self::PAIEMENT_DECLARE => 'Déclaré par la famille',
-            self::ENCAISSE => 'Encaissé',
+            self::PAYE => 'Payé',
+            self::ANNULE => 'Annulé',
             self::REFUSE => 'Refusé',
             self::RETARD => 'En retard',
         };
@@ -35,10 +37,10 @@ enum StatutPaiement: string
     public function getBadgeColor(): string
     {
         return match ($this) {
-            self::EN_ATTENTE => 'warning',
+            self::EN_ATTENTE_REGLEMENT => 'warning',
             self::RECU, self::PAIEMENT_DECLARE => 'info',
-            self::ENCAISSE => 'success',
-            self::REFUSE => 'danger',
+            self::PAYE => 'success',
+            self::ANNULE, self::REFUSE => 'danger',
             self::RETARD => 'danger',
         };
     }
@@ -49,10 +51,11 @@ enum StatutPaiement: string
     public static function storableCases(): array
     {
         return [
-            self::EN_ATTENTE,
+            self::EN_ATTENTE_REGLEMENT,
             self::RECU,
             self::PAIEMENT_DECLARE,
-            self::ENCAISSE,
+            self::PAYE,
+            self::ANNULE,
             self::REFUSE,
         ];
     }

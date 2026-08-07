@@ -48,11 +48,12 @@ class ActualiteCrudController extends AbstractCrudController
         yield TextEditorField::new('contenu', 'Contenu')
             ->hideOnIndex();
 
-        yield ImageField::new('image', 'Image')
+        yield ImageField::new('image', 'Visuel / Flyer')
             ->setBasePath('uploads/actualites')
             ->setUploadDir('public/uploads/actualites')
             ->setUploadedFileNamePattern('[slug]-[timestamp].[extension]')
-            ->setRequired(false);
+            ->setRequired(false)
+            ->setHelp('Image affichée sur les cartes (accueil & liste). Sans image, le visuel par défaut du club est utilisé.');
 
         yield BooleanField::new('isPublished', 'Publiée')
             ->renderAsSwitch(true);

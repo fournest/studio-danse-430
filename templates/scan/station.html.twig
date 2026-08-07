@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+	<meta name="theme-color" content="#000000">
+	<title>Scan billets — Studio Danse 430</title>
+	<style>
+		:root { color-scheme: dark; }
+		* { box-sizing: border-box; }
+		html, body { margin: 0; height: 100%; }
+		body {
+			font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+			background: #000;
+			color: #fff;
+			display: flex;
+			flex-direction: column;
+			min-height: 100dvh;
+		}
+		header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.75rem;
+			padding: 0.75rem 1rem;
+			border-bottom: 1px solid #262626;
+			background: #0a0a0a;
+		}
+		header h1 {
+			margin: 0;
+			font-size: 1rem;
+			font-weight: 800;
+			color: #FFD700;
+			letter-spacing: 0.04em;
+			text-transform: uppercase;
+		}
+		header a {
+			color: #a3a3a3;
+			text-decoration: none;
+			font-size: 0.8rem;
+			font-weight: 600;
+		}
+		.event-bar {
+			padding: 0.5rem 1rem;
+			background: #111;
+			border-bottom: 1px solid #262626;
+			font-size: 0.8rem;
+			color: #a3a3a3;
+		}
+		.event-bar strong { color: #FFD700; }
+		.consignes {
+			margin: 0.75rem 0.75rem 0;
+			border: 1px solid #FFD70055;
+			background: #171717;
+			border-radius: 0.85rem;
+			overflow: hidden;
+		}
+		.consignes summary {
+			cursor: pointer;
+			list-style: none;
+			padding: 0.75rem 1rem;
+			font-weight: 700;
+			color: #FFD700;
+			font-size: 0.9rem;
+			user: flex;
+			align-items: center;
+			gap: 0.4rem;
+		}
+		.consignes summary::-webkit-details-marker { display: none; }
+		.consignes summary::after {
+			content: '▾';
+			margin-left: auto;
+			opacity: 0.7;
+		}
+		.consignes[open] summary::after { content: '▴'; }
+		.consignes .body {
+			padding: 0 1rem 0.9rem;
+			font-size: 0.88rem;
+			line-height: 1.45;
+			color: #e5e5e5;
+			white-space: pre-wrap;
+		}
+		.benevoles {
+			padding: 0 1rem 0.75rem;
+			font-size: 0.75rem;
+			color: #a3a3a3;
+		}
+		main {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			padding: 0.75rem;
+			gap: 0.75rem;
+			max-width: 40rem;
+			width: 100%;
+			margin: 0 auto;
+		}
+		#reader {
+			width: 100%;
+			border-radius: 1rem;
+			overflow: hidden;
+			border: 1px solid #262626;
+			background: #111;
+			aspect-ratio: 1 / 1;
+			max-height: min(55dvh, 420px);
+		}
+		#reader video { object-fit: cover !important; }
+		#result {
+			border-radius: 1rem;
+			border: 2px solid #262626;
+			background: #171717;
+			padding: 1.25rem 1rem;
+			text-align: center;
+			min-height: 9rem;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			gap: 0.35rem;
+			transition: background 0.15s ease, border-color 0.15s ease;
+		}
+		#result.ok { background: #052e16; border-color: #22c55e; color: #bbf7d0; }
+		#result.ko { background: #450a0a; border-color: #ef4444; color: #fecaca; }
+		#result.idle { color: #a3a3a3; }
+		#result .title {
+			font-size: clamp(1.4rem, 5vw, 2rem);
+			font-weight: 900;
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+			margin: 0;
+		}
+		#result .participant { font-size: 1.15rem; font-weight: 700; margin: 0.25rem 0 0; }
+		#result .place { font-size: 1.05rem; font-weight: 800; color: #FFD700; margin: 0; }
+		#result .meta { font-size: 0.85rem; opacity: 0.85; margin: 0; }
+		#status-line {
+			text-align: center;
+			font-size: 0.75rem;
+			color: #737373;
+		}
+		.hint {
+			text-align: center;
+			font-size: 0.8rem;
+			color: #737373;
+			padding-bottom: 1rem;
+		}
+	</style>
+	<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
+</head>
+<body>
+	<header>
+		<h1>Scan entrée</h1>
+		<a href="{{ path('app_logout') }}">Déconnexion</a>
+	</header>
+
+	{% if event %}
+		<div class="event-bar">
+			Événement : <strong>{{ event.nom }}</strong>
+			— {{ event.dateHeure|date('d/m/Y H\\hi') }}
+			{% if event.salle %} · {{ event.salle.nom }}{% endif %}
+		</div>
+	{% endif %}
+
+	{% if event and event.consignesStaff %}
+		<details class="consignes" open>
+			<summary>📋 Consignes du soir</summary>
+			<div class="body">{{ event.consignesStaff }}</div>
+			{% if event.benevoles is not empty %}
+				<div class="benevoles">
+					Bénévoles :
+					{% for b in event.benevoles %}
+						{{ b.prenom ? b.prenom ~ ' ' ~ (b.nom|default('')) : b.email }}{% if not loop.last %}, {% endif %}
+					{% endfor %}
+				</div>
+			{% endif %}
+		</details>
+	{% elseif event and event.benevoles is not empty %}
+		<details class="consignes" open>
+			<summary>📋 Équipe d’accueil</summary>
+			<div class="benevoles" style="padding-top:0;">
+				{% for b in event.benevoles %}
+					{{ b.prenom ? b.prenom ~ ' ' ~ (b.nom|default('')) : b.email }}{% if not loop.last %}, {% endif %}
+				{% endfor %}
+			</div>
+		</details>
+	{% endif %}
+
+	<main>
+		<div id="reader" aria-label="Caméra scan QR"></div>
+		<div id="result" class="idle" role="status" aria-live="assertive">
+			<p class="title">Prêt</p>
+			<p class="meta">Pointez un billet devant la caméra</p>
+		</div>
+		<p id="status-line">Initialisation caméra…</p>
+		<p class="hint">La caméra reste active pour enchaîner les billets.</p>
+	</main>
+
+	<script>
+		(function () {
+			var VALIDATE_BASE = {{ path('app_scan_validate', {token: '00000000-0000-0000-0000-000000000000'})|json_encode|raw }};
+			var lastToken = null;
+			var lastAt = 0;
+			var cooldownMs = 2500;
+			var busy = false;
+
+			function validateUrl(token) {
+				return VALIDATE_BASE.replace('00000000-0000-0000-0000-000000000000', token);
+			}
+
+			function extractToken(decodedText) {
+				var text = (decodedText || '').trim();
+				var uuid = text.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+				return uuid ? uuid[0] : null;
+			}
+
+			function beep(ok) {
+				try {
+					var Ctx = window.AudioContext || window.webkitAudioContext;
+					if (!Ctx) return;
+					var ctx = new Ctx();
+					var o = ctx.createOscillator();
+					var g = ctx.createGain();
+					o.type = 'sine';
+					o.frequency.value = ok ? 880 : 220;
+					g.gain.value = 0.09;
+					o.connect(g);
+					g.connect(ctx.destination);
+					o.start();
+					g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (ok ? 0.22 : 0.45));
+					o.stop(ctx.currentTime + (ok ? 0.23 : 0.46));
+				} catch (e) {}
+			}
+
+			function showResult(data) {
+				var box = document.getElementById('result');
+				var ok = data.status === 'validated';
+				box.className = ok ? 'ok' : 'ko';
+				var title = ok ? 'ENTRÉE VALIDÉE' : (data.status === 'already_used' ? 'DÉJÀ SCANNÉ' : 'INVALIDE');
+				var html = '<p class="title">' + title + '</p>';
+				if (data.participant) {
+					html += '<p class="participant">' + escapeHtml(data.participant) + '</p>';
+				}
+				if (data.place) {
+					html += '<p class="place">' + escapeHtml(data.place) + '</p>';
+				}
+				if (data.event) {
+					html += '<p class="meta">' + escapeHtml(data.event) + '</p>';
+				}
+				if (data.scannedAt && data.status === 'already_used') {
+					html += '<p class="meta">Le ' + escapeHtml(data.scannedAt) + '</p>';
+				}
+				if (data.message && !data.participant) {
+					html += '<p class="meta">' + escapeHtml(data.message) + '</p>';
+				}
+				box.innerHTML = html;
+				beep(ok);
+			}
+
+			function escapeHtml(s) {
+				return String(s)
+					.replace(/&/g, '&amp;')
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')
+					.replace(/"/g, '&quot;');
+			}
+
+			function setStatus(msg) {
+				document.getElementById('status-line').textContent = msg;
+			}
+
+			async function validateToken(token) {
+				var now = Date.now();
+				if (busy) return;
+				if (token === lastToken && (now - lastAt) < cooldownMs) return;
+				busy = true;
+				lastToken = token;
+				lastAt = now;
+				setStatus('Validation…');
+				try {
+					var res = await fetch(validateUrl(token), {
+						method: 'GET',
+						headers: {
+							'Accept': 'application/json',
+							'X-Requested-With': 'XMLHttpRequest'
+						},
+						credentials: 'same-origin'
+					});
+					var data = await res.json();
+					showResult(data);
+					setStatus('Caméra active — prochain billet');
+				} catch (e) {
+					showResult({ status: 'not_found', message: 'Erreur réseau' });
+					setStatus('Erreur — réessayez');
+				} finally {
+					busy = false;
+				}
+			}
+
+			function onScanSuccess(decodedText) {
+				var token = extractToken(decodedText);
+				if (!token) {
+					showResult({ status: 'not_found', message: 'QR non reconnu' });
+					return;
+				}
+				validateToken(token);
+			}
+
+			function startScanner() {
+				if (typeof Html5Qrcode === 'undefined') {
+					setStatus('Bibliothèque QR indisponible');
+					return;
+				}
+				var scanner = new Html5Qrcode('reader');
+				var config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+				Html5Qrcode.getCameras().then(function (cameras) {
+					var cameraId = null;
+					if (cameras && cameras.length) {
+						var back = cameras.find(function (c) {
+							return /back|arrière|rear|environment/i.test(c.label || '');
+						});
+						cameraId = (back || cameras[cameras.length - 1]).id;
+					}
+					var start = cameraId
+						? scanner.start(cameraId, config, onScanSuccess, function () {})
+						: scanner.start({ facingMode: 'environment' }, config, onScanSuccess, function () {});
+					return start;
+				}).then(function () {
+					setStatus('Caméra active — scannez un billet');
+				}).catch(function (err) {
+					setStatus('Caméra refusée ou indisponible');
+					console.error(err);
+				});
+			}
+
+			window.addEventListener('load', startScanner);
+		})();
+	</script>
+</body>
+</html>

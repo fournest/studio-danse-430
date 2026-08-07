@@ -1,0 +1,99 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Réserver — {{ event.nom }} - Studio Danse 430{% endblock %}
+
+{% block body %}
+    <section class="relative overflow-hidden">
+        <div class="absolute inset-0 bg-black"></div>
+        <div class="absolute inset-0 bg-linear-to-b from-black via-black/90 to-black"></div>
+
+        <div class="relative max-w-4xl mx-auto px-4 sm:px-6 py-24 text-center">
+            <span class="inline-block px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-[#FFD700] text-black mb-6">
+                {{ event.type.value }}
+            </span>
+            <h1 class="text-4xl sm:text-6xl font-extrabold text-[#FFD700] mb-6">
+                {{ event.nom }}
+            </h1>
+            <p class="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
+                Le Studio Danse 430 a le plaisir de vous accueillir pour cet événement.
+                Retrouvez ci-dessous toutes les informations utiles pour votre réservation.
+            </p>
+        </div>
+    </section>
+
+    <section class="bg-black pb-24">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6">
+            <div class="bg-black border border-[#FFD700] rounded-3xl p-8 sm:p-12 shadow-[0_0_40px_rgba(255,215,0,0.15)]">
+                <div class="grid gap-8 sm:grid-cols-2 mb-10">
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-[#FFD700] mb-3">Le lieu</h2>
+                        <p class="text-white/85 leading-relaxed">
+                            Rendez-vous à <span class="text-[#FFD700] font-semibold">{{ event.salle.nom }}</span>
+                            {% if event.salle.adresse %}
+                                — {{ event.salle.adresse }}
+                            {% endif %}.
+                        </p>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-[#FFD700] mb-3">Informations</h2>
+                        <ul class="space-y-2 text-white/85">
+                            <li class="flex items-center gap-2">
+                                <span class="text-[#FFD700]">&#9733;</span>
+                                {{ event.dateHeure|date('d/m/Y') }} à {{ event.dateHeure|date('H\\hi') }}
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="text-[#FFD700]">&#9733;</span>
+                                {{ event.modePlacement.value }}
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="text-[#FFD700]">&#9733;</span>
+                                {% if event.modePlacement.name == 'SANS_PLACE' %}
+                                    Présence uniquement (pas de place à réserver)
+                                {% elseif event.placesDisponibles > 0 %}
+                                    {{ event.placesDisponibles }} place(s) encore disponible(s)
+                                {% else %}
+                                    <span class="font-semibold text-[#FFD700]">Complet</span>
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="text-center pt-6 border-t border-[#FFD700]/20 space-y-6">
+                    <div class="text-left space-y-3 max-w-xl mx-auto">
+                        <h2 class="text-lg font-extrabold text-[#FFD700]">Modes de règlement</h2>
+                        <p class="text-sm text-white/70">
+                            La billetterie en ligne arrive bientôt. En attendant, vous pouvez préparer un règlement
+                            chèque ou espèces à remettre au club.
+                        </p>
+                        <ul class="space-y-2 text-sm text-white/85">
+                            <li class="flex items-start gap-2 p-3 rounded-xl border border-[#FFD700]/25 bg-black/40">
+                                <span class="text-[#FFD700] mt-0.5">&#9733;</span>
+                                <span><strong class="text-white">Espèces (remise sous enveloppe au club)</strong> —
+                                    glissez le montant sous enveloppe au nom de votre famille, avec la mention « {{ event.nom }} ».</span>
+                            </li>
+                            <li class="flex items-start gap-2 p-3 rounded-xl border border-[#FFD700]/25 bg-black/40">
+                                <span class="text-[#FFD700] mt-0.5">&#9733;</span>
+                                <span><strong class="text-white">Chèque (remise sous enveloppe au club)</strong> —
+                                    libellez le chèque à l’ordre du Studio Danse 430 et glissez-le sous enveloppe au nom de votre famille.</span>
+                            </li>
+                            <li class="flex items-start gap-2 p-3 rounded-xl border border-neutral-700 bg-black/40">
+                                <span class="text-[#FFD700] mt-0.5">&#9733;</span>
+                                <span><strong class="text-white">CB / HelloAsso</strong> — paiement en ligne bientôt disponible.</span>
+                            </li>
+                        </ul>
+                        <p class="text-xs text-amber-200/90 leading-relaxed">
+                            Tant que le règlement n’est pas remis, la réservation reste en <em>paiement en attente</em>.
+                            Une fois encaissé par le bureau, le statut passera à <em>Payé</em>.
+                        </p>
+                    </div>
+
+                    <a href="{{ path('app_event_show', { id: event.id }) }}"
+                       class="inline-block px-10 py-4 border border-[#FFD700] text-[#FFD700] font-bold rounded-full hover:bg-[#FFD700] hover:text-black transition-colors duration-200 shadow-lg">
+                        Retour à l'événement
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

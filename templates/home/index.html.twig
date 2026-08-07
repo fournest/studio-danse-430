@@ -22,8 +22,8 @@
 			</p>
 
 			<div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-				<a href="{{ path('app_gala_reservation') }}" class="w-full sm:w-auto px-8 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200 shadow-lg">
-					Réserver Places Gala
+				<a href="{{ path('app_event_index') }}" class="w-full sm:w-auto px-8 py-4 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200 shadow-lg">
+					Réserver Places
 				</a>
 				<a href="{{ path('app_inscription') }}" class="w-full sm:w-auto px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-colors duration-200 shadow-lg">
 					S'inscrire
@@ -138,18 +138,72 @@
 		<div class="flex animate-marquee whitespace-nowrap items-center hover:[animation-play-state:paused] w-max gap-8">
 			<div class="flex items-center shrink-0 gap-8">
 				{% for sponsor in sponsors %}
-					<a href="{{ sponsor.lien ?? '#' }}" target="_blank" rel="noopener noreferrer" class="shrink-0 block">
-						<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}" alt="{{ sponsor.nom }}" class="h-20 w-auto max-w-none object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" onerror="this.style.display='none'">
-					</a>
+					{% set sponsorTitle = sponsor.lien ? sponsor.nom ~ ' — ' ~ sponsor.lien : sponsor.nom %}
+					{% if sponsor.lien %}
+						<a href="{{ sponsor.lien }}"
+						   target="_blank"
+						   rel="noopener noreferrer"
+						   title="{{ sponsorTitle }}"
+						   aria-label="{{ sponsorTitle }}"
+						   class="shrink-0 block group/sponsor relative">
+							<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}"
+								 alt="{{ sponsor.nom }}"
+								 title="{{ sponsorTitle }}"
+								 class="h-20 w-auto max-w-none object-contain grayscale opacity-75 group-hover/sponsor:grayscale-0 group-hover/sponsor:opacity-100 transition-all duration-300"
+								 onerror="this.style.display='none'">
+							<span class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 whitespace-nowrap rounded-md bg-black border border-neutral-700 px-2.5 py-1 text-[11px] font-semibold text-[#FFD700] opacity-0 group-hover/sponsor:opacity-100 transition-opacity duration-200 z-10 shadow-lg">
+								{{ sponsor.lien ? sponsor.nom ~ ' · ' ~ sponsor.lien|replace({'https://': '', 'http://': '', 'www.': ''}) : sponsor.nom }}
+							</span>
+						</a>
+					{% else %}
+						<span title="{{ sponsor.nom }}"
+							  aria-label="{{ sponsor.nom }}"
+							  class="shrink-0 block group/sponsor relative cursor-default">
+							<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}"
+								 alt="{{ sponsor.nom }}"
+								 title="{{ sponsor.nom }}"
+								 class="h-20 w-auto max-w-none object-contain grayscale opacity-75 group-hover/sponsor:grayscale-0 group-hover/sponsor:opacity-100 transition-all duration-300"
+								 onerror="this.style.display='none'">
+							<span class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 whitespace-nowrap rounded-md bg-black border border-neutral-700 px-2.5 py-1 text-[11px] font-semibold text-[#FFD700] opacity-0 group-hover/sponsor:opacity-100 transition-opacity duration-200 z-10 shadow-lg">
+								{{ sponsor.lien ? sponsor.nom ~ ' · ' ~ sponsor.lien|replace({'https://': '', 'http://': '', 'www.': ''}) : sponsor.nom }}
+							</span>
+						</span>
+					{% endif %}
 				{% endfor %}
 			</div>
 
 			<!-- Le clone pour l'effet de boucle infinie -->
 			<div class="flex items-center shrink-0 gap-8" aria-hidden="true">
 				{% for sponsor in sponsors %}
-					<a href="{{ sponsor.lien ?? '#' }}" target="_blank" rel="noopener noreferrer" class="shrink-0 block">
-						<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}" alt="{{ sponsor.nom }}" class="h-20 w-auto max-w-none object-contain grayscale opacity-75 hover:grayscale-0 hover:opacity-100 transition-all duration-300" onerror="this.style.display='none'">
-					</a>
+					{% set sponsorTitle = sponsor.lien ? sponsor.nom ~ ' — ' ~ sponsor.lien : sponsor.nom %}
+					{% if sponsor.lien %}
+						<a href="{{ sponsor.lien }}"
+						   target="_blank"
+						   rel="noopener noreferrer"
+						   title="{{ sponsorTitle }}"
+						   tabindex="-1"
+						   class="shrink-0 block group/sponsor relative">
+							<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}"
+								 alt=""
+								 title="{{ sponsorTitle }}"
+								 class="h-20 w-auto max-w-none object-contain grayscale opacity-75 group-hover/sponsor:grayscale-0 group-hover/sponsor:opacity-100 transition-all duration-300"
+								 onerror="this.style.display='none'">
+							<span class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 whitespace-nowrap rounded-md bg-black border border-neutral-700 px-2.5 py-1 text-[11px] font-semibold text-[#FFD700] opacity-0 group-hover/sponsor:opacity-100 transition-opacity duration-200 z-10 shadow-lg">
+								{{ sponsor.lien ? sponsor.nom ~ ' · ' ~ sponsor.lien|replace({'https://': '', 'http://': '', 'www.': ''}) : sponsor.nom }}
+							</span>
+						</a>
+					{% else %}
+						<span title="{{ sponsor.nom }}" class="shrink-0 block group/sponsor relative cursor-default">
+							<img src="{{ asset('/uploads/logos/sponsors/' ~ sponsor.logo) }}"
+								 alt=""
+								 title="{{ sponsor.nom }}"
+								 class="h-20 w-auto max-w-none object-contain grayscale opacity-75 group-hover/sponsor:grayscale-0 group-hover/sponsor:opacity-100 transition-all duration-300"
+								 onerror="this.style.display='none'">
+							<span class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 whitespace-nowrap rounded-md bg-black border border-neutral-700 px-2.5 py-1 text-[11px] font-semibold text-[#FFD700] opacity-0 group-hover/sponsor:opacity-100 transition-opacity duration-200 z-10 shadow-lg">
+								{{ sponsor.lien ? sponsor.nom ~ ' · ' ~ sponsor.lien|replace({'https://': '', 'http://': '', 'www.': ''}) : sponsor.nom }}
+							</span>
+						</span>
+					{% endif %}
 				{% endfor %}
 			</div>
 		</div>

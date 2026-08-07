@@ -57,6 +57,23 @@
 			{% endif %}
 		</article>
 
+		{% if reservation.modePaiementSouhaite in ['cheque', 'especes'] %}
+			<article class="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-6 space-y-3 text-sm text-amber-100">
+				<h2 class="text-base font-extrabold text-amber-400">Consignes d’encaissement</h2>
+				<p class="leading-relaxed text-zinc-200">
+					Veuillez remettre votre règlement de
+					<strong class="text-amber-400">{{ reservation.prixTotal|number_format(2, ',', ' ') }} €</strong>
+					{% if reservation.modePaiementSouhaite == 'especes' %}en espèces{% else %}par chèque{% endif %}
+					sous enveloppe au nom de la famille
+					<strong class="text-white">{{ reservation.foyer ? reservation.foyer.nom : (app.user ? app.user.userIdentifier : 'votre foyer') }}</strong>,
+					au club.
+				</p>
+				<p class="text-xs text-zinc-400">
+					La demande reste en paiement en attente jusqu’à validation / encaissement par le bureau.
+				</p>
+			</article>
+		{% endif %}
+
 		<div class="flex flex-col sm:flex-row gap-3">
 			<a href="{{ path('app_costumes_index') }}" class="flex-1 text-center py-3 rounded-xl border border-amber-400 text-amber-400 font-bold hover:bg-amber-400 hover:text-black transition-colors">
 				Retour au catalogue

@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Nos galas - Studio Danse 430{% endblock %}
+{% block title %}Nos événements - Studio Danse 430{% endblock %}
 
 {% block body %}
     <section class="bg-black py-16 border-b border-[#FFD700]/20">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-            <h1 class="text-4xl sm:text-5xl font-extrabold text-[#FFD700] mb-4">Nos galas &amp; spectacles</h1>
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-[#FFD700] mb-4">Nos événements &amp; spectacles</h1>
             <p class="text-lg text-white/80 max-w-2xl mx-auto">
                 Venez applaudir nos danseurs sur scène. Réservez vos places pour nos prochains événements.
             </p>
@@ -14,40 +14,40 @@
 
     <section class="bg-black py-16">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
-            {% if galas is empty %}
+            {% if events is empty %}
                 <div class="text-center py-20 border border-[#FFD700]/30 rounded-2xl">
-                    <p class="text-xl text-white/70">Aucun gala n'est programmé pour le moment.</p>
+                    <p class="text-xl text-white/70">Aucun événement n'est programmé pour le moment.</p>
                     <p class="text-white/50 mt-2">Restez connectés, de nouvelles dates arrivent !</p>
                 </div>
             {% else %}
                 <div class="grid gap-8 md:grid-cols-2">
-                    {% for gala in galas %}
+                    {% for event in events %}
                         <article class="flex bg-black border border-[#FFD700] rounded-2xl overflow-hidden hover:shadow-[0_0_25px_rgba(255,215,0,0.25)] transition duration-200">
                             <div class="flex flex-col items-center justify-center bg-[#FFD700] text-black px-6 py-8 w-28 shrink-0">
-                                <span class="text-3xl font-extrabold leading-none">{{ gala.dateHeure|date('d') }}</span>
-                                <span class="text-sm uppercase tracking-wide mt-1">{{ gala.dateHeure|date('M') }}</span>
-                                <span class="text-xs mt-1">{{ gala.dateHeure|date('Y') }}</span>
+                                <span class="text-3xl font-extrabold leading-none">{{ event.dateHeure|date('d') }}</span>
+                                <span class="text-sm uppercase tracking-wide mt-1">{{ event.dateHeure|date('M') }}</span>
+                                <span class="text-xs mt-1">{{ event.dateHeure|date('Y') }}</span>
                             </div>
 
                             <div class="p-6 flex-1 flex flex-col">
-                                <h2 class="text-xl font-bold text-white mb-2">{{ gala.nom }}</h2>
+                                <h2 class="text-xl font-bold text-white mb-2">{{ event.nom }}</h2>
                                 <ul class="space-y-1 text-sm text-white/80 flex-1">
                                     <li class="flex items-center gap-2">
-                                        <span class="text-[#FFD700]">&#9733;</span> {{ gala.dateHeure|date('H\\hi') }}
+                                        <span class="text-[#FFD700]">&#9733;</span> {{ event.dateHeure|date('H\\hi') }}
                                     </li>
                                     <li class="flex items-center gap-2">
-                                        <span class="text-[#FFD700]">&#9733;</span> {{ gala.salle.nom }} &mdash; {{ gala.salle.adresse }}
+                                        <span class="text-[#FFD700]">&#9733;</span> {{ event.salle.nom }} &mdash; {{ event.salle.adresse }}
                                     </li>
                                     <li class="flex items-center gap-2">
                                         <span class="text-[#FFD700]">&#9733;</span>
-                                        {% if gala.placesDisponibles > 0 %}
-                                            {{ gala.placesDisponibles }} place(s) disponible(s)
+                                        {% if event.placesDisponibles > 0 %}
+                                            {{ event.placesDisponibles }} place(s) disponible(s)
                                         {% else %}
                                             <span class="font-semibold text-[#FFD700]">Complet</span>
                                         {% endif %}
                                     </li>
                                 </ul>
-                                <a href="{{ path('app_gala_show', { id: gala.id }) }}"
+                                <a href="{{ path('app_event_show', { id: event.id }) }}"
                                    class="mt-4 inline-block text-center px-4 py-2 bg-[#FFD700] text-black font-semibold rounded-full hover:bg-yellow-400 transition-colors duration-200">
                                     Détails &amp; billetterie
                                 </a>

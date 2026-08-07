@@ -55,7 +55,7 @@ final class EchelonnementService
             $paiement->setInscription($inscription);
             $paiement->setMontant($part);
             $paiement->setMode($mode);
-            $paiement->setStatut(StatutLignePaiement::EN_ATTENTE);
+            $paiement->setStatut(StatutLignePaiement::EN_ATTENTE_REGLEMENT);
             $paiement->setEmetteur($emetteur);
             $paiement->setDateEncaissementPrevue($dates[$index]);
 

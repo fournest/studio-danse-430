@@ -183,8 +183,13 @@
             {% if hasDepot or (not hasHelloAsso and not hasVirement) %}
                 <div class="space-y-3 {% if hasHelloAsso or hasVirement %}pt-4 border-t border-neutral-800{% endif %}">
                     <p class="text-sm text-neutral-300 leading-relaxed">
-                        Merci de déposer vos chèques / justificatifs (Pass’Sport, ANCV…) au bureau lors des permanences de rentrée,
-                        en indiquant au dos le nom du foyer (<strong class="text-white">{{ foyer.nom }}</strong>) :
+                        Veuillez remettre votre règlement
+                        {% if totalMontant is defined and totalMontant %}
+                            de <strong class="text-[#FFD700]">{{ totalMontant|number_format(2, ',', ' ') }} €</strong>
+                        {% endif %}
+                        (chèques, espèces, Pass’Sport, ANCV…)
+                        <strong class="text-white">sous enveloppe au nom de la famille {{ foyer.nom }}</strong>,
+                        au bureau lors des permanences de rentrée :
                     </p>
                     <p class="text-sm text-white font-medium">
                         {{ association.nom }}<br>

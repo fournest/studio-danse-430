@@ -1,33 +1,36 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ gala.nom }} - Studio Danse 430{% endblock %}
+{% block title %}{{ event.nom }} - Studio Danse 430{% endblock %}
 
 {% block body %}
     <section class="bg-black py-16">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
-            <a href="{{ path('app_gala_index') }}"
+            <a href="{{ path('app_event_index') }}"
                class="inline-flex items-center gap-2 text-sm font-semibold text-[#FFD700] hover:underline mb-6">
-                &larr; Retour aux galas
+                &larr; Retour aux événements
             </a>
 
             <article class="bg-black border border-[#FFD700] rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.15)]">
                 <div class="p-8 border-b border-[#FFD700]/20">
-                    <h1 class="text-3xl font-extrabold text-[#FFD700]">{{ gala.nom }}</h1>
+                    <h1 class="text-3xl font-extrabold text-[#FFD700]">{{ event.nom }}</h1>
                     <p class="mt-2 text-white/80">
-                        {{ gala.dateHeure|date('d/m/Y') }} &agrave; {{ gala.dateHeure|date('H\\hi') }}
+                        {{ event.dateHeure|date('d/m/Y') }} &agrave; {{ event.dateHeure|date('H\\hi') }}
                     </p>
+                    <p class="mt-1 text-sm text-white/60">{{ event.type.value }}</p>
                 </div>
 
                 <div class="p-8 grid gap-6 sm:grid-cols-2">
                     <div>
                         <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Lieu</p>
-                        <p class="text-lg text-white mt-1">{{ gala.salle.nom }}</p>
-                        <p class="text-sm text-white/60">{{ gala.salle.adresse }}</p>
+                        <p class="text-lg text-white mt-1">{{ event.salle.nom }}</p>
+                        <p class="text-sm text-white/60">{{ event.salle.adresse }}</p>
                     </div>
                     <div>
                         <p class="text-xs uppercase tracking-wide text-[#FFD700] font-semibold">Places disponibles</p>
-                        {% if gala.placesDisponibles > 0 %}
-                            <p class="text-lg text-white mt-1">{{ gala.placesDisponibles }}</p>
+                        {% if event.modePlacement.name == 'SANS_PLACE' %}
+                            <p class="text-lg text-white mt-1">Présence uniquement</p>
+                        {% elseif event.placesDisponibles > 0 %}
+                            <p class="text-lg text-white mt-1">{{ event.placesDisponibles }}</p>
                         {% else %}
                             <p class="text-lg font-semibold text-[#FFD700] mt-1">Complet</p>
                         {% endif %}
@@ -35,15 +38,21 @@
                 </div>
 
                 <div class="px-8 pb-8">
-                    {% if gala.billetwebEventId %}
-                        <a href="https://www.billetweb.fr/{{ gala.billetwebEventId }}" target="_blank" rel="noopener"
+                    {% set reservationPath = path('app_event_reservation', { id: event.id }) %}
+                    {% if event.modePlacement.name == 'NUMEROTE' %}
+                        <a href="{{ reservationPath }}"
                            class="inline-block px-6 py-3 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200">
-                            Réserver sur BilletWeb
+                            Choisir sa place (plan de salle)
+                        </a>
+                    {% elseif event.modePlacement.name == 'LIBRE' %}
+                        <a href="{{ reservationPath }}"
+                           class="inline-block px-6 py-3 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200">
+                            Réserver une place
                         </a>
                     {% else %}
-                        <a href="{{ path('app_gala_reservation') }}"
+                        <a href="{{ reservationPath }}"
                            class="inline-block px-6 py-3 bg-[#FFD700] text-black font-bold rounded-full hover:bg-yellow-400 transition-colors duration-200">
-                            Infos réservation
+                            Confirmer ma présence
                         </a>
                     {% endif %}
                 </div>

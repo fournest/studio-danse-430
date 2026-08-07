@@ -52,13 +52,16 @@ class CommandeBoutique
     private ModePaiementBoutique $modePaiement = ModePaiementBoutique::CHEQUE;
 
     #[ORM\Column(type: Types::STRING, enumType: StatutCommandeBoutique::class)]
-    private StatutCommandeBoutique $statut = StatutCommandeBoutique::EN_ATTENTE;
+    private StatutCommandeBoutique $statut = StatutCommandeBoutique::EN_ATTENTE_REGLEMENT;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private string $total = '0.00';
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $dateEncaissement = null;
 
     /** @var Collection<int, CommandeBoutiqueLigne> */
     #[ORM\OneToMany(mappedBy: 'commande', targetEntity: CommandeBoutiqueLigne::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -222,6 +225,32 @@ class CommandeBoutique
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getDateEncaissement(): ?\DateTimeImmutable
+    {
+        return $this->dateEncaissement;
+    }
+
+    public function setDateEncaissement(?\DateTimeImmutable $dateEncaissement): static
+    {
+        $this->dateEncaissement = $dateEncaissement;
+
+        return $this;
+    }
+
+    public function canBeEncaisse(): bool
+    {
+        return $this->statut === StatutCommandeBoutique::EN_ATTENTE_REGLEMENT
+            && $this->modePaiement->isPaiementClub();
+    }
+
+    public function marquerPaye(?\DateTimeImmutable $date = null): static
+    {
+        $this->statut = StatutCommandeBoutique::PAYE;
+        $this->dateEncaissement = $date ?? new \DateTimeImmutable();
+
+        return $this;
     }
 
     /**

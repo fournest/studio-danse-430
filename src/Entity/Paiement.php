@@ -27,7 +27,7 @@ class Paiement
     private ModePaiement $mode = ModePaiement::CHEQUE;
 
     #[ORM\Column(enumType: StatutLignePaiement::class)]
-    private StatutLignePaiement $statut = StatutLignePaiement::EN_ATTENTE;
+    private StatutLignePaiement $statut = StatutLignePaiement::EN_ATTENTE_REGLEMENT;
 
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $reference = null;
@@ -175,7 +175,7 @@ class Paiement
 
     public function marquerEncaisse(?\DateTimeImmutable $date = null): self
     {
-        $this->statut = StatutLignePaiement::ENCAISSE;
+        $this->statut = StatutLignePaiement::PAYE;
         $this->dateEncaissementReelle = $date ?? new \DateTimeImmutable('today');
 
         return $this;
@@ -205,7 +205,7 @@ class Paiement
      */
     public function getStatutAffiche(): StatutLignePaiement
     {
-        if ($this->statut === StatutLignePaiement::EN_ATTENTE && $this->isOverdue()) {
+        if ($this->statut === StatutLignePaiement::EN_ATTENTE_REGLEMENT && $this->isOverdue()) {
             return StatutLignePaiement::RETARD;
         }
 
@@ -215,19 +215,21 @@ class Paiement
     public function canBeEncaisse(): bool
     {
         return !$this->isPaid()
-            && $this->statut !== StatutLignePaiement::REFUSE;
+            && $this->statut !== StatutLignePaiement::REFUSE
+            && $this->statut !== StatutLignePaiement::ANNULE;
     }
 
     public function canBeDeclaredByFamille(): bool
     {
         return !$this->isPaid()
             && !$this->isDeclared()
-            && $this->statut !== StatutLignePaiement::REFUSE;
+            && $this->statut !== StatutLignePaiement::REFUSE
+            && $this->statut !== StatutLignePaiement::ANNULE;
     }
 
     public function isPaid(): bool
     {
-        return $this->statut === StatutLignePaiement::ENCAISSE;
+        return $this->statut === StatutLignePaiement::PAYE;
     }
 
     /**
@@ -235,7 +237,7 @@ class Paiement
      */
     public function isOverdue(): bool
     {
-        if ($this->isPaid() || $this->isDeclared() || $this->statut === StatutLignePaiement::REFUSE) {
+        if ($this->isPaid() || $this->isDeclared() || $this->statut === StatutLignePaiement::REFUSE || $this->statut === StatutLignePaiement::ANNULE) {
             return false;
         }
 

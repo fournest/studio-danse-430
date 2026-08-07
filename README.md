@@ -4,7 +4,7 @@
 
 ### _L'excellence de la danse depuis 1976_
 
-Site vitrine & back-office de gestion pour une association de danse — identité **Noir & Or** ⚫🟡
+Site vitrine, espace familles & back-office pour une association de danse — identité **Noir & Or** ⚫🟡
 
 <br>
 
@@ -14,6 +14,7 @@ Site vitrine & back-office de gestion pour une association de danse — identit�
 ![EasyAdmin](https://img.shields.io/badge/EasyAdmin-5-2D9CDB?style=for-the-badge)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)
 ![Doctrine](https://img.shields.io/badge/Doctrine_ORM-3-FC6A31?style=for-the-badge)
+![PWA](https://img.shields.io/badge/PWA-ready-5A0FC8?style=for-the-badge)
 ![Licence](https://img.shields.io/badge/Licence-Propriétaire-red?style=for-the-badge)
 
 </div>
@@ -24,21 +25,24 @@ Site vitrine & back-office de gestion pour une association de danse — identit�
 
 **Studio Danse 430** est l'application web d'une **association de danse fondée en 1976**. Elle couvre :
 
-- 🎭 **Site vitrine** — Accueil, planning, galerie, Gala, sponsors, actualités
+- 🎭 **Site vitrine** — Accueil, cours, actualités, galerie, événements, sponsors
 - 👨‍👩‍👧 **Inscriptions familles** — Tunnel foyer (santé, cotisation, échéancier, déclaration de paiement)
-- 👕 **Boutique** — Goodies & vêtements (tunnel séparé)
-- 👗 **Location costumes** — Tunnel hors-gala
+- 👕 **Boutique** — Goodies & vêtements (ventes éphémères, tunnel séparé)
+- 👗 **Location costumes** — Tunnel hors-événement
+- 🎫 **Billets & QR** — Mes billets, scan d'entrée (`/scan`), consignes staff / bénévoles
 - 💃 **Espace professeur** — Cours et élèves (`ROLE_PROF`)
 - 🖨️ **Flyers** — Génération / impression A5
-- 🛠️ **Back-office EasyAdmin** — Adhérents, règlements, LDC, livrets dynamiques, galerie
+- 📱 **PWA** — Manifest, service worker, bandeau d'installation mobile
+- 🛠️ **Back-office EasyAdmin** — Adhérents, événements, billets, règlements, LDC, livrets, galerie
 
 Identité visuelle : fond **noir**, accents **or (`#FFD700`)**.
 
 | Tunnel | Portée | Paiement |
 | :--- | :--- | :--- |
 | **1 · Foyer** `/mon-foyer` | Cours, cotisation, santé, échéancier | Chèque / virement / Pass'Sport / ANCV / HelloAsso |
-| **2 · Boutique** `/boutique` | Goodies & vêtements | 1× (HelloAsso / CB, chèque ou espèces) |
-| **3 · Costumes** `/costumes` | Location hors-gala | 1× + caution au retrait |
+| **2 · Boutique** `/boutique` | Goodies & vêtements (fenêtre de vente) | 1× (HelloAsso / CB, chèque ou espèces) |
+| **3 · Costumes** `/costumes` | Location hors-événement | 1× + caution au retrait |
+| **4 · Événements** `/evenements` | Réservation / billets | Selon l'événement |
 
 ---
 
@@ -46,12 +50,13 @@ Identité visuelle : fond **noir**, accents **or (`#FFD700`)**.
 
 | Domaine | Technologie |
 | :--- | :--- |
-| PHP `8.2+` · Symfony `7.4` · Twig `3` |
-| Doctrine ORM `3` + **Migrations** (schéma versionné) |
-| EasyAdmin `5` · Tailwind CSS `v4` (`symfonycasts/tailwind-bundle`) |
-| Symfony Security · Verify Email · Reset Password |
-| VichUploader · Dompdf (livrets PDF) · Symfony Mailer |
-| MySQL / MariaDB / PostgreSQL via `DATABASE_URL` |
+| Runtime | PHP `8.2+` · Symfony `7.4` · Twig `3` |
+| Données | Doctrine ORM `3` + **Migrations** (schéma versionné) |
+| Admin | EasyAdmin `5` |
+| Front | Tailwind CSS `v4` (`symfonycasts/tailwind-bundle`) · Asset Mapper |
+| Auth | Symfony Security · Verify Email · Reset Password |
+| Métiers | VichUploader · Dompdf (livrets PDF) · Mailer · `endroid/qr-code` |
+| BDD | MySQL / MariaDB / PostgreSQL via `DATABASE_URL` |
 
 ---
 
@@ -70,16 +75,52 @@ Connexion : `/login` · Mot de passe oublié : `/reset-password`
 
 **Import adhérents :** créer les comptes avec `is_activated = 0` et `password = NULL` pour forcer le parcours `/activation`.
 
+### Rôles
+
+Hiérarchie (extrait) :
+
+```text
+ROLE_PRESIDENCE → ROLE_BUREAU → ROLE_PROF / ROLE_SCANNER / trésorerie…
+ROLE_SCANNER    → ROLE_USER   (station d'entrée uniquement)
+```
+
+| Rôle stocké | Usage |
+| :--- | :--- |
+| `ROLE_USER` | Adhérent / parent |
+| `ROLE_PROF` | Espace professeur |
+| `ROLE_SCANNER` | Bénévole scan d'entrée → redirection auto vers `/scan` |
+| `ROLE_TRESORIER` / `_ADJOINT` / `ROLE_SECRETAIRE` | Bureau (via hiérarchie) |
+| `ROLE_PRESIDENT` / `ROLE_VICE_PRESIDENT` | Présidence |
+
+`ROLE_BUREAU` et `ROLE_PRESIDENCE` sont surtout **implicites** (hiérarchie Symfony). Alias CLI : `app:promote-user <email> scanner|prof|tresorier|president|…`
+
 ---
 
-## ✨ Fonctionnalités clés (récentes)
+## ✨ Fonctionnalités clés
 
-- **Solde foyer** — Total dû, déclaré par la famille, encaissé, reste à payer (badges)
-- **Déclaration paiement famille** — Modale « Signaler un règlement effectué » → statut `paiement_declare` → validation trésorerie
-- **Règlements EasyAdmin** — Synthèse par inscription, échéancier, relance retard (> 5 j)
-- **Livrets dynamiques** — `/admin/doc/voir/{type}` + PDF à la volée (Dompdf)
-- **LDC** — Upload PDF, déclaration en vigueur
-- **Relances e-mail** — Pièces manquantes · retard de paiement
+### Familles & trésorerie
+- **Solde foyer** — Total dû, déclaré, encaissé, reste à payer
+- **Déclaration de paiement** — Famille signale un règlement → validation trésorerie
+- **Règlements EasyAdmin** — Synthèse, échéancier, relance retard
+- **Paiement espèces** — Boutique / flux « en attente de règlement » + consignes enveloppe
+
+### Boutique
+- Ventes **éphémères** (`dateDebut` / `dateFin` / livraison prévue)
+- Panier grisé hors période de vente
+
+### Événements & billetterie
+- Entité **Event** (remplace l'ancien Gala) — type, mode de placement, salle
+- **Billets** avec token UUID + QR (`endroid/qr-code`)
+- Page **Mes billets** `/mes-billets`
+- Station **`/scan`** (caméra, validation AJAX, feedback vert/rouge)
+- **Consignes staff** + **bénévoles** assignés (ManyToMany User) — affichées sur `/scan`
+- Accès scan : redirection `ROLE_SCANNER` à la connexion, ou raccourci EasyAdmin (`ROLE_BUREAU`) — **pas** dans le menu public
+
+### Communication & site
+- Actualités (visuel / flyer), galerie, sponsors
+- Livrets dynamiques admin + PDF Dompdf
+- LDC (upload PDF)
+- Pages légales, PWA (manifest + SW + bottom nav mobile)
 
 ---
 
@@ -132,7 +173,7 @@ php bin/console doctrine:database:create
 php bin/console doctrine:migrations:migrate
 ```
 
-**Après chaque `git pull`** qui ajoute des fichiers dans `migrations/`, relancer :
+**Après chaque `git pull`** qui ajoute des fichiers dans `migrations/` :
 
 ```bash
 php bin/console doctrine:migrations:migrate
@@ -145,7 +186,7 @@ php bin/console doctrine:migrations:status
 # « New » doit être 0 et « Current » = « Latest »
 ```
 
-> Si `migrate` n'a pas été exécuté, l'application peut planter (colonnes ou tables manquantes : `is_activated`, `account_activation_token`, `date_declaration` sur `paiement`, etc.).
+> Sans `migrate`, l'app peut planter (colonnes / tables manquantes : activation, paiements, `event`, `billet`, `consignes_staff`, etc.).
 
 ### 4. Comptes équipe
 
@@ -153,6 +194,7 @@ php bin/console doctrine:migrations:status
 php bin/console app:promote-user president@studio430.fr president
 php bin/console app:create-staff tresorier@studio430.fr "MotDePasseSolide!" tresorier 0612345678
 php bin/console app:create-staff prof@studio430.fr "MotDePasseSolide!" prof 0612345678
+php bin/console app:promote-user benevole@studio430.fr scanner
 ```
 
 ### 5. Données de test *(optionnel)*
@@ -160,6 +202,7 @@ php bin/console app:create-staff prof@studio430.fr "MotDePasseSolide!" prof 0612
 ```bash
 php bin/console app:seed-test-family
 php bin/console app:seed-sponsors
+php bin/console app:seed-pages-legales
 ```
 
 ### 6. CSS & serveur
@@ -177,6 +220,9 @@ symfony server:start
 | [/activation](http://localhost:8000/activation) | Première connexion (import) |
 | [/register](http://localhost:8000/register) | Inscription nouveau membre |
 | [/mon-foyer](http://localhost:8000/mon-foyer) | Espace familial |
+| [/evenements](http://localhost:8000/evenements) | Événements |
+| [/mes-billets](http://localhost:8000/mes-billets) | Billets QR |
+| [/scan](http://localhost:8000/scan) | Station d'entrée (`ROLE_SCANNER`) |
 | [/boutique](http://localhost:8000/boutique) | Boutique |
 | [/costumes](http://localhost:8000/costumes) | Costumes |
 | [/admin](http://localhost:8000/admin) | Back-office |
@@ -188,7 +234,10 @@ symfony server:start
 ```bash
 # Métier
 php bin/console app:promote-user <email> <role>
+php bin/console app:create-staff <email> <password> <role> [telephone]
 php bin/console app:seed-test-family
+php bin/console app:seed-sponsors
+php bin/console app:seed-pages-legales
 php bin/console app:test-cotisation-calculator
 php bin/console app:test-echelonnement
 
@@ -212,38 +261,39 @@ php bin/console tailwind:build --watch
 ```text
 src/
 ├── Controller/
-│   ├── ActivationController.php      # /activation
-│   ├── RegistrationController.php    # /register + verify email
-│   ├── FoyerController.php           # Espace famille
-│   └── Admin/                        # EasyAdmin CRUD
-├── Entity/                           # User, Foyer, Paiement, Inscription…
-├── Service/                          # Cotisation, déclaration paiement, livrets PDF…
-├── Security/                         # Login, UserChecker, EmailVerifier
+│   ├── ActivationController.php
+│   ├── RegistrationController.php
+│   ├── FoyerController.php          # Espace famille
+│   ├── EventController.php          # Événements publics
+│   ├── BilletController.php         # Mes billets
+│   ├── ScanStationController.php    # /scan
+│   └── Admin/                       # EasyAdmin + scan validation
+├── Entity/                          # User, Foyer, Event, Billet, Goodie…
+├── Enum/                            # EventType, SeatingType…
+├── Service/                         # Cotisation, QR billets, livrets PDF…
+├── Security/                        # Login, ClubRole, UserChecker…
 └── Validator/Constraints/StrongPassword.php
 
 templates/
-├── security/                         # login, activation_request, activation_reset
-├── foyer/                            # Espace famille
-├── emails/                           # activation_account, relances…
-└── admin/documentation/              # Livrets dynamiques
+├── security/
+├── foyer/
+├── event/
+├── scan/
+├── account/                         # billets
+├── boutique/
+├── emails/
+└── admin/
 ```
-
----
-
-## 🗃️ Rôles Symfony
-
-Hiérarchie : `ROLE_PRESIDENCE` → `ROLE_BUREAU` → `ROLE_PROF` → `ROLE_USER`
-
-Rôles stockés : `ROLE_PRESIDENT`, `ROLE_VICE_PRESIDENT`, `ROLE_TRESORIER`, `ROLE_SECRETAIRE`, `ROLE_PROF`, etc.
 
 ---
 
 ## 📌 Notes métier
 
 - Cotisation cours : `CotisationCalculatorService` — saison **2026/2027**
-- Statuts ligne paiement : `en_attente` · `paiement_declare` · `encaisse` · `retard` (affichage)
+- Statuts paiement : `en_attente` · `paiement_declare` · `encaisse` · `retard` (affichage) ; espèces / chèque boutique → `EN_ATTENTE_REGLEMENT` jusqu'à encaissement
 - Reste à payer foyer = total dû − **encaissé** (déclaré non déduit tant que non validé)
-- Livrets admin : générés en Twig + PDF (pas de fichiers statiques à maintenir)
+- Livrets admin : Twig + PDF à la volée (pas de fichiers statiques à maintenir)
+- Scan : outil événementiel — hors navigation publique ; consignes visibles si renseignées sur l'événement
 
 ---
 

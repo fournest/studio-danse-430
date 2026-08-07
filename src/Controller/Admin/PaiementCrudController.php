@@ -69,11 +69,13 @@ class PaiementCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        $encaisser = Action::new('encaisser', 'Valider l\'encaissement', 'fa fa-check-circle')
-            ->linkToCrudAction('encaisser')
+        $encaisser = Action::new('encaisserPaiement', 'Encaisser le paiement', 'fa fa-check-circle')
+            ->linkToCrudAction('encaisserPaiement')
             ->setCssClass('btn btn-sm btn-success')
             ->displayIf(static function (Paiement $paiement) {
-                return $paiement->canBeEncaisse();
+                return $paiement->getStatut() === StatutLignePaiement::EN_ATTENTE_REGLEMENT
+                    || $paiement->getStatut() === StatutLignePaiement::PAIEMENT_DECLARE
+                    || $paiement->getStatut() === StatutLignePaiement::RECU;
             });
 
         $validerHelloAsso = Action::new('validerHelloAsso', 'Valider le règlement HelloAsso', 'fa fa-credit-card')
@@ -81,10 +83,10 @@ class PaiementCrudController extends AbstractCrudController
             ->setCssClass('btn btn-sm btn-warning')
             ->displayIf(static function (Paiement $paiement) {
                 return $paiement->getMode() === ModePaiement::HELLOASSO
-                    && $paiement->getStatut() !== StatutLignePaiement::ENCAISSE;
+                    && $paiement->getStatut() !== StatutLignePaiement::PAYE;
             });
 
-        $batchEncaisse = Action::new('marquerEncaisseBatch', 'Marquer comme encaissé')
+        $batchEncaisse = Action::new('marquerEncaisseBatch', 'Marquer comme payé')
             ->linkToCrudAction('marquerEncaisseBatch')
             ->addCssClass('btn btn-success')
             ->setIcon('fa fa-check-double');
@@ -123,10 +125,11 @@ class PaiementCrudController extends AbstractCrudController
             ->setChoices($this->enumChoices(StatutLignePaiement::storableCases()))
             ->formatValue(static fn ($value, ?Paiement $entity) => $entity?->getStatutAffiche()->getLabel() ?? '')
             ->renderAsBadges([
-                StatutLignePaiement::EN_ATTENTE->value => 'warning',
+                StatutLignePaiement::EN_ATTENTE_REGLEMENT->value => 'warning',
                 StatutLignePaiement::RECU->value => 'info',
                 StatutLignePaiement::PAIEMENT_DECLARE->value => 'info',
-                StatutLignePaiement::ENCAISSE->value => 'success',
+                StatutLignePaiement::PAYE->value => 'success',
+                StatutLignePaiement::ANNULE->value => 'danger',
                 StatutLignePaiement::REFUSE->value => 'danger',
                 StatutLignePaiement::RETARD->value => 'danger',
             ]);
@@ -138,8 +141,8 @@ class PaiementCrudController extends AbstractCrudController
         yield TextareaField::new('remarques', 'Remarques')->hideOnIndex();
     }
 
-    #[AdminRoute('/{entityId}/encaisser', name: 'encaisser')]
-    public function encaisser(AdminContext $context): Response
+    #[AdminRoute('/{entityId}/encaisser-paiement', name: 'encaisser_paiement')]
+    public function encaisserPaiement(AdminContext $context): Response
     {
         /** @var Paiement $paiement */
         $paiement = $context->getEntity()->getInstance();
@@ -147,7 +150,13 @@ class PaiementCrudController extends AbstractCrudController
             $paiement->marquerEncaisse();
             $paiement->getInscription()?->refreshStatutPaiement();
             $this->entityManager->flush();
-            $this->addFlash('success', sprintf('Encaissement validé pour le paiement #%d.', $paiement->getId()));
+            $this->addFlash(
+                'success',
+                sprintf(
+                    'Règlement de %s € validé avec succès.',
+                    number_format($paiement->getMontant(), 2, ',', ' ')
+                )
+            );
         } else {
             $this->addFlash('info', 'Ce paiement ne peut pas être validé.');
         }

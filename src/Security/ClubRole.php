@@ -11,6 +11,7 @@ final class ClubRole
 {
     public const USER = 'ROLE_USER';
     public const PROF = 'ROLE_PROF';
+    public const SCANNER = 'ROLE_SCANNER';
     public const TRESORIER = 'ROLE_TRESORIER';
     public const TRESORIER_ADJOINT = 'ROLE_TRESORIER_ADJOINT';
     public const SECRETAIRE = 'ROLE_SECRETAIRE';
@@ -27,6 +28,7 @@ final class ClubRole
     /** @var list<string> */
     public const OFFICIAL_STORED = [
         self::PROF,
+        self::SCANNER,
         self::TRESORIER,
         self::TRESORIER_ADJOINT,
         self::SECRETAIRE,
@@ -59,6 +61,7 @@ final class ClubRole
         $choices = [
             'Adhérent / Parent' => self::USER,
             'Professeur de danse' => self::PROF,
+            'Scanner entrée (bénévole)' => self::SCANNER,
             'Trésorier(ière)' => self::TRESORIER,
             'Trésorier(ière) adjoint(e)' => self::TRESORIER_ADJOINT,
             'Secrétaire' => self::SECRETAIRE,
@@ -83,6 +86,7 @@ final class ClubRole
         return match ($role) {
             self::BUREAU_LEGACY => 'Membre du bureau (legacy — à préciser)',
             self::USER => 'Adhérent / Parent',
+            self::SCANNER => 'Scanner entrée (bénévole)',
             default => $role,
         };
     }
@@ -124,6 +128,8 @@ final class ClubRole
             'user' => self::USER,
             'prof' => self::PROF,
             'professeur' => self::PROF,
+            'scanner' => self::SCANNER,
+            'benevole' => self::SCANNER,
             'tresorier' => self::TRESORIER,
             'tresorier-adjoint' => self::TRESORIER_ADJOINT,
             'tresorier_adjoint' => self::TRESORIER_ADJOINT,

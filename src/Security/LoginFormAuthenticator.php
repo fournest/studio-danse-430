@@ -52,6 +52,15 @@ class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
     {
         $user = $token->getUser();
         if ($user instanceof User) {
+            $roles = $token->getRoleNames();
+            $isScannerOnly = \in_array('ROLE_SCANNER', $roles, true)
+                && !\in_array('ROLE_BUREAU', $roles, true)
+                && !\in_array('ROLE_PROF', $roles, true);
+
+            if ($isScannerOnly) {
+                return new RedirectResponse($this->urlGenerator->generate('app_scan_station'));
+            }
+
             $result = $this->coParentInvitation->acceptPendingFromSession($user);
             if (null !== $result) {
                 $session = $this->requestStack->getSession();
@@ -72,6 +81,11 @@ class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 
         if ($targetPath = $this->getTargetPath($request->getSession(), $firewallName)) {
             return new RedirectResponse($targetPath);
+        }
+
+        if (\in_array('ROLE_SCANNER', $token->getRoleNames(), true)
+            && !\in_array('ROLE_PROF', $token->getRoleNames(), true)) {
+            return new RedirectResponse($this->urlGenerator->generate('app_scan_station'));
         }
 
         if (\in_array('ROLE_PROF', $token->getRoleNames(), true)) {

@@ -18,9 +18,22 @@ enum ModePaiement: string
             self::ANCV => 'Chèque Vacances (ANCV)',
             self::PASS_SPORT => 'Pass\'Sport',
             self::VIREMENT => 'Virement bancaire',
-            self::ESPECES => 'Espèces',
+            self::ESPECES => 'Espèces (remise sous enveloppe au club)',
             self::HELLOASSO => 'Paiement en ligne (HelloAsso)',
         };
+    }
+
+    /**
+     * Modes à remettre physiquement au club (chèque / espèces / aides).
+     */
+    public function requiresDepotClub(): bool
+    {
+        return \in_array($this, [
+            self::CHEQUE,
+            self::ESPECES,
+            self::ANCV,
+            self::PASS_SPORT,
+        ], true);
     }
 
     /**

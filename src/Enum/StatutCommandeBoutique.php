@@ -4,18 +4,18 @@ namespace App\Enum;
 
 enum StatutCommandeBoutique: string
 {
-    case EN_ATTENTE = 'en_attente';
+    case EN_ATTENTE_REGLEMENT = 'en_attente';
     case CONFIRMEE = 'confirmee';
-    case PAYEE = 'payee';
-    case ANNULEE = 'annulee';
+    case PAYE = 'payee';
+    case ANNULE = 'annulee';
 
     public function getLabel(): string
     {
         return match ($this) {
-            self::EN_ATTENTE => 'En attente de règlement',
+            self::EN_ATTENTE_REGLEMENT => 'Paiement en attente',
             self::CONFIRMEE => 'Confirmée',
-            self::PAYEE => 'Payée',
-            self::ANNULEE => 'Annulée',
+            self::PAYE => 'Payé',
+            self::ANNULE => 'Annulé',
         };
     }
 }

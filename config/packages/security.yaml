@@ -30,20 +30,22 @@ security:
                 path: app_logout
                 target: app_home
 
-            # https://symfony.com/doc/current/security/impersonating_user.html
+            # https://symfony.com/doc/current/security/impersonating-user.html
             # switch_user: true
 
     # Hiérarchie officielle Studio Danse 430 (statuts AG, sans nom de personne).
     # Les rôles spécifiques héritent des rôles métier implicites :
     #   ROLE_PRESIDENCE → ROLE_BUREAU + ROLE_ADMIN
-    #   ROLE_BUREAU     → ROLE_PROF (+ accès trésorerie/secrétariat)
+    #   ROLE_BUREAU     → ROLE_PROF (+ accès trésorerie/secrétariat) + ROLE_SCANNER
+    #   ROLE_SCANNER    → ROLE_USER (accès uniquement au scan d'entrée)
     role_hierarchy:
         ROLE_PROF:                ROLE_USER
+        ROLE_SCANNER:             ROLE_USER
         ROLE_TRESORIER:           ROLE_BUREAU
         ROLE_TRESORIER_ADJOINT:   ROLE_BUREAU
         ROLE_SECRETAIRE:          ROLE_BUREAU
         # ROLE_BUREAU regroupe trésorerie & secrétariat ; compat. comptes legacy ROLE_BUREAU en base
-        ROLE_BUREAU:              [ROLE_PROF, ROLE_TRESORIER, ROLE_TRESORIER_ADJOINT, ROLE_SECRETAIRE]
+        ROLE_BUREAU:              [ROLE_PROF, ROLE_TRESORIER, ROLE_TRESORIER_ADJOINT, ROLE_SECRETAIRE, ROLE_SCANNER]
         ROLE_PRESIDENT:           ROLE_PRESIDENCE
         ROLE_VICE_PRESIDENT:      ROLE_PRESIDENCE
         ROLE_PRESIDENCE:          [ROLE_BUREAU, ROLE_ADMIN]
@@ -56,6 +58,9 @@ security:
         - { path: ^/verify/email, roles: PUBLIC_ACCESS }
         - { path: ^/activation, roles: PUBLIC_ACCESS }
         - { path: ^/reset-password, roles: PUBLIC_ACCESS }
+        # Station de scan QR (bénévoles / ados ROLE_SCANNER + bureau)
+        - { path: ^/scan, roles: ROLE_SCANNER }
+        - { path: ^/admin/event/scan, roles: ROLE_SCANNER }
         # Staff pédagogique et bureau (hiérarchie : un trésorier possède aussi ROLE_BUREAU et ROLE_PROF)
         - { path: ^/admin, roles: ROLE_PROF }
 

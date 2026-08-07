@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>
+		{% if status == 'validated' %}Entrée validée
+		{% elseif status == 'already_used' %}Billet déjà utilisé
+		{% else %}Billet introuvable
+		{% endif %}
+		— Studio Danse 430
+	</title>
+	<style>
+		:root { color-scheme: dark; }
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+			padding: 1.5rem;
+		}
+		.card {
+			width: 100%;
+			max-width: 28rem;
+			border-radius: 1.25rem;
+			padding: 2rem 1.5rem;
+			text-align: center;
+			border: 2px solid transparent;
+		}
+		.ok { background: #052e16; border-color: #22c55e; color: #bbf7d0; }
+		.ko { background: #450a0a; border-color: #ef4444; color: #fecaca; }
+		.nf { background: #171717; border-color: #525252; color: #d4d4d4; }
+		h1 { margin: 0 0 0.75rem; font-size: 1.5rem; letter-spacing: 0.04em; }
+		.meta { font-size: 1.05rem; line-height: 1.5; opacity: 0.95; }
+		.place { margin-top: 0.75rem; font-size: 1.15rem; font-weight: 800; color: #fde047; }
+		.hint { margin-top: 1.5rem; font-size: 0.8rem; opacity: 0.7; }
+	</style>
+</head>
+<body class="{% if status == 'validated' %}ok{% elseif status == 'already_used' %}ko{% else %}nf{% endif %}"
+	  style="background:{% if status == 'validated' %}#022c22{% elseif status == 'already_used' %}#450a0a{% else %}#0a0a0a{% endif %};">
+	<div class="card {% if status == 'validated' %}ok{% elseif status == 'already_used' %}ko{% else %}nf{% endif %}">
+		{% if status == 'validated' %}
+			<h1>ENTRÉE VALIDÉE</h1>
+			<p class="meta">
+				<strong>{{ billet.nomParticipant }}</strong><br>
+				{{ billet.event.nom }}
+			</p>
+			{% if billet.numeroPlace %}
+				<p class="place">{{ billet.numeroPlace }}</p>
+			{% endif %}
+			<p class="hint">Scanné à {{ billet.scanneA|date('H\\hi') }}</p>
+			<audio id="bip" preload="auto">
+				<source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2Onp2Zi4B5cG1xdoSTnp2YjoF7dXJzdX+LmZqXkIh+eHVzdXl/i5aYlYyCfXh2dHZ8hZCWmJGHgHt4dnZ3fYWOlZeRiH97eHd2d36GjZWXkYh/e3h3dnd+hY2Vl5GIf3t4d3Z3foWNlZeRiH97eHd2d36FjZWXkYh/e3h3dnd+hY2Vl5GIf3t4d3Z3foWNlZeRiH97eHd2d36FjZWXkYh/e3h3dnd+hY2Vl5GIf3t4d3Z3foWNlZeRiH97eHd2d36FjZWXkYh/e3h3dnd+hY2Vl5GIf3t4d3Z3foWNlZeRiH97eHd2d36FjZWXkYh/e3h3dnd+hY2Vl5GIf3t4d3Z3foWNlZeRiH97eHd2d36FjZWXkYh/e3h3dnd+hY2Vl5GIf3t4d3Z3foWNlZeRiH97eHd2d36FjZWXkYh/e3h3dnd+hY2Vl5GIf3t4d3Z3foWNlZeRiH97eHd2d36FjZWXkYh/e3h3dnd+hY2Vl5GIf3t4d3Z3foWNlZeRiH97eHd2d36FjZWXkYh/e3h3dnd+hY2Vl5GIf3t4d3Z3foWNlZeRiH97eHd2d36FjZWXkYh/" type="audio/wav">
+			</audio>
+			<script>
+				(function () {
+					try {
+						var Ctx = window.AudioContext || window.webkitAudioContext;
+						if (!Ctx) return;
+						var ctx = new Ctx();
+						var o = ctx.createOscillator();
+						var g = ctx.createGain();
+						o.type = 'sine';
+						o.frequency.value = 880;
+						g.gain.value = 0.08;
+						o.connect(g);
+						g.connect(ctx.destination);
+						o.start();
+						g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+						o.stop(ctx.currentTime + 0.26);
+					} catch (e) {}
+				})();
+			</script>
+		{% elseif status == 'already_used' %}
+			<h1>ATTENTION</h1>
+			<p class="meta" style="font-size:1.2rem;font-weight:800;color:#fca5a5;">
+				BILLET DÉJÀ UTILISÉ
+			</p>
+			<p class="meta" style="margin-top:1rem;">
+				{{ billet.nomParticipant }}
+				{% if billet.numeroPlace %}<br>{{ billet.numeroPlace }}{% endif %}
+			</p>
+			<p class="hint">
+				Scanné le {{ billet.scanneA ? billet.scanneA|date('d/m/Y à H\\hi') : '—' }}
+			</p>
+		{% else %}
+			<h1>BILLET INTROUVABLE</h1>
+			<p class="meta">Ce QR Code ne correspond à aucun billet valide.</p>
+		{% endif %}
+	</div>
+</body>
+</html>

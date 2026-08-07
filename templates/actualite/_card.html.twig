@@ -1,14 +1,16 @@
 {# Carte actualité — home & liste #}
 <article class="group flex flex-col bg-neutral-950/80 border border-neutral-800 rounded-2xl overflow-hidden hover:border-[#FFD700]/40 transition-colors duration-200 h-full">
-    <a href="{{ path('app_actualite_show', {slug: actu.slug}) }}" class="block aspect-video bg-neutral-900 overflow-hidden">
+    <a href="{{ path('app_actualite_show', {slug: actu.slug}) }}" class="block overflow-hidden rounded-t-lg">
         {% if actu.image %}
             <img src="{{ asset('uploads/actualites/' ~ actu.image) }}"
+                 class="w-full h-48 object-cover rounded-t-lg group-hover:scale-[1.03] transition-transform duration-300"
                  alt="{{ actu.titre }}"
-                 class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300">
+                 loading="lazy">
         {% else %}
-            <div class="w-full h-full flex items-center justify-center text-neutral-600 text-sm">
-                Studio Danse 430
-            </div>
+            <img src="{{ asset('images/default-hero.jpg') }}"
+                 class="w-full h-48 object-cover rounded-t-lg group-hover:scale-[1.03] transition-transform duration-300"
+                 alt="Studio Danse 430"
+                 loading="lazy">
         {% endif %}
     </a>
     <div class="flex flex-col flex-1 p-5">

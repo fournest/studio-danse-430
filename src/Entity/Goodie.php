@@ -45,6 +45,15 @@ class Goodie
     #[ORM\Column(options: ['default' => true])]
     private bool $estActif = true;
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $dateDebut = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $dateFin = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $dateLivraisonPrevue = null;
+
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
@@ -170,9 +179,81 @@ class Goodie
         return $this;
     }
 
+    public function getDateDebut(): ?\DateTimeImmutable
+    {
+        return $this->dateDebut;
+    }
+
+    public function setDateDebut(?\DateTimeImmutable $dateDebut): static
+    {
+        $this->dateDebut = $dateDebut;
+
+        return $this;
+    }
+
+    public function getDateFin(): ?\DateTimeImmutable
+    {
+        return $this->dateFin;
+    }
+
+    public function setDateFin(?\DateTimeImmutable $dateFin): static
+    {
+        $this->dateFin = $dateFin;
+
+        return $this;
+    }
+
+    public function getDateLivraisonPrevue(): ?\DateTimeImmutable
+    {
+        return $this->dateLivraisonPrevue;
+    }
+
+    public function setDateLivraisonPrevue(?\DateTimeImmutable $dateLivraisonPrevue): static
+    {
+        $this->dateLivraisonPrevue = $dateLivraisonPrevue;
+
+        return $this;
+    }
+
     public function getUpdatedAt(): ?\DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    /**
+     * Vente éphémère ouverte : pas de borne, ou bornes respectées par rapport à maintenant.
+     */
+    public function isAvailableForSale(?\DateTimeImmutable $now = null): bool
+    {
+        $now ??= new \DateTimeImmutable();
+
+        if (null !== $this->dateDebut && $this->dateDebut > $now) {
+            return false;
+        }
+
+        if (null !== $this->dateFin && $this->dateFin < $now) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Statut affiché en admin : En cours / À venir / Terminée.
+     */
+    public function getSaleStatus(?\DateTimeImmutable $now = null): string
+    {
+        $now ??= new \DateTimeImmutable();
+
+        if (null !== $this->dateDebut && $this->dateDebut > $now) {
+            return 'À venir';
+        }
+
+        if (null !== $this->dateFin && $this->dateFin < $now) {
+            return 'Terminée';
+        }
+
+        return 'En cours';
     }
 
     public function __toString(): string
